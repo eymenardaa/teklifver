@@ -18,6 +18,7 @@ const ads = require('./config/ads');
 const site = require('./config/site');
 const icon = require('./lib/icons');
 const helpers = require('./lib/helpers');
+const { visibleProviders } = require('./lib/oauth');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -41,7 +42,12 @@ async function start() {
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
-  Object.assign(app.locals, helpers, { icon, site, demoAccounts: hasDemoData ? demoAccounts : [] });
+  Object.assign(app.locals, helpers, {
+    icon,
+    site,
+    demoAccounts: hasDemoData ? demoAccounts : [],
+    socialProviders: visibleProviders()
+  });
   const activeAds = ads.filter(ad => hasDemoData || !ad.demo);
 
   // Güvenlik başlıkları: yalnızca sitenin kendi betik ve görselleri çalışır.
@@ -160,6 +166,7 @@ async function start() {
   app.use('/', require('./routes/home'));
   app.use('/', require('./routes/pages'));
   app.use('/', require('./routes/auth'));
+  app.use('/', require('./routes/oauth'));
   app.use('/requests', require('./routes/requests'));
   app.use('/companies', require('./routes/companies'));
   app.use('/messages', require('./routes/messages'));

@@ -15,9 +15,9 @@ const { isLoggedIn } = require('../middleware/auth');
 const { uploadLogo, deleteImages } = require('../middleware/upload');
 const { str, isEmail, safeNext } = require('../lib/input');
 const { sendMail } = require('../lib/mailer');
+const { startSession } = require('../lib/session');
 
 const MIN_PASSWORD = 8;
-const REMEMBER_MS = 30 * 24 * 60 * 60 * 1000; // 30 gün
 const RESET_TOKEN_MS = 60 * 60 * 1000; // 1 saat
 
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
@@ -51,26 +51,6 @@ const forgotLimiter = rateLimit({
       errors: { form: 'Çok fazla deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.' }
     })
 });
-
-// Oturum sabitleme saldırısını önlemek için girişte yeni oturum kimliği üretilir.
-function startSession(req, user, remember) {
-  return new Promise((resolve, reject) => {
-    req.session.regenerate(err => {
-      if (err) return reject(err);
-      req.session.user = {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        companyName: user.companyName,
-        isAdmin: Boolean(user.isAdmin),
-        favorites: (user.favorites || []).map(String)
-      };
-      if (remember) req.session.cookie.maxAge = REMEMBER_MS;
-      resolve();
-    });
-  });
-}
 
 const renderProfile = (res, profile, extra = {}) =>
   res.render('auth/profile', { title: 'Hesabım', section: 'profile', categories, profile, ...extra });
@@ -352,7 +332,8 @@ router.post('/profile/password', isLoggedIn, async (req, res, next) => {
     if (!profile) return req.session.destroy(() => res.redirect('/login'));
 
     const errors = {};
-    if (!(await profile.comparePassword(current))) errors.currentPassword = 'Mevcut şifre hatalı.';
+    // Sosyal girişle açılan hesapta mevcut şifre yoktur; ilk şifre doğrudan belirlenir.
+    if (profile.password && !(await profile.comparePassword(current))) errors.currentPassword = 'Mevcut şifre hatalı.';
     if (updated.length < MIN_PASSWORD) errors.newPassword = `Yeni şifre en az ${MIN_PASSWORD} karakter olmalı.`;
 
     if (Object.keys(errors).length) {
@@ -398,9 +379,15 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
     const profile = await User.findById(id);
     if (!profile) return req.session.destroy(() => res.redirect('/'));
 
-    if (!(await profile.comparePassword(password))) {
+    // Şifresi olmayan hesapta onay için e-posta adresi yazılır.
+    const confirmed = profile.password
+      ? await profile.comparePassword(password)
+      : str(req.body.confirmEmail).toLowerCase() === profile.email;
+    if (!confirmed) {
       res.status(422);
-      return renderProfile(res, profile.toObject(), { errors: { deletePassword: 'Şifre hatalı, hesap silinmedi.' } });
+      return renderProfile(res, profile.toObject(), {
+        errors: { deletePassword: profile.password ? 'Şifre hatalı, hesap silinmedi.' : 'E-posta eşleşmedi, hesap silinmedi.' }
+      });
     }
 
     const requests = await Request.find({ customer: id }).select('images');

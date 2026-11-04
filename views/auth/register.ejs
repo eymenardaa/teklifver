@@ -5,6 +5,7 @@
     <div class="box">
       <div class="box-head">Hesap Aç</div>
       <div class="box-body">
+        <%- include('../partials/social-login', { socialRole: values.role === 'company' ? 'company' : '' }) %>
         <form class="form" action="/register" method="POST">
           <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
           <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>

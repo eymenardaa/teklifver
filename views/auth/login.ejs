@@ -16,6 +16,7 @@
     <div class="box">
       <div class="box-head">Giriş Yap</div>
       <div class="box-body">
+        <%- include('../partials/social-login') %>
         <form class="form" id="loginForm" action="/login" method="POST">
           <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
           <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>

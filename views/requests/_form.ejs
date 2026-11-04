@@ -3,10 +3,14 @@
   <select class="select" id="category" name="category" required>
     <option value="" disabled <%= form.category ? '' : 'selected' %>>Seçiniz</option>
     <% categories.forEach(category => { %>
-      <option value="<%= category.name %>" <%= form.category === category.name ? 'selected' : '' %>><%= category.name %></option>
+      <option value="<%= category.name %>" data-tip="<%= requestTips[category.name] || '' %>" <%= form.category === category.name ? 'selected' : '' %>><%= category.name %></option>
     <% }) %>
   </select>
   <% if (errors.category) { %><p class="field-error"><%= errors.category %></p><% } %>
+  <div class="tip-box" id="categoryTip" hidden>
+    <span>Firmalar en çok şunları sorar. Açıklamaya başlık olarak ekleyebilirsiniz.</span>
+    <button class="btn btn-sm" type="button" id="categoryTipAdd">Soruları Ekle</button>
+  </div>
 </div>
 
 <div class="field <%= errors.title ? 'has-error' : '' %>">

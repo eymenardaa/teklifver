@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Fiyat Rehberi</span></div>
+
+  <section class="box">
+    <div class="box-head">Fiyat Rehberi</div>
+    <p class="box-note">Tutarlar bu sitede verilen tekliflerden hesaplanır. İşin kapsamına göre değişir, kesin fiyat değildir.</p>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Kategori</th>
+            <th class="num">Ortalama Teklif</th>
+            <th class="num">En Düşük</th>
+            <th class="num">En Yüksek</th>
+            <th class="num">Ort. Süre</th>
+            <th class="num">Teklif Sayısı</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% allCategories.forEach(category => { const row = guide[category.name]; %>
+            <tr>
+              <td><a href="/requests?category=<%= encodeURIComponent(category.name) %>"><%- icon(category.icon, { size: 13 }) %> <%= category.name %></a></td>
+              <% if (row && row.total >= 3) { %>
+                <td class="num"><strong><%= money(row.average) %></strong></td>
+                <td class="num"><%= money(row.lowest) %></td>
+                <td class="num"><%= money(row.highest) %></td>
+                <td class="num"><%= row.days %> gün</td>
+                <td class="num"><%= row.total %></td>
+              <% } else { %>
+                <td class="num muted" colspan="5">Henüz yeterli teklif yok</td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

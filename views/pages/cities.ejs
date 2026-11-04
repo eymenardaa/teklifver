@@ -1,0 +1,16 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>İllere Göre Talepler</span></div>
+
+  <section class="box">
+    <div class="box-head">İllere Göre Talepler</div>
+    <div class="link-grid">
+      <% allCities.forEach(city => { const total = cityCounts[city] || 0; %>
+        <a class="<%= total ? '' : 'is-empty' %>" href="/requests?city=<%= encodeURIComponent(city) %>"><%= city %> <span class="count">(<%= total %>)</span></a>
+      <% }) %>
+    </div>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

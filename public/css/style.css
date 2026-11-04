@@ -651,3 +651,55 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
   .bid-table td { padding: 2px 0 !important; border: 0 !important; text-align: left !important; }
   .bid-actions { justify-content: flex-start; margin-top: 4px; }
 }
+
+/* Sosyal giriş */
+.social-login { display: grid; gap: 6px; }
+.social-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; background: #fff; border: 1px solid #b9bfc5; color: #222; font-weight: bold; }
+.social-btn:hover { background: var(--zebra); border-color: #8f969d; color: #222; text-decoration: none; }
+.social-logo { flex: none; }
+.or-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--muted); font-size: 12px; }
+.or-line::before, .or-line::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.linked-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.linked-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+.linked-list li:last-child { border-bottom: 0; }
+.linked-name { flex: 1; }
+
+/* Kategoriler, fiyat rehberi, iller */
+.category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+.category-card { border: 1px solid var(--line); }
+.category-card-head { display: flex; align-items: center; gap: 6px; padding: 7px 8px; background: var(--head); border-bottom: 1px solid var(--line); color: #222; }
+.category-card-head .count { margin-left: auto; color: var(--muted); font-size: 12px; }
+.category-card ul { margin: 0; padding: 6px 8px; list-style: none; }
+.category-card li { padding: 2px 0; }
+.box-note { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); color: var(--muted); font-size: 12px; }
+.table-scroll { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; white-space: nowrap; }
+.data-table th { background: var(--zebra); font-size: 12px; }
+.data-table .num { text-align: right; }
+.link-grid a.is-empty { color: #8a8f94; }
+
+/* Müşteri yorumları */
+.review-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
+.review-card { margin: 0; padding: 10px; border-bottom: 1px solid var(--line-soft); border-left: 1px solid var(--line-soft); }
+.review-card:nth-child(odd) { border-left: 0; }
+.review-card blockquote { margin: 4px 0 6px; overflow-wrap: anywhere; }
+.review-card figcaption { color: var(--muted); font-size: 12px; }
+.star-empty { color: #cfd3d7; }
+
+/* Talep formu ve panel */
+.tip-box { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; padding: 7px 9px; background: #f2f7fd; border: 1px solid #cfe0f3; font-size: 12px; }
+#draftNote { margin: 0 0 10px; }
+.tip-box[hidden] { display: none; }
+.checklist { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); background: #fffdf5; }
+.checklist-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.progress { height: 6px; margin-bottom: 5px; background: #e6e8ea; }
+.progress span { display: block; height: 100%; background: var(--orange); }
+
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 100; padding: 6px 10px; background: var(--navy); color: #fff; }
+.skip-link:focus { left: 0; }
+
+@media (max-width: 760px) {
+  .category-grid, .review-grid { grid-template-columns: 1fr; }
+  .review-card { border-left: 0; }
+}

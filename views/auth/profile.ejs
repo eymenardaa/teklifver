@@ -78,19 +78,44 @@
         </section>
       <% } %>
 
+      <% if (socialProviders.length) { %>
+        <section class="box">
+          <div class="box-head">Bağlı Hesaplar</div>
+          <div class="box-body">
+            <ul class="linked-list">
+              <% socialProviders.forEach(provider => {
+                const linked = (profile.socialAccounts || []).some(account => account.provider === provider.key); %>
+                <li>
+                  <%- include('../partials/social-logo', { provider: provider.key }) %>
+                  <span class="linked-name"><%= provider.label %><% if (linked) { %> <span class="small muted">· Bağlı</span><% } %></span>
+                  <% if (linked) { %>
+                    <form action="/profile/social/<%= provider.key %>/unlink" method="POST"><button class="btn btn-sm" type="submit">Kaldır</button></form>
+                  <% } else { %>
+                    <form action="/auth/<%= provider.key %>/link" method="POST"><button class="btn btn-sm" type="submit">Bağla</button></form>
+                  <% } %>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        </section>
+      <% } %>
+
       <section class="box">
-        <div class="box-head">Şifre Değiştir</div>
+        <div class="box-head"><%= profile.password ? 'Şifre Değiştir' : 'Şifre Belirle' %></div>
         <div class="box-body" style="max-width:600px">
+          <% if (!profile.password) { %><p class="muted" style="margin-bottom:8px">Şifre belirlerseniz e-posta adresinizle de giriş yapabilirsiniz.</p><% } %>
           <form class="form" action="/profile/password" method="POST">
-            <%- include('../partials/password-field', {
-              fieldId: 'currentPassword', fieldLabel: 'Mevcut şifre', autocomplete: 'current-password',
-              fieldError: errors.currentPassword
-            }) %>
+            <% if (profile.password) { %>
+              <%- include('../partials/password-field', {
+                fieldId: 'currentPassword', fieldLabel: 'Mevcut şifre', autocomplete: 'current-password',
+                fieldError: errors.currentPassword
+              }) %>
+            <% } %>
             <%- include('../partials/password-field', {
               fieldId: 'newPassword', fieldLabel: 'Yeni şifre', autocomplete: 'new-password',
               minLength: 8, fieldError: errors.newPassword
             }) %>
-            <div class="form-actions"><button class="btn" type="submit">Şifreyi Değiştir</button></div>
+            <div class="form-actions"><button class="btn" type="submit"><%= profile.password ? 'Şifreyi Değiştir' : 'Şifreyi Kaydet' %></button></div>
           </form>
         </div>
       </section>
@@ -109,10 +134,18 @@
           <p class="muted" style="margin-bottom:8px">Hesabınız, talepleriniz, teklifleriniz ve mesajlarınız kalıcı olarak silinir. Bu işlem geri alınamaz.</p>
           <form class="form" action="/profile/delete" method="POST"
             data-confirm="Hesabınız ve tüm verileriniz kalıcı olarak silinecek. Emin misiniz?" data-confirm-label="Hesabımı Sil" data-confirm-tone="danger">
-            <%- include('../partials/password-field', {
-              fieldId: 'password', fieldLabel: 'Onay için şifreniz', autocomplete: 'current-password',
-              fieldError: errors.deletePassword
-            }) %>
+            <% if (profile.password) { %>
+              <%- include('../partials/password-field', {
+                fieldId: 'password', fieldLabel: 'Onay için şifreniz', autocomplete: 'current-password',
+                fieldError: errors.deletePassword
+              }) %>
+            <% } else { %>
+              <div class="field <%= errors.deletePassword ? 'has-error' : '' %>">
+                <label class="field-label" for="confirmEmail">Onay için e-posta adresiniz</label>
+                <input class="input" type="email" id="confirmEmail" name="confirmEmail" autocomplete="off" required>
+                <% if (errors.deletePassword) { %><p class="field-error"><%= errors.deletePassword %></p><% } %>
+              </div>
+            <% } %>
             <div class="form-actions"><button class="btn btn-danger-quiet" type="submit">Hesabımı Sil</button></div>
           </form>
         </div>

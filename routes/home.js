@@ -3,6 +3,7 @@ const router = express.Router();
 const Request = require('../models/Request');
 const User = require('../models/User');
 const Bid = require('../models/Bid');
+const Review = require('../models/Review');
 const { openCountsByCategory, uniqueByPhoto } = require('../lib/stats');
 const { liveFilter } = require('../lib/listing');
 
@@ -13,7 +14,7 @@ router.get('/', async (req, res, next) => {
     const now = new Date();
     const open = liveFilter();
 
-    const [showcase, latest, closing, counts, topCompanies, cityRows, todayCount, companyCount, bidCount, completedCount] =
+    const [showcase, latest, closing, counts, topCompanies, cityRows, todayCount, companyCount, bidCount, completedCount, reviews] =
       await Promise.all([
         // Vitrin: fotoğraflı ve en çok bakılan açık talepler
         Request.find({ ...open, 'images.0': { $exists: true } }).sort({ viewCount: -1 }).limit(60).lean(),
@@ -34,7 +35,13 @@ router.get('/', async (req, res, next) => {
         Request.countDocuments({ ...open, createdAt: { $gte: new Date(now.getTime() - DAY_MS) } }),
         User.countDocuments({ role: 'company' }),
         Bid.countDocuments(),
-        Request.countDocuments({ status: 'completed' })
+        Request.countDocuments({ status: 'completed' }),
+        Review.find({ comment: { $nin: [null, ''] } })
+          .populate('customer', 'name')
+          .populate('company', 'name companyName')
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .lean()
       ]);
 
     res.render('home', {
@@ -46,7 +53,8 @@ router.get('/', async (req, res, next) => {
       topCompanies,
       cityRows,
       total: Object.values(counts).reduce((sum, count) => sum + count, 0),
-      stats: { todayCount, companyCount, bidCount, completedCount }
+      stats: { todayCount, companyCount, bidCount, completedCount },
+      latestReviews: reviews.filter(review => review.customer && review.company).slice(0, 4)
     });
   } catch (err) {
     next(err);

@@ -1,0 +1,10 @@
+<% if (locals.checklist && checklist.missing.length) { %>
+  <div class="checklist">
+    <div class="checklist-head">
+      <strong>Profiliniz %<%= checklist.percent %> dolu</strong>
+      <a class="small" href="/profile">Tamamla</a>
+    </div>
+    <div class="progress" role="progressbar" aria-valuenow="<%= checklist.percent %>" aria-valuemin="0" aria-valuemax="100" aria-label="Profil doluluğu"><span style="width:<%= checklist.percent %>%"></span></div>
+    <p class="small muted">Eksikler: <%= checklist.missing.join(', ') %></p>
+  </div>
+<% } %>

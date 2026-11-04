@@ -38,6 +38,18 @@ Tüm ayarların örneği `.env.example` dosyasındadır.
 | `ADMIN_EMAIL` | Bu e-postayla kayıtlı hesap, sunucu açılışında yönetici yapılır |
 | `SMTP_*` | Şifre sıfırlama e-postaları. Boşsa geliştirmede bağlantı sunucu günlüğüne yazılır |
 
+### Google, Facebook ve Microsoft ile giriş
+
+Her sağlayıcıda uygulama oluşturup aldığınız anahtarları `.env` dosyasına yazın (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` vb.) ve sunucuyu yeniden başlatın.
+
+| Sağlayıcı | Nereden alınır | Yönlendirme adresi |
+| --- | --- | --- |
+| Google | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth istemci kimliği | `SITE_URL/auth/google/callback` |
+| Facebook | [Meta for Developers](https://developers.facebook.com/apps) → Facebook Login | `SITE_URL/auth/facebook/callback` |
+| Microsoft | [Azure App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps) → yalnızca kişisel hesaplar | `SITE_URL/auth/microsoft/callback` |
+
+Geliştirmede `SITE_URL` boşsa adres `http://localhost:3000/...` olur. Anahtarı olmayan sağlayıcının butonu geliştirmede görünür ve tıklanınca uyarı verir, canlıda hiç görünmez.
+
 ## Örnek veriler
 
 Geliştirme ortamında veritabanında hiç talep yoksa sunucu açılışta örnek firmalar, talepler, teklifler, mesajlar ve yorumlar ekler. Giriş sayfasındaki **Müşteri**, **Firma** ve **Yönetici hesabı** butonlarıyla tek tıkla girilir. Canlı ortamda örnek veri eklenmez ve bu butonlar görünmez.
@@ -77,6 +89,7 @@ Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleye
 
 **Müşteri**
 - Fotoğraflı talep verme, düzenleme, kapatma, silme ve yeniden yayınlama
+- Kategoriye göre yardımcı sorular, yarım kalan talep taslağının saklanması (çerez onayıyla)
 - Teklifleri fiyat, süre ve puana göre sıralama, kabul etme ve reddetme
 - İşi tamamlama, firmayı puanlama ve yorum yazma
 
@@ -93,6 +106,8 @@ Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleye
 
 **Hesap**
 - Kayıt, giriş ve çıkış; bireysel ve firma hesapları; koşul onayı
+- Google, Facebook ve Microsoft ile giriş; hesap bağlama ve bağlantı kaldırma
+- Profil doluluk göstergesi
 - "Oturumum açık kalsın" (30 gün), şifre değiştirme, şifremi unuttum
 - Verilerimi indirme ve hesabı silme
 - Şifreler bcrypt ile saklanır; hatalı giriş denemeleri sınırlandırılır
@@ -106,7 +121,8 @@ Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleye
 **Reklam, yasal ve teknik**
 - Üst, yan ve liste içi reklam alanları; reklamlar `config/ads.js` dosyasından yönetilir
 - Açılışta çerez onayı: tümünü kabul et, reddet veya tek tek seç
-- Yardım, reklam, kullanım koşulları, KVKK ve çerez politikası sayfaları (`views/pages`)
+- Yardım, iletişim formu, reklam, kullanım koşulları, KVKK ve çerez politikası sayfaları (`views/pages`)
+- Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Site haritası, robots.txt, paylaşım etiketleri
 - Güvenlik başlıkları (CSP), gzip sıkıştırma
 

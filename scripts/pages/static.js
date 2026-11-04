@@ -342,6 +342,12 @@
     showClosedDialog();
   }, true);
 
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.social-btn')) return;
+    event.preventDefault();
+    showClosedDialog();
+  });
+
   function closeAccountForms() {
     if (!['/login/', '/register/', '/forgot/'].includes(route)) return;
     const form = $('main form');

@@ -563,6 +563,73 @@
     $$('[data-print]').forEach(button => button.addEventListener('click', () => window.print()));
   }
 
+  /* Talep formu: seçilen kategoriye göre yardımcı sorular */
+  function initCategoryTip() {
+    const select = $('#category');
+    const box = $('#categoryTip');
+    if (!select || !box) return;
+    const description = $('#description');
+
+    const currentTip = () => (select.selectedOptions[0] ? select.selectedOptions[0].dataset.tip || '' : '');
+    const update = () => { box.hidden = !currentTip() || description.value.includes(currentTip()); };
+
+    select.addEventListener('change', update);
+    description.addEventListener('input', update);
+    $('#categoryTipAdd').addEventListener('click', () => {
+      description.value = description.value ? `${description.value}\n\n${currentTip()}` : currentTip();
+      description.dispatchEvent(new Event('input', { bubbles: true }));
+      description.focus();
+    });
+    update();
+  }
+
+  /* Talep taslağı: yalnızca tercih çerezine onay verildiyse tarayıcıda saklanır */
+  function initDraft() {
+    const form = $('form[data-draft]');
+    if (!form) return;
+    const consent = readConsent();
+    if (!consent || !consent.preferences) return;
+
+    const key = form.dataset.draft;
+    const fields = ['category', 'title', 'description', 'city', 'location', 'budgetMin', 'budgetMax', 'deadline']
+      .map(name => form.elements[name]);
+    const note = $('#draftNote');
+    const forget = () => { try { localStorage.removeItem(key); } catch { /* depolama kapalı olabilir */ } };
+
+    const isEmpty = fields.every(field => !field.value);
+    if (isEmpty) {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch { /* bozuk taslak yok sayılır */ }
+      if (saved && typeof saved === 'object' && Object.values(saved).some(Boolean)) {
+        fields.forEach(field => {
+          if (typeof saved[field.name] === 'string') field.value = saved[field.name];
+        });
+        note.hidden = false;
+        form.elements.category.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    let timer;
+    form.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const draft = Object.fromEntries(fields.map(field => [field.name, field.value]));
+        try { localStorage.setItem(key, JSON.stringify(draft)); } catch { /* depolama kapalı olabilir */ }
+      }, 400);
+    });
+    form.addEventListener('submit', () => {
+      clearTimeout(timer);
+      forget();
+    });
+    $('#draftClear').addEventListener('click', () => {
+      clearTimeout(timer);
+      forget();
+      form.reset();
+      note.hidden = true;
+      form.elements.category.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
   /* Sayfa başına dön */
   function initToTop() {
     const button = $('#toTop');
@@ -599,6 +666,8 @@
     initDemoLogin();
     initCookieBanner();
     initRecent();
+    initCategoryTip();
+    initDraft();
     initToTop();
     initSuggest();
     initSmallActions();

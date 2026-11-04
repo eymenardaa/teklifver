@@ -6,6 +6,7 @@ const User = require('../models/User');
 const SavedSearch = require('../models/SavedSearch');
 const { isLoggedIn, isCompany } = require('../middleware/auth');
 const { str } = require('../lib/input');
+const { profileChecklist } = require('../lib/stats');
 const { liveFilter, readFilters, buildConditions, filtersToQuery, describeFilters } = require('../lib/listing');
 
 const MAX_SAVED_SEARCHES = 20;
@@ -13,6 +14,10 @@ const MAX_SAVED_SEARCHES = 20;
 router.get('/', isLoggedIn, async (req, res, next) => {
   try {
     const user = req.session.user;
+    const account = await User.findById(user.id)
+      .select('role phone address avatar companyDescription categories specialties')
+      .lean();
+    res.locals.checklist = profileChecklist(account);
 
     if (user.role === 'customer') {
       const myRequests = await Request.find({ customer: user.id }).sort({ createdAt: -1 }).lean();

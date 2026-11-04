@@ -14,10 +14,16 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  // Google, Facebook veya Microsoft ile açılan hesaplarda şifre olmayabilir.
   password: {
     type: String,
-    required: [true, 'Şifre gereklidir']
+    required: [function() { return !(this.socialAccounts && this.socialAccounts.length); }, 'Şifre gereklidir']
   },
+  socialAccounts: [{
+    _id: false,
+    provider: { type: String, required: true },
+    providerId: { type: String, required: true }
+  }],
   role: {
     type: String,
     enum: ['customer', 'company'],
@@ -92,14 +98,21 @@ const userSchema = new mongoose.Schema({
 
 // Şifre hashleme
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 // Şifre karşılaştırma
 userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Aynı sosyal hesap iki kullanıcıya bağlanamaz.
+userSchema.index(
+  { 'socialAccounts.provider': 1, 'socialAccounts.providerId': 1 },
+  { unique: true, partialFilterExpression: { 'socialAccounts.provider': { $exists: true } } }
+);
 
 module.exports = mongoose.model('User', userSchema);

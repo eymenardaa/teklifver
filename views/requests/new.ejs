@@ -6,7 +6,11 @@
   <section class="box">
     <div class="box-head">Ücretsiz Talep Ver</div>
     <div class="box-body">
-      <form class="form" action="/requests" method="POST" enctype="multipart/form-data">
+      <div class="tip-box" id="draftNote" hidden>
+        <span>Yarım kalan taslağınız geri yüklendi.</span>
+        <button class="btn btn-sm" type="button" id="draftClear">Taslağı Sil</button>
+      </div>
+      <form class="form" action="/requests" method="POST" enctype="multipart/form-data" data-draft="request-draft">
         <%- include('_form', {
           form: {
             title: values.title || '',

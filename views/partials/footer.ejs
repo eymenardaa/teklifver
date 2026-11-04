@@ -10,6 +10,8 @@
             <li><a href="/requests?period=1">Son 24 Saat</a></li>
             <li><a href="/requests?noBids=on">Teklif Almamış Talepler</a></li>
             <li><a href="/requests/new">Ücretsiz Talep Ver</a></li>
+            <li><a href="/iller">İllere Göre Talepler</a></li>
+            <li><a href="/fiyat-rehberi">Fiyat Rehberi</a></li>
           </ul>
         </div>
         <div>
@@ -18,6 +20,7 @@
             <% allCategories.slice(0, 4).forEach(category => { %>
               <li><a href="/requests?category=<%= encodeURIComponent(category.name) %>"><%= category.name %></a></li>
             <% }) %>
+            <li><a href="/kategoriler">Tüm Kategoriler</a></li>
           </ul>
         </div>
         <div>
@@ -31,6 +34,7 @@
           <h3>Kurumsal</h3>
           <ul>
             <li><a href="/yardim">Yardım</a></li>
+            <li><a href="/iletisim">İletişim</a></li>
             <li><a href="/reklam">Reklam Ver</a></li>
             <li><a href="/kullanim-kosullari">Kullanım Koşulları</a></li>
             <li><a href="/gizlilik">Gizlilik ve KVKK</a></li>

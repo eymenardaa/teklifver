@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>İletişim</span></div>
+  <div class="layout">
+    <aside><%- include('../partials/page-menu') %></aside>
+    <section class="box">
+      <div class="box-head">Bize Yazın</div>
+      <div class="box-body" style="max-width:560px">
+        <p class="muted" style="margin-bottom:10px">Sorunuz varsa önce <a href="/yardim">Yardım</a> sayfasına bakabilirsiniz.</p>
+        <form class="form" action="/iletisim" method="POST">
+          <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+          <div class="field <%= errors.name ? 'has-error' : '' %>">
+            <label class="field-label" for="contactName">Ad soyad</label>
+            <input class="input" type="text" id="contactName" name="name" value="<%= values.name || '' %>" autocomplete="name" required>
+            <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
+          </div>
+          <div class="field <%= errors.email ? 'has-error' : '' %>">
+            <label class="field-label" for="contactEmail">E-posta adresi</label>
+            <input class="input" type="email" id="contactEmail" name="email" value="<%= values.email || '' %>" autocomplete="email" required>
+            <% if (errors.email) { %><p class="field-error"><%= errors.email %></p><% } %>
+          </div>
+          <div class="field <%= errors.subject ? 'has-error' : '' %>">
+            <label class="field-label" for="contactSubject">Konu</label>
+            <select class="select" id="contactSubject" name="subject" required>
+              <option value="">Seçiniz</option>
+              <% subjects.forEach(subject => { %>
+                <option value="<%= subject %>" <%= values.subject === subject ? 'selected' : '' %>><%= subject %></option>
+              <% }) %>
+            </select>
+            <% if (errors.subject) { %><p class="field-error"><%= errors.subject %></p><% } %>
+          </div>
+          <div class="field <%= errors.message ? 'has-error' : '' %>">
+            <label class="field-label" for="contactMessage">Mesajınız</label>
+            <textarea class="textarea" id="contactMessage" name="message" rows="6" maxlength="2000" required><%= values.message || '' %></textarea>
+            <% if (errors.message) { %><p class="field-error"><%= errors.message %></p><% } %>
+          </div>
+          <div class="visually-hidden" aria-hidden="true">
+            <label for="contactWebsite">Bu alanı boş bırakın</label>
+            <input type="text" id="contactWebsite" name="website" tabindex="-1" autocomplete="off">
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" type="submit">Gönder</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

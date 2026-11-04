@@ -1,0 +1,17 @@
+<% if (socialProviders.length) { %>
+  <%
+    const query = new URLSearchParams();
+    if (locals.next) query.set('next', next);
+    if (locals.socialRole) query.set('role', socialRole);
+    const suffix = query.toString() ? '?' + query.toString() : '';
+  %>
+  <div class="social-login">
+    <% socialProviders.forEach(provider => { %>
+      <a class="social-btn" href="/auth/<%= provider.key %><%= suffix %>">
+        <%- include('social-logo', { provider: provider.key }) %>
+        <span><%= provider.label %> ile devam et</span>
+      </a>
+    <% }) %>
+  </div>
+  <div class="or-line"><span>veya e-posta ile</span></div>
+<% } %>

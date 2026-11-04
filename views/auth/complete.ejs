@@ -1,0 +1,53 @@
+<%- include('../partials/header') %>
+
+<div class="wrap">
+  <div class="auth-box">
+    <div class="box">
+      <div class="box-head">Kaydı Tamamla</div>
+      <div class="box-body">
+        <p class="small muted" style="margin-bottom:10px"><strong><%= providerLabel %></strong> hesabınız doğrulandı (<%= pending.email %>). Hesap türünü seçip kaydı tamamlayın.</p>
+        <form class="form" action="/auth/complete" method="POST">
+          <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+
+          <fieldset class="role-picker">
+            <legend class="field-label" style="margin-bottom:4px">Hesap türü</legend>
+            <label class="role-line">
+              <input type="radio" name="role" value="customer" <%= values.role !== 'company' ? 'checked' : '' %>>
+              <div><strong>Bireysel</strong><span>Talep verip firmalardan teklif almak için</span></div>
+            </label>
+            <label class="role-line">
+              <input type="radio" name="role" value="company" <%= values.role === 'company' ? 'checked' : '' %>>
+              <div><strong>Firma</strong><span>Taleplere teklif vermek için</span></div>
+            </label>
+          </fieldset>
+
+          <div class="collapsible <%= values.role === 'company' ? 'is-open' : '' %>" id="companyFields">
+            <div class="field <%= errors.companyName ? 'has-error' : '' %>">
+              <label class="field-label" for="companyName">Firma adı</label>
+              <input class="input" type="text" id="companyName" name="companyName" value="<%= values.companyName || '' %>" autocomplete="organization">
+              <% if (errors.companyName) { %><p class="field-error"><%= errors.companyName %></p><% } %>
+            </div>
+          </div>
+
+          <div class="field <%= errors.name ? 'has-error' : '' %>">
+            <label class="field-label" for="name">Ad soyad</label>
+            <input class="input" type="text" id="name" name="name" value="<%= values.name || '' %>" autocomplete="name" required>
+            <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
+          </div>
+
+          <div class="field <%= errors.terms ? 'has-error' : '' %>">
+            <label class="checkbox terms-line">
+              <input type="checkbox" name="terms" required>
+              <span><a href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı kabul ediyorum, <a href="/gizlilik" target="_blank">Aydınlatma Metni</a>'ni okudum.</span>
+            </label>
+            <% if (errors.terms) { %><p class="field-error"><%= errors.terms %></p><% } %>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Hesabı Oluştur</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
