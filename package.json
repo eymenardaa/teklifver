@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "demo:sil": "node scripts/remove-demo.js"
+    "demo:sil": "node scripts/remove-demo.js",
+    "pages:build": "node scripts/build-pages.js",
+    "pages:deploy": "node scripts/deploy-pages.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

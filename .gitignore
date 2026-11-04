@@ -4,5 +4,6 @@ node_modules/
 !.env.example
 uploads/
 .data/
+dist-pages/
 .claude/
 *.log

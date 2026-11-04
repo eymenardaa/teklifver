@@ -2,6 +2,7 @@
 (function () {
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+  const BASE = document.documentElement.dataset.base || ''; // statik önizleme alt klasörde yayınlanır
 
   /* Bildirimleri kapatma */
   function initAlerts() {
@@ -455,13 +456,13 @@
       ...items.map(item => {
         const link = document.createElement('a');
         link.className = 'showcase-item';
-        link.href = item.url;
+        link.href = BASE + item.url;
 
         const photo = document.createElement('div');
         photo.className = 'showcase-photo';
         if (/^\/(img|uploads)\//.test(item.image)) {
           const image = document.createElement('img');
-          image.src = item.image;
+          image.src = BASE + item.image;
           image.alt = '';
           photo.append(image);
         } else {

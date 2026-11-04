@@ -50,6 +50,19 @@ npm run demo:sil
 
 Örnek talep fotoğrafları [Unsplash](https://unsplash.com) kaynaklıdır ve `public/img/ilan` klasöründedir.
 
+## GitHub Pages önizlemesi
+
+GitHub Pages sunucu çalıştıramadığı için orada sitenin statik bir önizlemesi yayınlanır: https://sswird.github.io/teklifver/
+
+Talepler, firmalar, arama ve filtreler çalışır. Üyelik, talep verme, teklif ve mesajlaşma kapalıdır. Önizleme boş, geçici bir veritabanındaki örnek verilerden üretilir; gerçek veritabanı ve `.env` kullanılmaz. Tarihler üretildiği anda sabitlenir.
+
+```bash
+npm run pages:build
+npm run pages:deploy
+```
+
+Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleyen bir sunucuda çalışması gerekir.
+
 ## Özellikler
 
 **Talepler**
