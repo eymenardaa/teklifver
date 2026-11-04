@@ -1,0 +1,23 @@
+# Render.com kurulum dosyası. Adımlar için YAYIN-REHBERI.md dosyasına bakın.
+# Sosyal giriş, SMTP ve ADMIN_EMAIL gibi diğer ayarlar sonradan Environment sekmesinden eklenir.
+services:
+  - type: web
+    name: teklifver
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: SITE_COMPANY
+        sync: false
+      - key: SITE_EMAIL
+        sync: false

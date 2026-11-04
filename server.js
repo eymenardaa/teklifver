@@ -8,7 +8,10 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 
+const mongoose = require('mongoose');
 const connectDatabase = require('./config/db');
+const { closeDatabase } = connectDatabase;
+const { serveImage } = require('./middleware/upload');
 const { seedDemoData, demoAccounts } = require('./config/demo');
 const Request = require('./models/Request');
 const Message = require('./models/Message');
@@ -26,6 +29,7 @@ async function start() {
   if (!process.env.SESSION_SECRET) {
     throw new Error('SESSION_SECRET tanımlı değil. .env dosyasını kontrol edin.');
   }
+  if (isProduction) checkProductionSettings();
 
   const mongoUrl = await connectDatabase();
   const hasDemoData = !isProduction && (await seedDemoData());
@@ -38,7 +42,8 @@ async function start() {
 
   const app = express();
 
-  if (isProduction) app.set('trust proxy', 1);
+  // Barındırma servisinin önündeki vekil sunucu sayısı; gerçek ziyaretçi IP'si ve https buradan anlaşılır.
+  if (isProduction) app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 1);
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
@@ -75,7 +80,13 @@ async function start() {
 
   const staticOptions = { maxAge: isProduction ? '1d' : 0 };
   app.use(express.static(path.join(__dirname, 'public'), staticOptions));
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOptions));
+
+  // Sunucunun ayakta olduğunu ve veritabanına bağlı olduğunu barındırma servisine bildirir.
+  app.get('/healthz', (req, res) => {
+    const healthy = mongoose.connection.readyState === 1;
+    res.status(healthy ? 200 : 503).json({ status: healthy ? 'ok' : 'veritabani-yok' });
+  });
+
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.use(methodOverride('_method'));
@@ -163,6 +174,7 @@ async function start() {
     }
   });
 
+  app.get('/uploads/:name', serveImage);
   app.use('/', require('./routes/home'));
   app.use('/', require('./routes/pages'));
   app.use('/', require('./routes/auth'));
@@ -194,9 +206,29 @@ async function start() {
   });
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`  TeklifVer hazır: http://localhost:${PORT}`);
   });
+
+  // Barındırma servisi yeniden başlatırken açık istekler yarıda kesilmesin.
+  if (isProduction) {
+    process.once('SIGTERM', () => {
+      server.close(() => closeDatabase().finally(() => process.exit(0)));
+      setTimeout(() => process.exit(0), 10000).unref();
+    });
+  }
+}
+
+// Canlıda güvensiz bir ayarla açılmayı engeller, eksik özellikleri günlüğe yazar.
+function checkProductionSettings() {
+  const secret = process.env.SESSION_SECRET;
+  if (secret.length < 32 || secret === 'buraya-uzun-ve-rastgele-bir-metin-yazin') {
+    throw new Error('SESSION_SECRET en az 32 karakter uzunluğunda rastgele bir metin olmalı.');
+  }
+  if (!process.env.SITE_URL) console.warn('  Uyarı: SITE_URL tanımlı değil; paylaşım ve sosyal giriş adresleri istekteki alan adından üretilir.');
+  if (!process.env.SMTP_HOST) console.warn('  Uyarı: SMTP tanımlı değil; şifre sıfırlama e-postaları gönderilemez.');
+  if (!process.env.SITE_EMAIL) console.warn('  Uyarı: SITE_EMAIL tanımlı değil; iletişim formu çalışmaz.');
+  if (!visibleProviders().length) console.warn('  Uyarı: Sosyal giriş anahtarı tanımlı değil; butonlar gizlendi.');
 }
 
 start().catch(err => {

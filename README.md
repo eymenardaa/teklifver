@@ -73,7 +73,7 @@ npm run pages:build
 npm run pages:deploy
 ```
 
-Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleyen bir sunucuda çalışması gerekir.
+Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda çalışması gerekir. Adımlar: [YAYIN-REHBERI.md](YAYIN-REHBERI.md)
 
 ## Özellikler
 
@@ -125,6 +125,8 @@ Yeni özelliklerin tam çalışması için sitenin Node.js ve MongoDB destekleye
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Site haritası, robots.txt, paylaşım etiketleri
 - Güvenlik başlıkları (CSP), gzip sıkıştırma
+- Yüklenen görseller veritabanında (GridFS) saklanır, sunucu yeniden başlasa da silinmez
+- Sağlık kontrolü (`/healthz`), Render kurulum dosyası (`render.yaml`)
 
 Yasal metinler taslaktır. Yayına almadan önce bir hukukçuya kontrol ettirin, sayfalardaki taslak uyarısını kaldırın.
 
@@ -139,7 +141,6 @@ routes/       home, pages, auth, requests, companies, messages, notifications, b
 scripts/      Örnek verileri silme aracı
 views/        EJS şablonları
 public/       CSS, JavaScript, fotoğraflar, favicon
-uploads/      Yüklenen görseller
 ```
 
 ## İkonlar

@@ -1,21 +1,40 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const crypto = require('crypto');
+const { pipeline } = require('stream');
+const mongoose = require('mongoose');
 
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
+// Görseller veritabanında (GridFS) saklanır. Ücretsiz sunucularda disk her yeniden başlatmada
+// silindiği için dosyaya yazmak görsellerin kaybolmasına yol açardı.
 const MAX_IMAGES = 5;
 
-const newFileName = extension =>
-  `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension.toLowerCase()}`;
+const CONTENT_TYPES = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp'
+};
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, newFileName(path.extname(file.originalname)))
-});
+const bucket = () => new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
+
+const newFileName = extension => `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension.toLowerCase()}`;
+
+async function removeByName(name) {
+  const files = await bucket().find({ filename: name }).toArray();
+  await Promise.all(files.map(file => bucket().delete(file._id)));
+}
+
+const storage = {
+  _handleFile(req, file, cb) {
+    const filename = newFileName(path.extname(file.originalname));
+    const target = bucket().openUploadStream(filename);
+    pipeline(file.stream, target, err => (err ? cb(err) : cb(null, { filename, size: target.length })));
+  },
+  _removeFile(req, file, cb) {
+    removeByName(file.filename).then(() => cb(null), cb);
+  }
+};
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /^(jpeg|jpg|png|gif|webp)$/;
@@ -48,11 +67,11 @@ const withFriendlyErrors = handler => (req, res, next) => {
 const uploadImages = withFriendlyErrors(upload.array('images', MAX_IMAGES));
 const uploadLogo = withFriendlyErrors(upload.single('logo'));
 
-// "/uploads/..." yollarını diskten siler; örnek fotoğraflara ve dizin dışına dokunmaz.
+// "/uploads/..." görsellerini siler; örnek fotoğraflara dokunmaz.
 function deleteImages(imagePaths) {
   for (const imagePath of imagePaths) {
     if (!String(imagePath).startsWith('/uploads/')) continue;
-    fs.unlink(path.join(uploadDir, path.basename(imagePath)), () => {});
+    removeByName(path.basename(imagePath)).catch(err => console.error('Görsel silinemedi:', err.message));
   }
 }
 
@@ -66,7 +85,13 @@ async function copyImages(imagePaths) {
     }
     const name = newFileName(path.extname(imagePath));
     try {
-      await fs.promises.copyFile(path.join(uploadDir, path.basename(imagePath)), path.join(uploadDir, name));
+      await new Promise((resolve, reject) => {
+        pipeline(
+          bucket().openDownloadStreamByName(path.basename(imagePath)),
+          bucket().openUploadStream(name),
+          err => (err ? reject(err) : resolve())
+        );
+      });
       copies.push('/uploads/' + name);
     } catch {
       // Dosya bulunamadıysa bu görsel atlanır.
@@ -75,4 +100,28 @@ async function copyImages(imagePaths) {
   return copies;
 }
 
-module.exports = { uploadImages, uploadLogo, deleteImages, copyImages, MAX_IMAGES };
+// GET /uploads/:name — tür dosya içeriğinden değil, izin verilen uzantıdan belirlenir.
+async function serveImage(req, res, next) {
+  try {
+    const name = path.basename(req.params.name);
+    const contentType = CONTENT_TYPES[path.extname(name).toLowerCase()];
+    if (!contentType) return next();
+
+    const [file] = await bucket().find({ filename: name }).limit(1).toArray();
+    if (!file) return next();
+
+    res.set({
+      'Content-Type': contentType,
+      'Content-Length': String(file.length),
+      'Cache-Control': 'public, max-age=604800, immutable'
+    });
+    if (req.method === 'HEAD') return res.end();
+    pipeline(bucket().openDownloadStream(file._id), res, err => {
+      if (err && !res.headersSent) next(err);
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { uploadImages, uploadLogo, deleteImages, copyImages, serveImage, MAX_IMAGES };
