@@ -1,0 +1,110 @@
+<%- include('../partials/header') %>
+
+<% const companyTitle = company.companyName || company.name; %>
+
+<div class="wrap page">
+  <div class="crumbs">
+    <a href="/">Ana Sayfa</a> &rsaquo; <a href="/companies">Firma Rehberi</a> &rsaquo; <span><%= companyTitle %></span>
+  </div>
+
+  <section class="box">
+    <div class="company-head">
+      <%- include('../partials/company-mark', { company }) %>
+      <div>
+        <h1><%= companyTitle %> <% if (company.verified) { %><%- include('../partials/verified') %><% } %></h1>
+        <div class="meta">
+          <% if (company.ratingCount > 0) { %>
+            <%- icon('star', { size: 13, class: 'star' }) %> <strong><%= company.rating %></strong> (<%= company.ratingCount %> değerlendirme)
+          <% } else { %>Henüz değerlendirme yok<% } %>
+          <% if (company.address) { %> · <%= company.address %><% } %>
+          · Üyelik: <%= memberSince(company.createdAt) %>
+        </div>
+      </div>
+    </div>
+    <div class="summary">
+      <div><strong><%= stats.bidTotal %></strong><span>Verilen teklif</span></div>
+      <div><strong><%= stats.accepted %></strong><span>Kabul edilen</span></div>
+      <div><strong><%= stats.acceptRate === null ? '-' : '%' + stats.acceptRate %></strong><span>Kabul oranı</span></div>
+      <div><strong><%= stats.avgDays === null ? '-' : stats.avgDays + ' gün' %></strong><span>Ort. teslim süresi</span></div>
+    </div>
+  </section>
+
+  <section class="box">
+    <div class="box-head">Firma Hakkında</div>
+    <div class="box-body">
+      <p class="prose"><%= company.companyDescription || 'Bu firma henüz tanıtım yazısı eklemedi.' %></p>
+      <% if (company.specialties && company.specialties.length) { %>
+        <p class="tag-line" style="margin-top:8px"><strong>Hizmetler:</strong> <%= company.specialties.join(', ') %></p>
+      <% } %>
+      <% if (company.categories && company.categories.length) { %>
+        <p class="tag-line" style="margin-top:4px"><strong>Kategoriler:</strong> <%= company.categories.join(', ') %></p>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="box">
+    <div class="box-head">Müşteri Yorumları (<%= reviews.length %>)</div>
+    <% if (reviews.length === 0) { %>
+      <div class="empty">Bu firma için henüz yorum yazılmadı.</div>
+    <% } else { %>
+      <ul class="review-list">
+        <% reviews.forEach(review => { %>
+          <li>
+            <div class="review-top">
+              <span class="review-stars" aria-label="<%= review.rating %> yıldız">
+                <% for (let i = 1; i <= 5; i += 1) { %><%- icon('star', { size: 13, class: i <= review.rating ? 'star' : 'star-empty' }) %><% } %>
+              </span>
+              <strong><%= review.customer.name %></strong>
+              <span class="muted small"><%= formatDate(review.createdAt) %></span>
+            </div>
+            <% if (review.comment) { %><p class="prose"><%= review.comment %></p><% } %>
+            <% if (review.request) { %><a class="small" href="/requests/<%= review.request._id %>"><%= review.request.title %></a><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section class="box">
+    <div class="box-head">Aldığı İşler (<%= jobs.length %>)</div>
+    <% if (jobs.length === 0) { %>
+      <div class="empty">Bu firmanın henüz kabul edilmiş teklifi yok.</div>
+    <% } else { %>
+      <table class="listing-table">
+        <thead>
+          <tr>
+            <th class="col-photo"></th>
+            <th>Talep</th>
+            <th class="col-place">İl / İlçe</th>
+            <th class="col-date">Tarih</th>
+            <th class="col-status">Durum</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% jobs.forEach(job => { %>
+            <tr>
+              <td class="col-photo">
+                <a class="thumb" href="/requests/<%= job._id %>" tabindex="-1" aria-hidden="true">
+                  <% if (job.images && job.images.length) { %>
+                    <img src="<%= job.images[0] %>" alt="" loading="lazy">
+                  <% } else { %>
+                    <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+                  <% } %>
+                </a>
+              </td>
+              <td>
+                <a class="listing-title" href="/requests/<%= job._id %>"><%= job.title %></a>
+                <div class="listing-sub"><%= job.category %></div>
+              </td>
+              <td class="col-place"><%= placeLabel(job) %></td>
+              <td class="col-date"><%= formatDate(job.createdAt) %></td>
+              <td class="col-status"><%- include('../partials/status', { status: requestStatus[job.status] }) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

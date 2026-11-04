@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Çerez Politikası</span></div>
+  <div class="layout">
+    <aside><%- include('../partials/page-menu') %></aside>
+    <section class="box">
+      <div class="box-head">Çerez Politikası</div>
+      <div class="box-body legal">
+        <p class="draft-note">Bu metin taslaktır. Yayına almadan önce bir hukukçuya kontrol ettirilmelidir.</p>
+
+        <p>Çerezler, siteyi kullanırken tarayıcınıza kaydedilen küçük dosyalardır. Zorunlu olanlar dışındakiler yalnızca onayınızla kullanılır.</p>
+
+        <table class="info-table legal-table">
+          <tr><td>connect.sid</td><td>Zorunlu. Oturumunuzu ve giriş durumunuzu tutar. Tarayıcı kapanınca, "Oturumum açık kalsın" seçiliyse 30 gün sonra silinir.</td></tr>
+          <tr><td>cookie_consent</td><td>Zorunlu. Çerez tercihlerinizi 6 ay boyunca hatırlar.</td></tr>
+          <tr><td>Son gezilen talepler</td><td>Tercih. Yalnızca onay verirseniz tarayıcınızda (yerel depolama) tutulur, sunucuya gönderilmez.</td></tr>
+          <tr><td>Analitik</td><td>Şu an sitede analitik çerez kullanılmıyor. Eklenirse yalnızca onay verenlerde çalışır.</td></tr>
+          <tr><td>Reklam</td><td>Sitedeki reklamlar şu an takip çerezi kullanmıyor. Reklam ağı eklenirse yalnızca onay verenlerde çalışır.</td></tr>
+        </table>
+
+        <p style="margin-top:12px"><button class="btn" type="button" data-cookie-open>Çerez Tercihlerimi Değiştir</button></p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

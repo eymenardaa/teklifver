@@ -1,0 +1,66 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <div>
+      <section class="box">
+        <div class="box-head">Genel Görünüm</div>
+        <div class="summary">
+          <div><strong><%= counts.users %></strong><span>Bireysel üye</span></div>
+          <div><strong><%= counts.companies %></strong><span>Firma</span></div>
+          <div><strong><%= counts.openRequests %></strong><span>Açık talep</span></div>
+          <div><strong><%= counts.newRequests %></strong><span>Son 24 saat</span></div>
+          <div><strong><%= counts.requests %></strong><span>Toplam talep</span></div>
+          <div><strong><%= counts.bids %></strong><span>Teklif</span></div>
+          <div><strong><%= counts.messages %></strong><span>Mesaj</span></div>
+          <div><strong><%= reports.length %></strong><span>Açık şikayet</span></div>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Açık Şikayetler (<%= reports.length %>)</div>
+        <% if (reports.length === 0) { %>
+          <div class="empty">Bekleyen şikayet yok.</div>
+        <% } else { %>
+          <table class="listing-table bid-table">
+            <thead>
+              <tr><th>Talep</th><th>Neden</th><th>Şikayet Eden</th><th class="col-date">Tarih</th><th></th></tr>
+            </thead>
+            <tbody>
+              <% reports.forEach(report => { %>
+                <tr>
+                  <td>
+                    <a class="listing-title" href="/requests/<%= report.request._id %>"><%= report.request.title %></a>
+                    <div class="listing-sub">No: <%= report.request.no %></div>
+                  </td>
+                  <td>
+                    <%= report.reason %>
+                    <% if (report.note) { %><div class="listing-sub bid-text"><%= report.note %></div><% } %>
+                  </td>
+                  <td><%= report.reporter.name %></td>
+                  <td class="col-date"><%= formatDate(report.createdAt) %></td>
+                  <td style="width:170px">
+                    <div class="bid-actions">
+                      <form action="/admin/requests/<%= report.request._id %>/remove" method="POST"
+                        data-confirm="Talep yayından kaldırılacak." data-confirm-label="Kaldır" data-confirm-tone="danger">
+                        <input type="hidden" name="back" value="reports">
+                        <button class="btn btn-sm btn-danger-quiet" type="submit">Talebi Kaldır</button>
+                      </form>
+                      <form action="/admin/reports/<%= report._id %>/resolve" method="POST">
+                        <button class="btn btn-sm" type="submit">Yok Say</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

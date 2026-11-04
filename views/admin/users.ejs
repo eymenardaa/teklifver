@@ -1,0 +1,54 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <section class="box">
+      <div class="result-bar">
+        <span class="result-count"><strong><%= users.length %></strong> kullanıcı</span>
+        <form class="admin-search" action="/admin/users" method="GET">
+          <input class="input" type="search" name="search" value="<%= search %>" placeholder="Ad, e-posta veya firma" aria-label="Kullanıcı ara">
+          <button class="btn btn-sm" type="submit">Ara</button>
+        </form>
+      </div>
+      <table class="listing-table bid-table">
+        <thead>
+          <tr><th>Kullanıcı</th><th class="col-date">Tür</th><th class="col-date">Üyelik</th><th class="col-status">Durum</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% users.forEach(user => { %>
+            <tr>
+              <td>
+                <strong><%= user.companyName || user.name %></strong>
+                <% if (user.verified) { %><%- include('../partials/verified') %><% } %>
+                <div class="listing-sub"><%= user.email %></div>
+              </td>
+              <td class="col-date"><%= user.isAdmin ? 'Yönetici' : user.role === 'company' ? 'Firma' : 'Bireysel' %></td>
+              <td class="col-date"><%= memberSince(user.createdAt) %></td>
+              <td class="col-status">
+                <% if (user.suspended) { %><span class="badge badge-gray">Askıda</span><% } else { %><span class="badge badge-green">Aktif</span><% } %>
+              </td>
+              <td style="width:190px">
+                <div class="bid-actions">
+                  <% if (user.role === 'company') { %>
+                    <form action="/admin/users/<%= user._id %>/verify" method="POST">
+                      <button class="btn btn-sm" type="submit"><%= user.verified ? 'Onayı Kaldır' : 'Onayla' %></button>
+                    </form>
+                  <% } %>
+                  <% if (!user.isAdmin) { %>
+                    <form action="/admin/users/<%= user._id %>/suspend" method="POST">
+                      <button class="btn btn-sm btn-danger-quiet" type="submit"><%= user.suspended ? 'Aç' : 'Askıya Al' %></button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

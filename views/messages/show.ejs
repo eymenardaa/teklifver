@@ -1,0 +1,62 @@
+<%- include('../partials/header') %>
+
+<% const otherName = other.companyName || other.name; %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside class="desktop-only"><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">
+        <span>
+          <a href="/messages" style="font-size:13px;font-weight:bold">Mesajlarım</a> &rsaquo; <%= otherName %>
+        </span>
+        <% if (other.role === 'company') { %><a href="/companies/<%= other._id %>">Firma Sayfası</a><% } %>
+      </div>
+
+      <a class="thread-request" href="/requests/<%= request._id %>">
+        <span class="thumb thumb-sm">
+          <% if (request.images && request.images.length) { %>
+            <img src="<%= request.images[0] %>" alt="">
+          <% } else { %>
+            <span class="no-photo"><%- icon('camera-off', { size: 16 }) %></span>
+          <% } %>
+        </span>
+        <span>
+          <strong><%= request.title %></strong>
+          <span class="listing-sub">Talep No: <%= request.no %> · <%= placeLabel(request) %></span>
+          <span class="thread-price"><%= budgetLabel(request.budget) %></span>
+        </span>
+      </a>
+
+      <div class="thread" id="thread" data-poll="/messages/<%= request._id %>/<%= other._id %>/new" data-last="<%= messages.length ? messages[messages.length - 1]._id : '' %>">
+        <p class="thread-empty" <%= messages.length ? 'hidden' : '' %>>Henüz mesaj yok. İlk mesajı siz yazın.</p>
+        <% messages.forEach(message => { const mine = message.sender.toString() === currentUser.id; %>
+          <div class="msg <%= mine ? 'msg-mine' : '' %>">
+            <div class="msg-text"><%= message.content %></div>
+            <div class="msg-time"><%= formatDateTime(message.createdAt) %></div>
+          </div>
+        <% }) %>
+      </div>
+
+      <form class="thread-form" action="/messages/<%= request._id %>/<%= other._id %>" method="POST">
+        <div class="quick-replies" aria-label="Hazır yanıtlar">
+          <% (currentUser.role === 'company'
+            ? ['Merhaba, talebinizle ilgili birkaç sorum olacak.', 'Keşif için uygun olduğunuz bir gün var mı?', 'Teklifimi inceleyebildiniz mi?', 'Ölçü veya fotoğraf paylaşabilir misiniz?']
+            : ['Merhaba, teklifiniz için teşekkürler.', 'Fiyata neler dahil?', 'Ne zaman başlayabilirsiniz?', 'Benzer işlerinizden örnek görebilir miyim?']
+          ).forEach(text => { %>
+            <button class="quick-reply" type="button" data-quick-reply="<%= text %>"><%= text %></button>
+          <% }) %>
+        </div>
+        <label class="visually-hidden" for="messageContent">Mesajınız</label>
+        <textarea class="textarea" id="messageContent" name="content" rows="3" maxlength="<%= maxLength %>" placeholder="Mesajınızı yazın" required></textarea>
+        <div class="thread-form-foot">
+          <span class="muted small">Ctrl + Enter ile gönderebilirsiniz.</span>
+          <button class="btn btn-primary" type="submit">Gönder</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

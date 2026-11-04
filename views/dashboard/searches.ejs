@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Kayıtlı Aramalarım (<%= searches.length %>)</div>
+      <% if (searches.length === 0) { %>
+        <div class="empty">
+          <h3>Kayıtlı aramanız yok</h3>
+          <p>Talep listesinde filtre seçip "Aramayı Kaydet" butonuna basın; yeni talepleri buradan takip edin.</p>
+          <a class="btn" href="/requests">Tüm Talepler</a>
+        </div>
+      <% } else { %>
+        <table class="listing-table search-table">
+          <thead>
+            <tr><th>Arama</th><th class="col-bids">Toplam</th><th class="col-bids">Yeni</th><th class="col-date">Kayıt Tarihi</th><th class="col-status"></th></tr>
+          </thead>
+          <tbody>
+            <% searches.forEach(search => { %>
+              <tr>
+                <td><a class="listing-title" href="/dashboard/searches/<%= search._id %>/open"><%= search.name %></a></td>
+                <td class="col-bids"><%= search.total %></td>
+                <td class="col-bids"><% if (search.fresh) { %><span class="unread-count"><%= search.fresh %></span><% } else { %>0<% } %></td>
+                <td class="col-date"><%= formatDate(search.createdAt) %></td>
+                <td class="col-status">
+                  <form action="/dashboard/searches/<%= search._id %>/delete" method="POST">
+                    <button class="btn btn-sm btn-danger-quiet" type="submit">Sil</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

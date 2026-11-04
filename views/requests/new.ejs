@@ -1,0 +1,31 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page" style="max-width:760px">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Talep Ver</span></div>
+
+  <section class="box">
+    <div class="box-head">Ücretsiz Talep Ver</div>
+    <div class="box-body">
+      <form class="form" action="/requests" method="POST" enctype="multipart/form-data">
+        <%- include('_form', {
+          form: {
+            title: values.title || '',
+            description: values.description || '',
+            category: values.category || '',
+            budgetMin: values.budgetMin || '',
+            budgetMax: values.budgetMax || '',
+            deadline: values.deadline || '',
+            city: values.city || '',
+            location: values.location || ''
+          }
+        }) %>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Talebi Yayınla</button>
+          <a class="btn" href="/requests">Vazgeç</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,48 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <section class="box">
+      <div class="result-bar">
+        <span class="result-count"><strong><%= requests.length %></strong> talep</span>
+        <form class="admin-search" action="/admin/requests" method="GET">
+          <input class="input" type="search" name="search" value="<%= search %>" placeholder="Başlık veya talep no" aria-label="Talep ara">
+          <button class="btn btn-sm" type="submit">Ara</button>
+        </form>
+      </div>
+      <table class="listing-table bid-table">
+        <thead>
+          <tr><th>Talep</th><th>Sahibi</th><th class="col-bids">Teklif</th><th class="col-date">Tarih</th><th class="col-status">Durum</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% requests.forEach(item => { %>
+            <tr>
+              <td>
+                <a class="listing-title" href="/requests/<%= item._id %>"><%= item.title %></a>
+                <div class="listing-sub">No: <%= item.no %> · <%= item.category %></div>
+              </td>
+              <td><%= item.customer ? item.customer.name : '-' %></td>
+              <td class="col-bids"><%= item.bidCount %></td>
+              <td class="col-date"><%= formatDate(item.createdAt) %></td>
+              <td class="col-status"><%- include('../partials/status', { status: requestStatus[item.status] }) %></td>
+              <td style="width:90px">
+                <% if (item.status === 'removed') { %>
+                  <form action="/admin/requests/<%= item._id %>/restore" method="POST"><button class="btn btn-sm" type="submit">Geri Al</button></form>
+                <% } else { %>
+                  <form action="/admin/requests/<%= item._id %>/remove" method="POST"
+                    data-confirm="Talep yayından kaldırılacak." data-confirm-label="Kaldır" data-confirm-tone="danger">
+                    <button class="btn btn-sm btn-danger-quiet" type="submit">Kaldır</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

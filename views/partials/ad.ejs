@@ -1,0 +1,15 @@
+<% const ad = nextAd(); if (ad) { const external = /^https?:/.test(ad.url); %>
+  <a class="ad ad-<%= format %> ad-<%= ad.color || 'navy' %>" href="<%= ad.url %>" <%- external ? 'target="_blank" rel="sponsored noopener"' : '' %>>
+    <span class="ad-label">Reklam</span>
+    <% if (ad.banner) { %>
+      <img class="ad-banner" src="<%= ad.banner %>" alt="<%= ad.title %>" loading="lazy">
+    <% } else { %>
+      <% if (ad.image) { %><img class="ad-image" src="<%= ad.image %>" alt="" loading="lazy"><% } %>
+      <span class="ad-copy">
+        <strong class="ad-title"><%= ad.title %></strong>
+        <span class="ad-text"><%= ad.text %></span>
+      </span>
+      <span class="ad-cta"><%= ad.cta %></span>
+    <% } %>
+  </a>
+<% } %>

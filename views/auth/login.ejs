@@ -1,0 +1,45 @@
+<%- include('../partials/header') %>
+
+<div class="wrap">
+  <div class="auth-box">
+    <% if (demoAccounts.length) { %>
+      <div class="demo-note">
+        <p>Örnek hesapla giriş yap:</p>
+        <div class="demo-actions">
+          <% demoAccounts.forEach(account => { %>
+            <button class="btn btn-sm" type="button" data-demo-email="<%= account.email %>" data-demo-password="<%= account.password %>"><%= account.label %></button>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="box">
+      <div class="box-head">Giriş Yap</div>
+      <div class="box-body">
+        <form class="form" id="loginForm" action="/login" method="POST">
+          <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+          <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+
+          <div class="field">
+            <label class="field-label" for="email">E-posta adresi</label>
+            <input class="input" type="email" id="email" name="email" value="<%= values.email || '' %>" autocomplete="email" required>
+          </div>
+
+          <%- include('../partials/password-field', { fieldId: 'password', fieldLabel: 'Şifre', autocomplete: 'current-password' }) %>
+
+          <div class="login-row">
+            <label class="checkbox"><input type="checkbox" name="remember"> Oturumum açık kalsın</label>
+            <a class="small" href="/forgot">Şifremi unuttum</a>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Giriş Yap</button>
+        </form>
+      </div>
+      <div class="auth-foot">
+        Hesabınız yok mu? <a href="/register<%= next ? '?next=' + encodeURIComponent(next) : '' %>"><strong>Hesap Aç</strong></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

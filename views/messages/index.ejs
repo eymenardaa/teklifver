@@ -1,0 +1,61 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Mesajlarım (<%= threads.length %>)</div>
+
+      <% if (threads.length === 0) { %>
+        <div class="empty">
+          <h3>Henüz mesajınız yok</h3>
+          <p>
+            <% if (currentUser.role === 'company') { %>
+              Talep sayfalarındaki "Talep Sahibine Mesaj Gönder" bağlantısıyla yazışma başlatabilirsiniz.
+            <% } else { %>
+              Talebinize teklif veren firmalara teklif satırındaki "Mesaj Gönder" bağlantısıyla yazabilirsiniz.
+            <% } %>
+          </p>
+        </div>
+      <% } else { %>
+        <table class="listing-table inbox-table">
+          <thead>
+            <tr>
+              <th class="col-photo"></th>
+              <th>Kişi / Talep</th>
+              <th>Son Mesaj</th>
+              <th class="col-date">Tarih</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% threads.forEach(thread => {
+              const threadUrl = '/messages/' + thread.request._id + '/' + thread.other._id;
+            %>
+              <tr class="<%= thread.unread ? 'is-unread' : '' %>">
+                <td class="col-photo">
+                  <a class="thumb" href="<%= threadUrl %>" tabindex="-1" aria-hidden="true">
+                    <% if (thread.request.images && thread.request.images.length) { %>
+                      <img src="<%= thread.request.images[0] %>" alt="" loading="lazy">
+                    <% } else { %>
+                      <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+                    <% } %>
+                  </a>
+                </td>
+                <td>
+                  <a class="listing-title" href="<%= threadUrl %>"><%= thread.other.companyName || thread.other.name %></a>
+                  <% if (thread.unread) { %><span class="unread-count"><%= thread.unread %></span><% } %>
+                  <div class="listing-sub"><%= truncate(thread.request.title, 60) %></div>
+                </td>
+                <td class="inbox-last"><%= thread.mine ? 'Siz: ' : '' %><%= truncate(thread.last.content, 80) %></td>
+                <td class="col-date"><%= formatDate(thread.last.createdAt) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

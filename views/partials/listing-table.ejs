@@ -1,0 +1,47 @@
+<%
+  const columns = locals.compact ? 6 : 7;
+  const adEvery = locals.adEvery || 0;
+%>
+<table class="listing-table <%= locals.compact ? 'is-compact' : '' %>">
+  <thead>
+    <tr>
+      <th class="col-photo"></th>
+      <th>Talep Başlığı</th>
+      <th class="col-budget" style="color:inherit">Bütçe</th>
+      <th class="col-bids">Teklif</th>
+      <% if (!locals.compact) { %><th class="col-date">Talep Tarihi</th><% } %>
+      <th class="col-place">İl / İlçe</th>
+      <th class="col-fav"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% items.forEach((item, index) => { %>
+      <% if (adEvery && index > 0 && index % adEvery === 0) { %>
+        <tr class="ad-row"><td colspan="<%= columns %>"><%- include('ad', { format: 'inline' }) %></td></tr>
+      <% } %>
+      <tr>
+        <td class="col-photo">
+          <a class="thumb" href="/requests/<%= item._id %>" tabindex="-1" aria-hidden="true">
+            <% if (item.images && item.images.length) { %>
+              <img src="<%= item.images[0] %>" alt="" loading="lazy">
+              <% if (item.images.length > 1) { %><span class="photo-count"><%- icon('camera', { size: 10 }) %><%= item.images.length %></span><% } %>
+            <% } else { %>
+              <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+            <% } %>
+          </a>
+        </td>
+        <td>
+          <a class="listing-title" href="/requests/<%= item._id %>"><%= truncate(item.title, 90) %></a>
+          <% if (isUrgent(item)) { %><span class="label label-urgent">ACİL</span><% } %>
+          <% if (isFresh(item)) { %><span class="label label-new">YENİ</span><% } %>
+          <div class="listing-sub"><%= item.category %> · <%= item.viewCount %> görüntülenme</div>
+        </td>
+        <td class="col-budget"><%= budgetLabel(item.budget) %></td>
+        <td class="col-bids"><%= item.bidCount %></td>
+        <% if (!locals.compact) { %><td class="col-date"><%= formatDate(item.createdAt) %></td><% } %>
+        <td class="col-place"><%= placeLabel(item) %></td>
+        <td class="col-fav"><%- include('favorite', { item }) %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>

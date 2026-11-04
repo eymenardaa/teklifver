@@ -1,0 +1,6 @@
+<% const markName = company.companyName || company.name; %>
+<% if (company.avatar) { %>
+  <span class="company-mark has-logo"><img src="<%= company.avatar %>" alt="<%= markName %> logosu" loading="lazy"></span>
+<% } else { %>
+  <span class="company-mark"><%= initials(markName) %></span>
+<% } %>

@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+
+<%
+  const hasValues = Object.keys(values).length > 0;
+  const form = hasValues ? values : {
+    title: request.title,
+    description: request.description,
+    category: request.category,
+    budgetMin: request.budget && request.budget.min > 0 ? request.budget.min : '',
+    budgetMax: request.budget && request.budget.max > 0 ? request.budget.max : '',
+    deadline: request.deadline ? new Date(request.deadline).toISOString().split('T')[0] : '',
+    city: request.city || '',
+    location: request.location || ''
+  };
+%>
+
+<div class="wrap page" style="max-width:760px">
+  <div class="crumbs">
+    <a href="/">Ana Sayfa</a> &rsaquo; <a href="/requests/<%= request._id %>">Talep No: <%= request.no %></a> &rsaquo; <span>Düzenle</span>
+  </div>
+
+  <section class="box">
+    <div class="box-head">Talebi Düzenle</div>
+    <div class="box-body">
+      <form class="form" action="/requests/<%= request._id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+        <%- include('_form', { form, existingImages: request.images }) %>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Kaydet</button>
+          <a class="btn" href="/requests/<%= request._id %>">Vazgeç</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f3b57">
+  <% const pageDescription = metaDescription || 'Hizmet talebi verin, firmalardan teklif alın. Tadilat, nakliye, temizlik, yazılım ve daha fazlası.'; %>
+  <meta name="description" content="<%= pageDescription %>">
+  <meta property="og:site_name" content="TeklifVer">
+  <meta property="og:title" content="<%= title || 'TeklifVer' %>">
+  <meta property="og:description" content="<%= pageDescription %>">
+  <meta property="og:url" content="<%= pageUrl %>">
+  <% if (ogImage) { %><meta property="og:image" content="<%= ogImage %>"><% } %>
+  <title><%= title ? title + ' - ' : '' %>TeklifVer</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link href="/css/style.css" rel="stylesheet">
+  <script src="/js/main.js" defer></script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="topbar-left">
+        <a href="/requests">Tüm Talepler</a>
+        <a href="/companies">Firma Rehberi</a>
+        <a href="/yardim">Yardım</a>
+        <a href="/reklam">Reklam Ver</a>
+      </div>
+      <% if (currentUser) { %>
+        <a href="/notifications">Bildirimler<% if (unreadNotifications) { %> <span class="unread-count" id="notifCount"><%= unreadNotifications %></span><% } %></a>
+        <a href="/messages">Mesajlarım<% if (unreadMessages) { %> <span class="unread-count"><%= unreadMessages %></span><% } %></a>
+        <a href="/dashboard/favorites">Favorilerim (<span id="favCount"><%= favoriteIds.length %></span>)</a>
+        <div class="menu">
+          <button class="menu-button" type="button" aria-expanded="false">
+            <%= currentUser.companyName || currentUser.name %> <%- icon('chevron-down', { size: 12 }) %>
+          </button>
+          <div class="menu-panel" hidden>
+            <a class="menu-item" href="/dashboard"><%= currentUser.role === 'company' ? 'Tekliflerim' : 'Taleplerim' %></a>
+            <% if (currentUser.role === 'company') { %><a class="menu-item" href="/dashboard/matches">Size Uygun Talepler</a><% } %>
+            <a class="menu-item" href="/dashboard/searches">Kayıtlı Aramalarım</a>
+            <a class="menu-item" href="/dashboard/favorites">Favorilerim</a>
+            <a class="menu-item" href="/profile">Hesap Bilgilerim</a>
+            <% if (currentUser.isAdmin) { %><a class="menu-item" href="/admin">Yönetim Paneli</a><% } %>
+            <form action="/logout" method="POST">
+              <button class="menu-item" type="submit">Çıkış Yap</button>
+            </form>
+          </div>
+        </div>
+      <% } else { %>
+        <a href="/login">Giriş Yap</a>
+        <a href="/register">Hesap Aç</a>
+      <% } %>
+    </div>
+  </div>
+
+  <header class="mainbar">
+    <div class="wrap mainbar-inner">
+      <a class="logo" href="/">teklif<span>ver</span></a>
+      <form class="searchbar" action="/requests" method="GET" role="search">
+        <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Kelime veya talep no ile ara" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
+        <button type="submit">Ara</button>
+        <div class="suggest" id="searchSuggest" hidden></div>
+      </form>
+      <% if (currentUser && currentUser.role === 'company') { %>
+        <a class="btn btn-primary post-button" href="/dashboard/matches">Size Uygun Talepler</a>
+      <% } else { %>
+        <a class="btn btn-primary post-button" href="/requests/new">Ücretsiz Talep Ver</a>
+      <% } %>
+    </div>
+  </header>
+
+  <% if (success.length || error.length) { %>
+    <div class="wrap alerts">
+      <% success.forEach(message => { %>
+        <div class="alert alert-success" role="status">
+          <span class="alert-text"><%= message %></span>
+          <button class="alert-close" type="button" aria-label="Kapat"><%- icon('x', { size: 14 }) %></button>
+        </div>
+      <% }) %>
+      <% error.forEach(message => { %>
+        <div class="alert alert-error" role="alert">
+          <span class="alert-text"><%= message %></span>
+          <button class="alert-close" type="button" aria-label="Kapat"><%- icon('x', { size: 14 }) %></button>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <main id="main">

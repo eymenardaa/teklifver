@@ -1,0 +1,124 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <div>
+      <section class="box">
+        <div class="box-head">
+          Hesap Bilgilerim
+          <span class="small" style="font-weight:normal"><%= profile.role === 'company' ? 'Firma hesabı' : 'Bireysel hesap' %><% if (profile.role === 'company' && profile.ratingCount > 0) { %> · Puan: <%= profile.rating %> (<%= profile.ratingCount %>)<% } %></span>
+        </div>
+        <div class="box-body" style="max-width:600px">
+          <form class="form" action="/profile" method="POST">
+            <div class="field <%= errors.name ? 'has-error' : '' %>">
+              <label class="field-label" for="name">Ad soyad</label>
+              <input class="input" type="text" id="name" name="name" value="<%= profile.name %>" autocomplete="name" required>
+              <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
+            </div>
+            <div class="field">
+              <label class="field-label" for="emailReadonly">E-posta adresi</label>
+              <input class="input" type="email" id="emailReadonly" value="<%= profile.email %>" disabled>
+            </div>
+            <div class="field">
+              <label class="field-label" for="phone">Telefon <span class="optional">İsteğe bağlı</span></label>
+              <input class="input" type="tel" id="phone" name="phone" value="<%= profile.phone || '' %>" autocomplete="tel">
+              <p class="field-hint">Yalnızca kabul edilen tekliflerde karşı tarafa gösterilir.</p>
+            </div>
+            <% if (profile.role === 'company') { %>
+              <div class="field <%= errors.companyName ? 'has-error' : '' %>">
+                <label class="field-label" for="companyName">Firma adı</label>
+                <input class="input" type="text" id="companyName" name="companyName" value="<%= profile.companyName || '' %>" autocomplete="organization" required>
+                <% if (errors.companyName) { %><p class="field-error"><%= errors.companyName %></p><% } %>
+              </div>
+              <div class="field">
+                <label class="field-label" for="companyDescription">Firma tanıtımı <span class="optional">İsteğe bağlı</span></label>
+                <textarea class="textarea" id="companyDescription" name="companyDescription" rows="3"><%= profile.companyDescription || '' %></textarea>
+              </div>
+              <div class="field">
+                <label class="field-label" for="specialties">Hizmetler <span class="optional">Virgülle ayırın</span></label>
+                <input class="input" type="text" id="specialties" name="specialties" value="<%= (profile.specialties || []).join(', ') %>" placeholder="Boya badana, Parke, Alçıpan">
+              </div>
+              <fieldset class="field check-grid-field">
+                <legend class="field-label">Hizmet verdiğiniz kategoriler</legend>
+                <div class="check-grid">
+                  <% categories.forEach(category => { %>
+                    <label class="check-line">
+                      <input type="checkbox" name="categories" value="<%= category.name %>" <%= (profile.categories || []).includes(category.name) ? 'checked' : '' %>>
+                      <%= category.name %>
+                    </label>
+                  <% }) %>
+                </div>
+                <p class="field-hint">Bu kategorilerde yeni talep açılınca bildirim alırsınız.</p>
+              </fieldset>
+            <% } %>
+            <div class="field">
+              <label class="field-label" for="address"><%= profile.role === 'company' ? 'İl' : 'Adres' %> <span class="optional">İsteğe bağlı</span></label>
+              <input class="input" type="text" id="address" name="address" value="<%= profile.address || '' %>" autocomplete="street-address">
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Kaydet</button></div>
+          </form>
+        </div>
+      </section>
+
+      <% if (profile.role === 'company') { %>
+        <section class="box">
+          <div class="box-head">Firma Logosu</div>
+          <div class="box-body logo-row">
+            <%- include('../partials/company-mark', { company: profile }) %>
+            <form class="logo-form" action="/profile/logo" method="POST" enctype="multipart/form-data">
+              <input class="input" type="file" name="logo" accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Logo dosyası" required>
+              <button class="btn" type="submit">Yükle</button>
+            </form>
+            <% if (profile.avatar) { %>
+              <form action="/profile/logo/delete" method="POST"><button class="btn btn-danger-quiet" type="submit">Kaldır</button></form>
+            <% } %>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box">
+        <div class="box-head">Şifre Değiştir</div>
+        <div class="box-body" style="max-width:600px">
+          <form class="form" action="/profile/password" method="POST">
+            <%- include('../partials/password-field', {
+              fieldId: 'currentPassword', fieldLabel: 'Mevcut şifre', autocomplete: 'current-password',
+              fieldError: errors.currentPassword
+            }) %>
+            <%- include('../partials/password-field', {
+              fieldId: 'newPassword', fieldLabel: 'Yeni şifre', autocomplete: 'new-password',
+              minLength: 8, fieldError: errors.newPassword
+            }) %>
+            <div class="form-actions"><button class="btn" type="submit">Şifreyi Değiştir</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Verilerim</div>
+        <div class="box-body">
+          <p class="muted" style="margin-bottom:8px">Hesabınızdaki bilgileri, talepleri, teklifleri ve mesajları JSON dosyası olarak indirebilirsiniz.</p>
+          <a class="btn" href="/profile/export">Verilerimi İndir</a>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head" style="color:var(--red)">Hesabı Sil</div>
+        <div class="box-body" style="max-width:600px">
+          <p class="muted" style="margin-bottom:8px">Hesabınız, talepleriniz, teklifleriniz ve mesajlarınız kalıcı olarak silinir. Bu işlem geri alınamaz.</p>
+          <form class="form" action="/profile/delete" method="POST"
+            data-confirm="Hesabınız ve tüm verileriniz kalıcı olarak silinecek. Emin misiniz?" data-confirm-label="Hesabımı Sil" data-confirm-tone="danger">
+            <%- include('../partials/password-field', {
+              fieldId: 'password', fieldLabel: 'Onay için şifreniz', autocomplete: 'current-password',
+              fieldError: errors.deletePassword
+            }) %>
+            <div class="form-actions"><button class="btn btn-danger-quiet" type="submit">Hesabımı Sil</button></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

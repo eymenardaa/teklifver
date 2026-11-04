@@ -1,0 +1,73 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Taleplerim (<%= myRequests.length %>) <a href="/requests/new">Yeni Talep Ver</a></div>
+
+      <div class="summary">
+        <div><strong><%= stats.openRequests %></strong><span>Yayında</span></div>
+        <div><strong><%= stats.pendingBids %></strong><span>Bekleyen teklif</span></div>
+        <div><strong><%= stats.inProgressRequests %></strong><span>İşlemde</span></div>
+        <div><strong><%= stats.completedRequests %></strong><span>Tamamlanan</span></div>
+      </div>
+
+      <% if (myRequests.length === 0) { %>
+        <div class="empty">
+          <h3>Henüz talebiniz yok</h3>
+          <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+        </div>
+      <% } else { %>
+        <div class="tabs" role="tablist" data-tabs="requestRows">
+          <button class="tab" type="button" role="tab" aria-selected="true" data-filter="all">Tümü</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="open">Yayında</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="in_progress">İşlemde</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="completed">Tamamlanan</button>
+        </div>
+
+        <table class="listing-table" id="requestRows">
+          <thead>
+            <tr>
+              <th class="col-photo"></th>
+              <th>Talep Başlığı</th>
+              <th class="col-bids">Teklif</th>
+              <th class="col-budget" style="color:inherit">En Düşük Teklif</th>
+              <th class="col-date">Talep Tarihi</th>
+              <th class="col-status">Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% myRequests.forEach(item => {
+              const pending = item.bids.filter(bid => bid.status === 'pending');
+            %>
+              <tr data-status="<%= item.status %>">
+                <td class="col-photo">
+                  <a class="thumb" href="/requests/<%= item._id %>" tabindex="-1" aria-hidden="true">
+                    <% if (item.images && item.images.length) { %>
+                      <img src="<%= item.images[0] %>" alt="" loading="lazy">
+                    <% } else { %>
+                      <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+                    <% } %>
+                  </a>
+                </td>
+                <td>
+                  <a class="listing-title" href="/requests/<%= item._id %>"><%= item.title %></a>
+                  <div class="listing-sub">No: <%= item.no %> · <%= item.category %></div>
+                </td>
+                <td class="col-bids"><%= item.bids.length %></td>
+                <td class="col-budget"><%= pending.length ? money(pending[0].amount) : '-' %></td>
+                <td class="col-date"><%= formatDate(item.createdAt) %></td>
+                <td class="col-status"><%- include('../partials/status', { status: requestStatus[item.status] }) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p class="tabs-empty" hidden>Bu durumda talebiniz yok.</p>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

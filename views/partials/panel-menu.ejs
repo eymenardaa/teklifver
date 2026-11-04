@@ -1,0 +1,29 @@
+<div class="box">
+  <div class="box-head">Hesabım</div>
+  <ul class="side-list">
+    <% if (currentUser.role === 'company') { %>
+      <li><a class="<%= section === 'bids' ? 'is-active' : '' %>" href="/dashboard">Tekliflerim</a></li>
+      <li><a class="<%= section === 'matches' ? 'is-active' : '' %>" href="/dashboard/matches">Size Uygun Talepler</a></li>
+      <li><a href="/companies/<%= currentUser.id %>">Firma Sayfam</a></li>
+    <% } else { %>
+      <li><a class="<%= section === 'requests' ? 'is-active' : '' %>" href="/dashboard">Taleplerim</a></li>
+      <li><a href="/requests/new">Yeni Talep Ver</a></li>
+    <% } %>
+    <li>
+      <a class="<%= section === 'notifications' ? 'is-active' : '' %>" href="/notifications">
+        Bildirimler
+        <% if (unreadNotifications) { %><span class="unread-count" style="margin-left:auto"><%= unreadNotifications %></span><% } %>
+      </a>
+    </li>
+    <li>
+      <a class="<%= section === 'messages' ? 'is-active' : '' %>" href="/messages">
+        Mesajlarım
+        <% if (unreadMessages) { %><span class="unread-count" style="margin-left:auto"><%= unreadMessages %></span><% } %>
+      </a>
+    </li>
+    <li><a class="<%= section === 'searches' ? 'is-active' : '' %>" href="/dashboard/searches">Kayıtlı Aramalarım</a></li>
+    <li><a class="<%= section === 'favorites' ? 'is-active' : '' %>" href="/dashboard/favorites">Favorilerim</a></li>
+    <li><a class="<%= section === 'profile' ? 'is-active' : '' %>" href="/profile">Hesap Bilgilerim</a></li>
+    <% if (currentUser.isAdmin) { %><li><a href="/admin">Yönetim Paneli</a></li><% } %>
+  </ul>
+</div>

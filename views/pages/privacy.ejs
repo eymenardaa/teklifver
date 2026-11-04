@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Gizlilik ve KVKK</span></div>
+  <div class="layout">
+    <aside><%- include('../partials/page-menu') %></aside>
+    <section class="box">
+      <div class="box-head">Gizlilik ve KVKK Aydınlatma Metni</div>
+      <div class="box-body legal">
+        <p class="draft-note">Bu metin taslaktır. Yayına almadan önce bir hukukçuya kontrol ettirilmeli, veri sorumlusu bilgileri tamamlanmalıdır.</p>
+
+        <h2>Veri Sorumlusu</h2>
+        <p><%= site.company %><% if (site.email) { %> · <a href="mailto:<%= site.email %>"><%= site.email %></a><% } %></p>
+
+        <h2>İşlenen Kişisel Veriler</h2>
+        <ul>
+          <li>Hesap bilgileri: ad soyad, e-posta, varsa telefon, adres ve firma bilgileri</li>
+          <li>Şifre: yalnızca geri çevrilemez şekilde şifrelenmiş olarak saklanır</li>
+          <li>Paylaştığınız içerikler: talepler, teklifler, fotoğraflar, mesajlar ve puanlar</li>
+          <li>Oturum bilgisi: giriş yapmış olduğunuzu hatırlayan çerez</li>
+        </ul>
+
+        <h2>İşleme Amaçları ve Hukuki Sebep</h2>
+        <p>Veriler; hesabınızı oluşturmak, talep ve teklifleri yayınlamak, taraflar arasında iletişimi sağlamak ve site güvenliğini korumak için, sözleşmenin kurulması ve ifası ile meşru menfaat hukuki sebeplerine dayanılarak işlenir.</p>
+
+        <h2>Kimlerle Paylaşılır?</h2>
+        <p>Talep, teklif ve firma bilgileri sitede herkese açık görünür. Telefon ve e-postanız yalnızca teklif kabul edildiğinde karşı tarafa gösterilir. Mesajlarınızı yalnızca konuşmanın iki tarafı görür. Yasal zorunluluk dışında verileriniz üçüncü kişilere satılmaz veya aktarılmaz.</p>
+
+        <h2>Haklarınız</h2>
+        <p>6698 sayılı KVKK'nın 11. maddesi kapsamında verilerinizin işlenip işlenmediğini öğrenme, düzeltilmesini veya silinmesini isteme ve itiraz etme haklarına sahipsiniz. Hesap Bilgilerim sayfasından verilerinizi indirebilir ve hesabınızı silebilirsiniz; diğer talepleriniz için veri sorumlusuna başvurabilirsiniz.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

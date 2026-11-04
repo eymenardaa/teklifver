@@ -1,0 +1,22 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Favorilerim (<%= requests.length %>)</div>
+      <% if (requests.length === 0) { %>
+        <div class="empty">
+          <h3>Favori talebiniz yok</h3>
+          <p>Talep satırlarındaki kalp simgesine basarak favorilerinize ekleyebilirsiniz.</p>
+          <a class="btn" href="/requests">Tüm Talepler</a>
+        </div>
+      <% } else { %>
+        <%- include('../partials/listing-table', { items: requests }) %>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

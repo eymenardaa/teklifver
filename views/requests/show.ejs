@@ -1,0 +1,392 @@
+<%- include('../partials/header') %>
+
+<%
+  const isOpen = request.status === 'open';
+  const isFav = favoriteIds.includes(String(request._id));
+%>
+
+<div class="wrap page">
+  <div class="crumbs">
+    <a href="/">Ana Sayfa</a> &rsaquo;
+    <a href="/requests">Talepler</a> &rsaquo;
+    <a href="/requests?category=<%= encodeURIComponent(request.category) %>"><%= request.category %></a>
+    <% if (request.city) { %>&rsaquo; <a href="/requests?category=<%= encodeURIComponent(request.category) %>&city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><% } %>
+  </div>
+
+  <div class="detail-title">
+    <h1><%= request.title %></h1>
+    <div class="detail-actions">
+      <% if (currentUser) { %>
+        <form class="fav-form" action="/requests/<%= request._id %>/favorite" method="POST">
+          <input type="hidden" name="next" value="<%= currentUrl %>">
+          <button class="link-button <%= isFav ? 'is-active' : '' %>" type="submit">
+            <%- icon('heart', { size: 13 }) %><span data-fav-label><%= isFav ? 'Favorilerden Çıkar' : 'Favorilerime Ekle' %></span>
+          </button>
+        </form>
+      <% } else { %>
+        <a class="link-button" href="/login?next=<%= encodeURIComponent(currentUrl) %>"><%- icon('heart', { size: 13 }) %>Favorilerime Ekle</a>
+      <% } %>
+      <button class="link-button" type="button" data-copy-link><%- icon('link', { size: 13 }) %><span>Bağlantıyı Kopyala</span></button>
+      <a class="link-button" target="_blank" rel="noopener" href="https://wa.me/?text=<%= encodeURIComponent(request.title + ' ' + pageUrl) %>"><%- icon('message-circle', { size: 13 }) %>WhatsApp</a>
+      <a class="link-button" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=<%= encodeURIComponent(request.title) %>&url=<%= encodeURIComponent(pageUrl) %>"><%- icon('send', { size: 13 }) %>X</a>
+      <a class="link-button" href="mailto:?subject=<%= encodeURIComponent(request.title) %>&body=<%= encodeURIComponent(pageUrl) %>"><%- icon('mail', { size: 13 }) %>E-posta</a>
+      <button class="link-button" type="button" data-print><%- icon('printer', { size: 13 }) %>Yazdır</button>
+    </div>
+  </div>
+
+  <% if (isExpired(request)) { %>
+    <div class="alert alert-error">Bu talebin son tarihi geçti, yeni teklif alınmıyor.</div>
+  <% } else if (request.status === 'removed') { %>
+    <div class="alert alert-error">Bu talep yönetici tarafından yayından kaldırıldı.</div>
+  <% } else if (request.status === 'cancelled') { %>
+    <div class="alert alert-error">Bu talep sahibi tarafından kapatıldı.</div>
+  <% } %>
+
+  <div class="detail-main">
+    <div>
+      <% if (request.images && request.images.length) { %>
+        <a class="gallery-main" href="<%= request.images[0] %>" target="_blank" rel="noopener">
+          <img src="<%= request.images[0] %>" alt="<%= request.title %>">
+          <% if (request.images.length > 1) { %>
+            <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki fotoğraf">&lsaquo;</button>
+            <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki fotoğraf">&rsaquo;</button>
+          <% } %>
+          <span class="gallery-count">1 / <%= request.images.length %></span>
+        </a>
+        <% if (request.images.length > 1) { %>
+          <div class="gallery-thumbs">
+            <% request.images.forEach((image, index) => { %>
+              <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
+                <img src="<%= image %>" alt="" loading="lazy">
+              </button>
+            <% }) %>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="gallery-main">
+          <div class="no-photo-large"><%- icon('camera-off', { size: 36 }) %>Bu talepte fotoğraf yok</div>
+        </div>
+      <% } %>
+    </div>
+
+    <div>
+      <div class="price-big"><%= budgetLabel(request.budget) %></div>
+      <div class="place-line">
+        <% if (request.city) { %>
+          <a href="/requests?city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><%= request.location ? ' / ' + request.location : '' %>
+        <% } else { %>
+          <%= request.location || 'Konum belirtilmemiş' %>
+        <% } %>
+      </div>
+
+      <table class="info-table">
+        <tr><td>Talep No</td><td><strong style="color:var(--price)"><%= request.no %></strong></td></tr>
+        <tr><td>Talep Tarihi</td><td><%= formatDate(request.createdAt) %></td></tr>
+        <tr><td>Kategori</td><td><%= request.category %></td></tr>
+        <tr><td>Son Tarih</td><td><%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %></td></tr>
+        <tr><td>Durum</td><td><%- include('../partials/status', { status: requestStatus[request.status] }) %></td></tr>
+        <tr><td>Teklif Sayısı</td><td><%= bids.length %></td></tr>
+        <tr><td>Görüntülenme</td><td><%= request.viewCount %></td></tr>
+        <% if (averages) { %>
+          <tr><td>Kategori Ort. Teklif</td><td><%= money(averages.amount) %> <span class="muted small">(<%= averages.days %> gün, <%= averages.total %> teklif)</span></td></tr>
+        <% } %>
+      </table>
+    </div>
+
+    <div class="detail-owner">
+      <div class="side-card">
+        <div class="side-card-head">Talep Sahibi</div>
+        <div class="side-card-body">
+          <strong><%= request.customer.name %></strong>
+          <div class="muted small">Üyelik: <%= memberSince(request.customer.createdAt) %></div>
+          <div class="small"><%= ownerOpenCount %> açık talep</div>
+        </div>
+      </div>
+
+      <% if (contact) { %>
+        <div class="side-card">
+          <div class="side-card-head">İletişim Bilgileri</div>
+          <div class="side-card-body">
+            <div class="contact-row"><strong><%= contact.name %></strong></div>
+            <div class="contact-row"><a href="mailto:<%= contact.email %>"><%= contact.email %></a></div>
+            <% if (contact.phone) { %>
+              <div class="contact-row"><a href="tel:<%= contact.phone %>"><%= contact.phone %></a></div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (currentUser && currentUser.role === 'company' && (isOpen || userBid)) { %>
+        <a class="btn btn-navy btn-block" style="margin-bottom:10px" href="/messages/<%= request._id %>/<%= request.customer._id %>">Talep Sahibine Mesaj Gönder</a>
+      <% } %>
+
+      <% if (isOwner && isOpen) { %>
+        <div class="side-card">
+          <div class="side-card-head">Talebi Yönet</div>
+          <div class="side-card-body">
+            <a class="btn btn-block" href="/requests/<%= request._id %>/edit">Düzenle</a>
+            <form action="/requests/<%= request._id %>/close" method="POST"
+              data-confirm="Talep yayından kalkacak ve bekleyen teklifler reddedilecek." data-confirm-label="Talebi Kapat">
+              <button class="btn btn-block" type="submit">Talebi Kapat</button>
+            </form>
+            <form action="/requests/<%= request._id %>?_method=DELETE" method="POST"
+              data-confirm="Bu talep ve gelen tüm teklifler kalıcı olarak silinecek." data-confirm-label="Sil" data-confirm-tone="danger">
+              <button class="btn btn-danger-quiet btn-block" type="submit">Talebi Sil</button>
+            </form>
+          </div>
+        </div>
+      <% } else if (isOwner && request.status === 'in_progress') { %>
+        <div class="side-card">
+          <div class="side-card-head">İşi Tamamla</div>
+          <div class="side-card-body">
+            <form class="form" action="/bids/complete/<%= request._id %>" method="POST"
+              data-confirm="Talep tamamlandı olarak işaretlenecek. Bu işlem geri alınamaz." data-confirm-label="Tamamla">
+              <div class="field">
+                <span class="field-label">Firmayı puanlayın</span>
+                <fieldset class="rating-stars">
+                  <legend class="visually-hidden">Puan</legend>
+                  <% for (let i = 5; i >= 1; i--) { %>
+                    <input type="radio" name="rating" value="<%= i %>" id="star<%= i %>">
+                    <label for="star<%= i %>"><span class="visually-hidden"><%= i %> yıldız</span><%- icon('star', { size: 20 }) %></label>
+                  <% } %>
+                </fieldset>
+              </div>
+              <div class="field">
+                <label class="field-label" for="reviewComment">Yorumunuz <span class="optional">İsteğe bağlı</span></label>
+                <textarea class="textarea" id="reviewComment" name="comment" rows="3" maxlength="1000"></textarea>
+              </div>
+              <button class="btn btn-primary btn-block" type="submit">Tamamlandı</button>
+            </form>
+          </div>
+        </div>
+      <% } else if (isOwner && ['completed', 'cancelled'].includes(request.status)) { %>
+        <div class="side-card">
+          <div class="side-card-head">Yeniden Yayınla</div>
+          <div class="side-card-body">
+            <p class="small muted">Aynı bilgilerle yeni bir talep açılır.</p>
+            <form action="/requests/<%= request._id %>/republish" method="POST">
+              <button class="btn btn-block" type="submit">Yeniden Yayınla</button>
+            </form>
+          </div>
+        </div>
+      <% } else if (userBid) { %>
+        <div class="side-card">
+          <div class="side-card-head">Teklifiniz</div>
+          <div class="side-card-body">
+            <div class="price-big" style="font-size:16px"><%= money(userBid.amount) %></div>
+            <div class="small"><%= userBid.deliveryTime %> gün</div>
+            <%- include('../partials/status', { status: bidStatus[userBid.status] }) %>
+            <% if (isOpen && userBid.status === 'pending') { %>
+              <a class="btn btn-sm btn-block" href="#teklif-duzenle">Teklifi Düzenle</a>
+              <form action="/bids/<%= userBid._id %>/withdraw" method="POST"
+                data-confirm="Teklifiniz geri çekilecek." data-confirm-label="Geri Çek" data-confirm-tone="danger">
+                <button class="btn btn-sm btn-danger-quiet btn-block" type="submit">Teklifi Geri Çek</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      <% } else if (isOpen && !isExpired(request) && currentUser && currentUser.role === 'company') { %>
+        <a class="btn btn-primary btn-block" href="#teklif-ver">Teklif Ver</a>
+      <% } else if (isOpen && !isExpired(request) && !currentUser) { %>
+        <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/requests/' + request._id + '#teklif-ver') %>">Teklif Ver</a>
+        <p class="small muted" style="margin:5px 0 10px">Teklif vermek için firma hesabıyla giriş yapmalısınız.</p>
+      <% } %>
+
+      <div class="side-card side-card-warn">
+        <div class="side-card-head"><%- icon('shield-alert', { size: 14 }) %> Güvenlik Uyarısı</div>
+        <div class="side-card-body small">
+          Tüm ödemeyi iş bitmeden yapmayın. İşi ve fiyatı yazılı netleştirin. <a href="/yardim">Ayrıntılar</a>
+        </div>
+      </div>
+
+      <% if (currentUser && !isOwner) { %>
+        <details class="report-box">
+          <summary><%- icon('flag', { size: 12 }) %> Bu talebi şikayet et</summary>
+          <% if (alreadyReported) { %>
+            <p class="small muted">Bu talebi şikayet ettiniz, inceleniyor.</p>
+          <% } else { %>
+            <form class="form" action="/requests/<%= request._id %>/report" method="POST">
+              <select class="select" name="reason" aria-label="Şikayet nedeni" required>
+                <option value="">Neden seçin</option>
+                <% reportReasons.forEach(reason => { %><option value="<%= reason %>"><%= reason %></option><% }) %>
+              </select>
+              <textarea class="textarea" name="note" rows="2" maxlength="500" placeholder="Açıklama (isteğe bağlı)" aria-label="Açıklama"></textarea>
+              <button class="btn btn-sm" type="submit">Gönder</button>
+            </form>
+          <% } %>
+        </details>
+      <% } %>
+    </div>
+  </div>
+
+  <div id="recentData" hidden
+    data-url="/requests/<%= request._id %>"
+    data-title="<%= request.title %>"
+    data-image="<%= request.images && request.images.length ? request.images[0] : '' %>"
+    data-budget="<%= budgetLabel(request.budget) %>"></div>
+
+  <section class="box">
+    <div class="box-head">Talep Açıklaması</div>
+    <div class="box-body"><p class="prose"><%= request.description %></p></div>
+  </section>
+
+  <% if (userBid && isOpen && userBid.status === 'pending') { %>
+    <section class="box" id="teklif-duzenle">
+      <div class="box-head">Teklifimi Düzenle</div>
+      <div class="box-body">
+        <form class="form" action="/bids/<%= userBid._id %>/edit" method="POST" style="max-width:560px">
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="editAmount">Tutar</label>
+              <div class="input-wrap input-wrap-prefix">
+                <span class="input-prefix">₺</span>
+                <input class="input" type="number" id="editAmount" name="amount" min="1" step="1" value="<%= userBid.amount %>" required>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="editDays">Teslim süresi</label>
+              <div class="input-wrap">
+                <input class="input" type="number" id="editDays" name="deliveryTime" min="1" step="1" value="<%= userBid.deliveryTime %>" required>
+                <span class="input-suffix">gün</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="editDescription">Açıklama</label>
+            <textarea class="textarea" id="editDescription" name="description" rows="3" required><%= userBid.description %></textarea>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Güncelle</button></div>
+        </form>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (isOpen && !isExpired(request) && currentUser && currentUser.role === 'company' && !userBid) { %>
+    <section class="box" id="teklif-ver">
+      <div class="box-head">Teklif Ver</div>
+      <div class="box-body">
+        <form class="form" action="/bids" method="POST" style="max-width:560px">
+          <input type="hidden" name="requestId" value="<%= request._id %>">
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="amount">Tutar</label>
+              <div class="input-wrap input-wrap-prefix">
+                <span class="input-prefix">₺</span>
+                <input class="input" type="number" id="amount" name="amount" min="1" step="1" inputmode="numeric" required>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="deliveryTime">Teslim süresi</label>
+              <div class="input-wrap">
+                <input class="input" type="number" id="deliveryTime" name="deliveryTime" min="1" step="1" inputmode="numeric" required>
+                <span class="input-suffix">gün</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="bidDescription">Açıklama</label>
+            <textarea class="textarea" id="bidDescription" name="description" rows="4" required></textarea>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Gönder</button></div>
+        </form>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="box">
+    <div class="box-head">
+      Gelen Teklifler (<%= bids.length %>)
+      <% if (bids.length > 1) { %>
+        <span class="sort-links">
+          Sırala:
+          <a class="<%= bidSort === 'amount' ? 'is-active' : '' %>" href="?bidSort=amount#teklifler">Fiyat</a>
+          <a class="<%= bidSort === 'days' ? 'is-active' : '' %>" href="?bidSort=days#teklifler">Süre</a>
+          <a class="<%= bidSort === 'rating' ? 'is-active' : '' %>" href="?bidSort=rating#teklifler">Puan</a>
+        </span>
+      <% } %>
+    </div>
+    <span id="teklifler"></span>
+    <% if (bids.length === 0) { %>
+      <div class="empty">Bu talebe henüz teklif verilmedi.</div>
+    <% } else { %>
+      <table class="listing-table bid-table">
+        <thead>
+          <tr>
+            <th>Firma</th>
+            <th>Açıklama</th>
+            <th class="col-budget" style="color:inherit">Tutar</th>
+            <th class="col-date">Süre</th>
+            <th class="col-date">Tarih</th>
+            <th class="col-status">Durum</th>
+            <% if (isOwner && isOpen) { %><th></th><% } %>
+          </tr>
+        </thead>
+        <tbody>
+          <% bids.forEach(bid => { %>
+            <tr class="bid-row <%= bid.status === 'accepted' ? 'is-accepted' : '' %> <%= bid.status === 'rejected' ? 'is-rejected' : '' %>">
+              <td style="width:170px">
+                <a class="bid-company" href="/companies/<%= bid.company._id %>"><%= bid.company.companyName || bid.company.name %></a>
+                <% if (bid.company.verified) { %><%- include('../partials/verified') %><% } %>
+                <% if (bid.company.ratingCount > 0) { %>
+                  <span class="bid-rating"><%- icon('star', { size: 12, class: 'star' }) %> <%= bid.company.rating %> (<%= bid.company.ratingCount %>)</span>
+                <% } else { %>
+                  <span class="bid-rating">Puan yok</span>
+                <% } %>
+                <% if (isOwner) { %>
+                  <a class="small" href="/messages/<%= request._id %>/<%= bid.company._id %>">Mesaj Gönder</a>
+                <% } %>
+              </td>
+              <td><div class="bid-text"><%= bid.description %></div></td>
+              <td class="col-budget">
+                <%= money(bid.amount) %>
+                <% if (lowestAmount !== null && bid.status === 'pending' && bid.amount === lowestAmount) { %>
+                  <div class="tag-lowest">En düşük</div>
+                <% } %>
+              </td>
+              <td class="col-date"><%= bid.deliveryTime %> gün</td>
+              <td class="col-date"><%= formatDate(bid.createdAt) %></td>
+              <td class="col-status"><%- include('../partials/status', { status: bidStatus[bid.status] }) %></td>
+              <% if (isOwner && isOpen) { %>
+                <td style="width:130px">
+                  <% if (bid.status === 'pending') { %>
+                    <div class="bid-actions">
+                      <form action="/bids/<%= bid._id %>/accept" method="POST"
+                        data-confirm="Bu teklifi kabul edince diğer teklifler reddedilir ve iletişim bilgileriniz firmayla paylaşılır." data-confirm-label="Kabul Et">
+                        <button class="btn btn-primary btn-sm" type="submit">Kabul Et</button>
+                      </form>
+                      <form action="/bids/<%= bid._id %>/reject" method="POST"
+                        data-confirm="Bu teklif reddedilecek." data-confirm-label="Reddet" data-confirm-tone="danger">
+                        <button class="btn btn-sm" type="submit">Reddet</button>
+                      </form>
+                    </div>
+                  <% } %>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+
+  <% if (review) { %>
+    <section class="box">
+      <div class="box-head">Müşteri Değerlendirmesi</div>
+      <div class="box-body">
+        <div><%- icon('star', { size: 13, class: 'star' }) %> <strong><%= review.rating %></strong> / 5</div>
+        <% if (review.comment) { %><p class="prose" style="margin-top:4px"><%= review.comment %></p><% } %>
+      </div>
+    </section>
+  <% } %>
+
+  <%- include('../partials/ad', { format: 'leaderboard' }) %>
+
+  <% if (similar.length) { %>
+    <section class="box">
+      <div class="box-head">Benzer Talepler <a href="/requests?category=<%= encodeURIComponent(request.category) %>">Tümü</a></div>
+      <%- include('../partials/showcase-grid', { items: similar }) %>
+    </section>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

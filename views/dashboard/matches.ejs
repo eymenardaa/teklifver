@@ -1,0 +1,27 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Size Uygun Talepler (<%= requests.length %>) <a href="/profile">Kategorileri Düzenle</a></div>
+      <% if (!hasCategories) { %>
+        <div class="empty">
+          <h3>Henüz kategori seçmediniz</h3>
+          <p>Hizmet verdiğiniz kategorileri seçin; size uygun talepleri burada görün ve bildirim alın.</p>
+          <a class="btn btn-primary" href="/profile">Kategori Seç</a>
+        </div>
+      <% } else if (requests.length === 0) { %>
+        <div class="empty">
+          <h3>Şu an size uygun yeni talep yok</h3>
+          <a class="btn" href="/requests">Tüm Talepler</a>
+        </div>
+      <% } else { %>
+        <%- include('../partials/listing-table', { items: requests }) %>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

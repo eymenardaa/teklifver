@@ -1,0 +1,35 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">
+        Bildirimler (<%= notifications.length %>)
+        <% if (unreadNotifications) { %>
+          <form action="/notifications/read-all" method="POST">
+            <button class="link-button" type="submit">Tümünü okundu yap</button>
+          </form>
+        <% } %>
+      </div>
+      <% if (notifications.length === 0) { %>
+        <div class="empty">
+          <h3>Bildiriminiz yok</h3>
+          <p>Yeni teklif, mesaj ve teklif sonuçları burada görünür.</p>
+        </div>
+      <% } else { %>
+        <ul class="notif-list">
+          <% notifications.forEach(item => { %>
+            <li class="<%= item.read ? '' : 'is-unread' %>">
+              <a href="/notifications/<%= item._id %>/open"><%= item.text %></a>
+              <span class="muted small"><%= formatDateTime(item.createdAt) %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,21 @@
+<details class="box" open data-collapse-mobile>
+  <summary class="box-head">Kategoriler <%- icon('chevron-down', { size: 14 }) %></summary>
+  <ul class="side-list <%= locals.expanded ? 'is-expanded' : '' %>">
+    <li><a class="<%= active === 'all' ? 'is-active' : '' %>" href="/requests">Tüm Talepler <span class="count"><%= Object.values(counts).reduce((a, b) => a + b, 0) %></span></a></li>
+    <% allCategories.forEach(category => { const isActive = active === category.name; %>
+      <li>
+        <a class="side-main <%= isActive ? 'is-active' : '' %>" href="/requests?category=<%= encodeURIComponent(category.name) %>">
+          <%- icon(category.icon, { size: 14 }) %><%= category.name %>
+          <span class="count"><%= counts[category.name] || 0 %></span>
+        </a>
+        <% if (locals.expanded || isActive) { %>
+          <div class="side-subs">
+            <% category.subs.forEach(([label, term]) => { %>
+              <a href="/requests?category=<%= encodeURIComponent(category.name) %>&search=<%= encodeURIComponent(term.trim()) %>"><%= label %></a>
+            <% }) %>
+          </div>
+        <% } %>
+      </li>
+    <% }) %>
+  </ul>
+</details>

@@ -1,0 +1,16 @@
+<div class="showcase-grid <%= locals.columns ? 'columns-' + columns : '' %>">
+  <% items.forEach(item => { %>
+    <a class="showcase-item" href="/requests/<%= item._id %>">
+      <div class="showcase-photo">
+        <% if (item.images && item.images.length) { %>
+          <img src="<%= item.images[0] %>" alt="" loading="lazy">
+        <% } else { %>
+          <span class="no-photo"><%- icon('camera-off', { size: 22 }) %>Fotoğraf yok</span>
+        <% } %>
+        <% if (isUrgent(item)) { %><span class="label label-urgent label-on-photo">ACİL</span><% } %>
+      </div>
+      <div class="showcase-title"><%= item.title %></div>
+      <div class="showcase-price"><%= budgetLabel(item.budget) %></div>
+    </a>
+  <% }) %>
+</div>

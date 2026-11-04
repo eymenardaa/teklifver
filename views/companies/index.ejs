@@ -1,0 +1,109 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Firma Rehberi</span></div>
+
+  <div class="layout">
+    <aside>
+      <details class="box" open data-collapse-mobile>
+        <summary class="box-head">Firma Ara <%- icon('chevron-down', { size: 14 }) %></summary>
+        <form action="/companies" method="GET">
+          <div class="filter-group">
+            <label class="filter-title" for="companySearch">Firma adı</label>
+            <input class="input" type="search" id="companySearch" name="search" value="<%= search %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-title" for="companyCategory">Kategori</label>
+            <select class="select" id="companyCategory" name="category">
+              <option value="">Tümü</option>
+              <% categories.forEach(item => { %>
+                <option value="<%= item.name %>" <%= category === item.name ? 'selected' : '' %>><%= item.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-title" for="companyCity">İl</label>
+            <select class="select" id="companyCity" name="city">
+              <option value="">Tümü</option>
+              <% allCities.forEach(item => { %>
+                <option value="<%= item %>" <%= city === item ? 'selected' : '' %>><%= item %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-title" for="companyRating">En düşük puan</label>
+            <select class="select" id="companyRating" name="minRating">
+              <option value="">Tümü</option>
+              <% ['3', '4', '4.5'].forEach(item => { %>
+                <option value="<%= item %>" <%= minRating === item ? 'selected' : '' %>><%= item %> ve üzeri</option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="check-line"><input type="checkbox" name="verified" value="on" <%= verified ? 'checked' : '' %>> Yalnızca onaylı firmalar</label>
+          </div>
+          <input type="hidden" name="sort" value="<%= sort %>">
+          <div class="filter-group"><button class="btn btn-navy btn-block" type="submit">Ara</button></div>
+        </form>
+      </details>
+      <% if (!currentUser) { %>
+        <a class="btn btn-block" style="margin-bottom:12px" href="/register?role=company">Firma Hesabı Aç</a>
+      <% } %>
+      <div class="desktop-only"><%- include('../partials/ad', { format: 'side' }) %></div>
+    </aside>
+
+    <section class="box">
+      <div class="result-bar">
+        <span class="result-count"><strong><%= companies.length %></strong> firma bulundu</span>
+        <form action="/companies" method="GET">
+          <% Object.entries({ search, category, city, minRating, verified: verified ? 'on' : '' }).forEach(([key, value]) => { if (value) { %>
+            <input type="hidden" name="<%= key %>" value="<%= value %>">
+          <% } }) %>
+          <select class="select" name="sort" aria-label="Sırala" data-autosubmit>
+            <option value="rating" <%= sort === 'rating' ? 'selected' : '' %>>Puana göre</option>
+            <option value="reviews" <%= sort === 'reviews' ? 'selected' : '' %>>Değerlendirme sayısına göre</option>
+            <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>En yeni üyeler</option>
+          </select>
+        </form>
+      </div>
+      <% if (companies.length === 0) { %>
+        <div class="empty"><h3>Firma bulunamadı</h3><a class="btn" href="/companies">Tüm Firmalar</a></div>
+      <% } else { %>
+        <table class="listing-table company-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Firma</th>
+              <th class="col-date">Puan</th>
+              <th class="col-date">İl</th>
+              <th class="col-date">Üyelik</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% companies.forEach(company => { const name = company.companyName || company.name; %>
+              <tr>
+                <td class="col-photo" style="width:58px"><%- include('../partials/company-mark', { company }) %></td>
+                <td>
+                  <a class="listing-title" href="/companies/<%= company._id %>"><%= name %></a>
+                  <% if (company.verified) { %><%- include('../partials/verified') %><% } %>
+                  <% if (company.specialties && company.specialties.length) { %>
+                    <div class="tag-line"><%= company.specialties.join(', ') %></div>
+                  <% } %>
+                </td>
+                <td class="col-date nowrap">
+                  <% if (company.ratingCount > 0) { %>
+                    <%- icon('star', { size: 12, class: 'star' }) %> <strong><%= company.rating %></strong> (<%= company.ratingCount %>)
+                  <% } else { %>-<% } %>
+                </td>
+                <td class="col-date"><%= company.address || '-' %></td>
+                <td class="col-date"><%= memberSince(company.createdAt) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

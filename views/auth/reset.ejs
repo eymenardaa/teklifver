@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+
+<div class="wrap">
+  <div class="auth-box">
+    <div class="box">
+      <div class="box-head">Yeni Şifre Belirle</div>
+      <div class="box-body">
+        <form class="form" action="/reset/<%= token %>" method="POST">
+          <%- include('../partials/password-field', {
+            fieldId: 'password', fieldLabel: 'Yeni şifre', autocomplete: 'new-password',
+            minLength: 8, fieldError: errors.password
+          }) %>
+          <button class="btn btn-primary btn-block" type="submit">Şifreyi Kaydet</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

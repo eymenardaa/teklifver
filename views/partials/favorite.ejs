@@ -1,0 +1,11 @@
+<% const isFav = favoriteIds.includes(String(item._id)); %>
+<% if (currentUser) { %>
+  <form class="fav-form" action="/requests/<%= item._id %>/favorite" method="POST">
+    <input type="hidden" name="next" value="<%= currentUrl %>">
+    <button class="fav <%= isFav ? 'is-active' : '' %>" type="submit" title="<%= isFav ? 'Favorilerden çıkar' : 'Favorilere ekle' %>" aria-label="Favori">
+      <%- icon('heart', { size: 15 }) %>
+    </button>
+  </form>
+<% } else { %>
+  <a class="fav" href="/login?next=<%= encodeURIComponent(currentUrl) %>" title="Favorilere eklemek için giriş yapın" aria-label="Favori"><%- icon('heart', { size: 15 }) %></a>
+<% } %>

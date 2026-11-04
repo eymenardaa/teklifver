@@ -1,0 +1,71 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Tekliflerim (<%= myBids.length %>) <a href="/requests">Teklif Verilecek İşler</a></div>
+
+      <div class="summary">
+        <div><strong><%= stats.pendingBids %></strong><span>Bekleyen</span></div>
+        <div><strong><%= stats.acceptedBids %></strong><span>Kabul edilen</span></div>
+        <div><strong><%= stats.rejectedBids %></strong><span>Reddedilen</span></div>
+        <div><strong><%= money(stats.totalEarnings) %></strong><span>Kabul edilen tutar</span></div>
+      </div>
+
+      <% if (myBids.length === 0) { %>
+        <div class="empty">
+          <h3>Henüz teklif vermediniz</h3>
+          <a class="btn btn-primary" href="/requests">Teklif Verilecek İşler</a>
+        </div>
+      <% } else { %>
+        <div class="tabs" role="tablist" data-tabs="bidRows">
+          <button class="tab" type="button" role="tab" aria-selected="true" data-filter="all">Tümü</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="pending">Bekleyen</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="accepted">Kabul edilen</button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-filter="rejected">Reddedilen</button>
+        </div>
+
+        <table class="listing-table" id="bidRows">
+          <thead>
+            <tr>
+              <th class="col-photo"></th>
+              <th>Talep</th>
+              <th class="col-budget" style="color:inherit">Teklifim</th>
+              <th class="col-date">Süre</th>
+              <th class="col-date">Tarih</th>
+              <th class="col-status">Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% myBids.forEach(bid => { if (!bid.request) return; %>
+              <tr data-status="<%= bid.status %>">
+                <td class="col-photo">
+                  <a class="thumb" href="/requests/<%= bid.request._id %>" tabindex="-1" aria-hidden="true">
+                    <% if (bid.request.images && bid.request.images.length) { %>
+                      <img src="<%= bid.request.images[0] %>" alt="" loading="lazy">
+                    <% } else { %>
+                      <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+                    <% } %>
+                  </a>
+                </td>
+                <td>
+                  <a class="listing-title" href="/requests/<%= bid.request._id %>"><%= bid.request.title %></a>
+                  <div class="listing-sub"><%= bid.request.customer ? bid.request.customer.name : '' %> · <%= placeLabel(bid.request) %></div>
+                </td>
+                <td class="col-budget"><%= money(bid.amount) %></td>
+                <td class="col-date"><%= bid.deliveryTime %> gün</td>
+                <td class="col-date"><%= formatDate(bid.createdAt) %></td>
+                <td class="col-status"><%- include('../partials/status', { status: bidStatus[bid.status] }) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p class="tabs-empty" hidden>Bu durumda teklifiniz yok.</p>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

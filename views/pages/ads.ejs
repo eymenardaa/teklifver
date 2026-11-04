@@ -1,0 +1,43 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Reklam Ver</span></div>
+  <div class="layout">
+    <aside><%- include('../partials/page-menu') %></aside>
+    <div>
+      <section class="box">
+        <div class="box-head">Reklam Alanları</div>
+        <table class="listing-table">
+          <thead>
+            <tr><th>Alan</th><th>Nerede görünür?</th><th class="col-place">Önerilen Boyut</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Üst Banner</strong></td><td>Ana sayfa, talep listesi ve talep detayı</td><td class="col-place">1176 x 90 px</td></tr>
+            <tr><td><strong>Yan Banner</strong></td><td>Ana sayfa sağ sütun, talep listesi ve firma rehberi sol sütun</td><td class="col-place">200 x 300 px</td></tr>
+            <tr><td><strong>Liste İçi</strong></td><td>Talep listesinde ilan satırları arasında</td><td class="col-place">900 x 70 px</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Örnek Görünüm</div>
+        <div class="box-body">
+          <%- include('../partials/ad', { format: 'leaderboard' }) %>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Reklam Vermek İçin</div>
+        <div class="box-body">
+          <% if (site.email) { %>
+            <p>Reklam talepleriniz için <a href="mailto:<%= site.email %>"><%= site.email %></a> adresine yazabilirsiniz. Reklam vermek istediğiniz alanı ve süreyi belirtin.</p>
+          <% } else { %>
+            <p class="muted">Reklam iletişim adresi henüz eklenmedi.</p>
+          <% } %>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

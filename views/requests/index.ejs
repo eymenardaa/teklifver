@@ -1,0 +1,151 @@
+<%- include('../partials/header') %>
+
+<%
+  // Mevcut filtreleri koruyarak bağlantı üretir.
+  const listUrl = overrides => {
+    const state = { ...filters, page: 1, ...overrides };
+    const params = new URLSearchParams();
+    if (state.search) params.set('search', state.search);
+    if (state.category !== 'all') params.set('category', state.category);
+    if (state.city) params.set('city', state.city);
+    if (state.budgetMin) params.set('budgetMin', state.budgetMin);
+    if (state.budgetMax) params.set('budgetMax', state.budgetMax);
+    if (state.period) params.set('period', state.period);
+    if (state.photos) params.set('photos', 'on');
+    if (state.noBids) params.set('noBids', 'on');
+    if (state.sort !== 'newest') params.set('sort', state.sort);
+    if (state.view !== 'list') params.set('view', state.view);
+    if (state.page > 1) params.set('page', state.page);
+    const query = params.toString();
+    return '/requests' + (query ? '?' + query : '');
+  };
+  const hasFilters = filters.search || filters.category !== 'all' || filters.city || filters.budgetMin ||
+    filters.budgetMax || filters.period || filters.photos || filters.noBids;
+
+  const pageNumbers = [];
+  for (let n = Math.max(1, page - 3); n <= Math.min(totalPages, page + 3); n += 1) pageNumbers.push(n);
+%>
+
+<div class="wrap page">
+  <div class="crumbs">
+    <a href="/">Ana Sayfa</a> &rsaquo;
+    <a href="/requests">Talepler</a>
+    <% if (filters.category !== 'all') { %>&rsaquo; <span><%= filters.category %></span><% } %>
+  </div>
+
+  <%- include('../partials/ad', { format: 'leaderboard' }) %>
+
+  <div class="layout">
+    <aside>
+      <%- include('../partials/category-menu', { active: filters.category }) %>
+
+      <details class="box" open data-collapse-mobile>
+        <summary class="box-head">Detaylı Arama <%- icon('chevron-down', { size: 14 }) %></summary>
+        <form action="/requests" method="GET">
+          <% if (filters.category !== 'all') { %><input type="hidden" name="category" value="<%= filters.category %>"><% } %>
+          <% if (filters.sort !== 'newest') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
+          <% if (filters.view !== 'list') { %><input type="hidden" name="view" value="<%= filters.view %>"><% } %>
+
+          <div class="filter-group">
+            <label class="filter-title" for="filterSearch">Kelime</label>
+            <input class="input" type="search" id="filterSearch" name="search" value="<%= filters.search %>">
+          </div>
+          <div class="filter-group">
+            <label class="filter-title" for="filterCity">İl</label>
+            <select class="select" id="filterCity" name="city">
+              <option value="">Tümü</option>
+              <% allCities.forEach(city => { %>
+                <option value="<%= city %>" <%= filters.city === city ? 'selected' : '' %>><%= city %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-title">Bütçe (TL)</span>
+            <div class="filter-pair">
+              <input class="input" type="number" name="budgetMin" min="0" placeholder="En az" aria-label="En az bütçe" value="<%= filters.budgetMin || '' %>">
+              <input class="input" type="number" name="budgetMax" min="0" placeholder="En çok" aria-label="En çok bütçe" value="<%= filters.budgetMax || '' %>">
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-title">Talep Tarihi</span>
+            <label class="radio-line"><input type="radio" name="period" value="" <%= !filters.period ? 'checked' : '' %>> Tümü</label>
+            <label class="radio-line"><input type="radio" name="period" value="1" <%= filters.period === '1' ? 'checked' : '' %>> Son 24 saat</label>
+            <label class="radio-line"><input type="radio" name="period" value="7" <%= filters.period === '7' ? 'checked' : '' %>> Son 7 gün</label>
+            <label class="radio-line"><input type="radio" name="period" value="30" <%= filters.period === '30' ? 'checked' : '' %>> Son 30 gün</label>
+          </div>
+          <div class="filter-group">
+            <label class="check-line"><input type="checkbox" name="photos" value="on" <%= filters.photos ? 'checked' : '' %>> Fotoğraflı talepler</label>
+            <label class="check-line"><input type="checkbox" name="noBids" value="on" <%= filters.noBids ? 'checked' : '' %>> Teklif almamış talepler</label>
+          </div>
+          <div class="filter-group">
+            <button class="btn btn-navy btn-block" type="submit">Ara</button>
+            <% if (hasFilters) { %><div style="text-align:center;margin-top:6px"><a class="small" href="/requests">Filtreleri temizle</a></div><% } %>
+          </div>
+        </form>
+      </details>
+
+      <div class="desktop-only"><%- include('../partials/ad', { format: 'side' }) %></div>
+    </aside>
+
+    <section class="box">
+      <div class="result-bar">
+        <span class="result-count">
+          <% if (filters.search) { %>&quot;<%= filters.search %>&quot; aramanızda <% } %>
+          <strong><%= total %></strong> talep bulundu
+        </span>
+        <form action="/requests" method="GET">
+          <% Object.entries({ search: filters.search, category: filters.category === 'all' ? '' : filters.category, city: filters.city, budgetMin: filters.budgetMin || '', budgetMax: filters.budgetMax || '', period: filters.period, photos: filters.photos ? 'on' : '', noBids: filters.noBids ? 'on' : '', view: filters.view === 'list' ? '' : filters.view }).forEach(([key, value]) => { if (value) { %>
+            <input type="hidden" name="<%= key %>" value="<%= value %>">
+          <% } }) %>
+          <select class="select" name="sort" aria-label="Sırala" data-autosubmit>
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Tarihe göre (Önce en yeni)</option>
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Tarihe göre (Önce en eski)</option>
+            <option value="budget_high" <%= filters.sort === 'budget_high' ? 'selected' : '' %>>Bütçeye göre (Önce en yüksek)</option>
+            <option value="budget_low" <%= filters.sort === 'budget_low' ? 'selected' : '' %>>Bütçeye göre (Önce en düşük)</option>
+            <option value="deadline" <%= filters.sort === 'deadline' ? 'selected' : '' %>>Son tarihe göre</option>
+            <option value="bids" <%= filters.sort === 'bids' ? 'selected' : '' %>>Teklif sayısına göre</option>
+            <option value="views" <%= filters.sort === 'views' ? 'selected' : '' %>>Görüntülenmeye göre</option>
+          </select>
+        </form>
+        <% if (savedQuery) { %>
+          <% if (currentUser) { %>
+            <form action="/dashboard/searches" method="POST">
+              <input type="hidden" name="query" value="<%= savedQuery %>">
+              <button class="btn btn-sm" type="submit"><%- icon('bookmark', { size: 13 }) %> Aramayı Kaydet</button>
+            </form>
+          <% } else { %>
+            <a class="btn btn-sm" href="/login?next=<%= encodeURIComponent(currentUrl) %>"><%- icon('bookmark', { size: 13 }) %> Aramayı Kaydet</a>
+          <% } %>
+        <% } %>
+        <span class="view-switch">
+          <a class="<%= filters.view === 'list' ? 'is-active' : '' %>" href="<%= listUrl({ view: 'list', page }) %>"><%- icon('list', { size: 13 }) %> Liste</a>
+          <a class="<%= filters.view === 'gallery' ? 'is-active' : '' %>" href="<%= listUrl({ view: 'gallery', page }) %>"><%- icon('layout-grid', { size: 13 }) %> Galeri</a>
+        </span>
+      </div>
+
+      <% if (requests.length === 0) { %>
+        <div class="empty">
+          <h3>Aradığınız kriterlere uygun talep bulunamadı</h3>
+          <p>Filtreleri değiştirerek tekrar deneyin.</p>
+          <a class="btn" href="/requests">Tüm Talepler</a>
+        </div>
+      <% } else if (filters.view === 'gallery') { %>
+        <%- include('../partials/showcase-grid', { items: requests }) %>
+      <% } else { %>
+        <%- include('../partials/listing-table', { items: requests, adEvery: 8 }) %>
+      <% } %>
+
+      <% if (totalPages > 1) { %>
+        <nav class="pagination" aria-label="Sayfalar">
+          <% if (page > 1) { %><a href="<%= listUrl({ page: page - 1 }) %>">&lsaquo; Önceki</a><% } %>
+          <% pageNumbers.forEach(n => { %>
+            <% if (n === page) { %><span class="is-current"><%= n %></span><% } else { %><a href="<%= listUrl({ page: n }) %>"><%= n %></a><% } %>
+          <% }) %>
+          <% if (page < totalPages) { %><a href="<%= listUrl({ page: page + 1 }) %>">Sonraki &rsaquo;</a><% } %>
+        </nav>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

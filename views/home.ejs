@@ -1,0 +1,141 @@
+<%- include('partials/header') %>
+
+<div class="wrap page">
+  <%- include('partials/ad', { format: 'leaderboard' }) %>
+
+  <div class="layout-home">
+    <aside>
+      <%- include('partials/category-menu', { active: '', expanded: true }) %>
+
+      <div class="desktop-only">
+        <div class="box">
+          <div class="box-head">Hızlı Erişim</div>
+          <ul class="side-list">
+            <li><a href="/requests?period=1">Son 24 saatteki talepler</a></li>
+            <li><a href="/requests?period=7">Son 7 gündeki talepler</a></li>
+            <li><a href="/requests?photos=on">Fotoğraflı talepler</a></li>
+            <li><a href="/requests?noBids=on">Teklif almamış talepler</a></li>
+            <li><a href="/requests?sort=bids">En çok teklif alanlar</a></li>
+            <li><a href="/requests?sort=views">En çok görüntülenenler</a></li>
+            <li><a href="/companies">Firma rehberi</a></li>
+          </ul>
+        </div>
+
+        <%- include('partials/ad', { format: 'side' }) %>
+      </div>
+    </aside>
+
+    <div class="home-center">
+      <% if (showcase.length) { %>
+        <section class="box">
+          <div class="box-head">Vitrin <a href="/requests?photos=on&sort=views">Tümünü Gör</a></div>
+          <%- include('partials/showcase-grid', { items: showcase, columns: 4 }) %>
+        </section>
+      <% } %>
+
+      <section class="box" id="recentBox" hidden>
+        <div class="box-head">Son Gezdiğiniz Talepler</div>
+        <div class="showcase-grid columns-4" id="recentGrid"></div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Son Eklenen Talepler <a href="/requests">Tümü (<%= total %>)</a></div>
+        <% if (latest.length) { %>
+          <%- include('partials/listing-table', { items: latest, compact: true, adEvery: 6 }) %>
+        <% } else { %>
+          <div class="empty"><h3>Henüz talep yok</h3><a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a></div>
+        <% } %>
+      </section>
+
+      <% if (closing.length) { %>
+        <section class="box">
+          <div class="box-head">Son Tarihi Yaklaşanlar <a href="/requests?sort=deadline">Tümü</a></div>
+          <%- include('partials/showcase-grid', { items: closing, columns: 4 }) %>
+        </section>
+      <% } %>
+
+      <% if (cityRows.length) { %>
+        <section class="box">
+          <div class="box-head">İllere Göre Talepler</div>
+          <div class="link-grid">
+            <% cityRows.forEach(row => { %>
+              <a href="/requests?city=<%= encodeURIComponent(row._id) %>"><%= row._id %> <span class="count">(<%= row.total %>)</span></a>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box">
+        <div class="box-head">Nasıl Çalışır?</div>
+        <div class="how-table">
+          <div><strong>1. Talebinizi verin</strong><p>İhtiyacınızı yazın, isterseniz fotoğraf ve bütçe ekleyin. Ücretsizdir.</p></div>
+          <div><strong>2. Teklifleri karşılaştırın</strong><p>Firmaların fiyat, süre ve puanlarını yan yana görün, mesajlaşın.</p></div>
+          <div><strong>3. Firmayı seçin</strong><p>Teklifi kabul edin, iletişim bilgileriniz paylaşılsın. İş bitince puanlayın.</p></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="home-right">
+      <div class="box">
+        <div class="box-head">Rakamlarla</div>
+        <table class="mini-stats">
+          <tr><td>Açık talep</td><td><%= total %></td></tr>
+          <tr><td>Son 24 saat</td><td><%= stats.todayCount %></td></tr>
+          <tr><td>Kayıtlı firma</td><td><%= stats.companyCount %></td></tr>
+          <tr><td>Verilen teklif</td><td><%= stats.bidCount %></td></tr>
+          <tr><td>Tamamlanan iş</td><td><%= stats.completedCount %></td></tr>
+        </table>
+      </div>
+
+      <%- include('partials/ad', { format: 'side' }) %>
+
+      <% if (topCompanies.length) { %>
+        <div class="box">
+          <div class="box-head">Öne Çıkan Firmalar</div>
+          <ul class="company-mini">
+            <% topCompanies.forEach(company => { %>
+              <li>
+                <a href="/companies/<%= company._id %>"><%= company.companyName || company.name %></a>
+                <span><%- icon('star', { size: 11, class: 'star' }) %> <%= company.rating %> (<%= company.ratingCount %>)</span>
+              </li>
+            <% }) %>
+          </ul>
+          <div class="box-foot"><a href="/companies">Firma Rehberi</a></div>
+        </div>
+      <% } %>
+
+      <div class="box">
+        <div class="box-head">Popüler Aramalar</div>
+        <div class="tag-cloud">
+          <% ['mutfak', 'boya', 'banyo', 'nakliyat', 'web sitesi', 'logo', 'temizlik', 'elektrik', 'mobil uygulama', 'düğün'].forEach(term => { %>
+            <a href="/requests?search=<%= encodeURIComponent(term) %>"><%= term %></a>
+          <% }) %>
+        </div>
+      </div>
+
+      <%- include('partials/ad', { format: 'side' }) %>
+
+      <div class="box">
+        <div class="box-head">Güvenli Hizmet İçin</div>
+        <ul class="tip-list">
+          <li>Tüm ödemeyi iş bitmeden yapmayın.</li>
+          <li>Yapılacak işi ve fiyatı yazılı netleştirin.</li>
+          <li>Firmanın puanını ve aldığı işleri inceleyin.</li>
+        </ul>
+        <div class="box-foot"><a href="/yardim">Yardım</a></div>
+      </div>
+
+      <div class="box">
+        <div class="box-head">Firma mısınız?</div>
+        <div class="box-body small">
+          <p>Hesap açın, size uygun taleplere teklif verin, firma sayfanızda puanınızı gösterin.</p>
+          <a class="btn btn-navy btn-block" style="margin-top:8px" href="/register?role=company">Firma Hesabı Aç</a>
+        </div>
+      </div>
+
+      <%- include('partials/ad', { format: 'side' }) %>
+    </aside>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
