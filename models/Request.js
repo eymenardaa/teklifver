@@ -35,6 +35,10 @@ const requestSchema = new mongoose.Schema({
   deadline: {
     type: Date
   },
+  discoveryTime: {
+    type: String,
+    default: ''
+  },
   city: {
     type: String,
     trim: true

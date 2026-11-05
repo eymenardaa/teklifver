@@ -85,6 +85,15 @@
     <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
     <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
   </div>
+  <div class="field">
+    <label class="field-label" for="discoveryTime">Keşif / Randevu Uygunluğu <span class="optional">İsteğe bağlı</span></label>
+    <select class="select" id="discoveryTime" name="discoveryTime">
+      <option value="">Keşif gerekmiyor / Fark etmez</option>
+      <option value="Hafta içi gündüz (09:00 - 17:00)" <%= form.discoveryTime === 'Hafta içi gündüz (09:00 - 17:00)' ? 'selected' : '' %>>Hafta içi gündüz (09:00 - 17:00)</option>
+      <option value="Hafta içi akşam (18:00 - 21:00)" <%= form.discoveryTime === 'Hafta içi akşam (18:00 - 21:00)' ? 'selected' : '' %>>Hafta içi akşam (18:00 - 21:00)</option>
+      <option value="Hafta sonu herhangi bir saat" <%= form.discoveryTime === 'Hafta sonu herhangi bir saat' ? 'selected' : '' %>>Hafta sonu herhangi bir saat</option>
+    </select>
+  </div>
 </div>
 
 <!-- Para Kazandıran Özellikler: İlanı Öne Çıkarma & Acil İlan -->

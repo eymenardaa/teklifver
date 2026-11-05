@@ -7,9 +7,11 @@
     <aside class="desktop-only"><%- include('../partials/panel-menu') %></aside>
 
     <section class="box">
-      <div class="box-head">
-        <span>
+      <div class="box-head" style="display:flex; justify-content:space-between; align-items:center">
+        <span style="display:flex; align-items:center; gap:6px">
+          <span style="display:inline-block; width:9px; height:9px; background:#1b7a3d; border-radius:50%; box-shadow:0 0 6px #1b7a3d" title="Çevrimiçi"></span>
           <a href="/messages" style="font-size:13px;font-weight:bold">Mesajlarım</a> &rsaquo; <%= otherName %>
+          <span class="small muted" style="font-weight:normal">(Çevrimiçi)</span>
         </span>
         <% if (other.role === 'company') { %><a href="/companies/<%= other._id %>">Firma Sayfası</a><% } %>
       </div>
@@ -33,13 +35,20 @@
         <p class="thread-empty" <%= messages.length ? 'hidden' : '' %>>Henüz mesaj yok. İlk mesajı siz yazın.</p>
         <% messages.forEach(message => { const mine = message.sender.toString() === currentUser.id; %>
           <div class="msg <%= mine ? 'msg-mine' : '' %>">
+            <% if (message.image) { %>
+              <div style="margin-bottom:6px">
+                <a href="<%= message.image %>" target="_blank" rel="noopener">
+                  <img src="<%= message.image %>" alt="Eklenen görsel" style="max-width:200px; max-height:160px; border-radius:4px; object-fit:cover; display:block">
+                </a>
+              </div>
+            <% } %>
             <div class="msg-text"><%= message.content %></div>
             <div class="msg-time"><%= formatDateTime(message.createdAt) %></div>
           </div>
         <% }) %>
       </div>
 
-      <form class="thread-form" action="/messages/<%= request._id %>/<%= other._id %>" method="POST">
+      <form class="thread-form" action="/messages/<%= request._id %>/<%= other._id %>" method="POST" enctype="multipart/form-data">
         <div class="quick-replies" aria-label="Hazır yanıtlar">
           <% (currentUser.role === 'company'
             ? ['Merhaba, talebinizle ilgili birkaç sorum olacak.', 'Keşif için uygun olduğunuz bir gün var mı?', 'Teklifimi inceleyebildiniz mi?', 'Ölçü veya fotoğraf paylaşabilir misiniz?']
@@ -48,9 +57,24 @@
             <button class="quick-reply" type="button" data-quick-reply="<%= text %>"><%= text %></button>
           <% }) %>
         </div>
-        <label class="visually-hidden" for="messageContent">Mesajınız</label>
-        <textarea class="textarea" id="messageContent" name="content" rows="3" maxlength="<%= maxLength %>" placeholder="Mesajınızı yazın" required></textarea>
-        <div class="thread-form-foot">
+
+        <div style="display:flex; gap:8px; align-items:flex-end">
+          <div style="flex:1">
+            <label class="visually-hidden" for="messageContent">Mesajınız</label>
+            <textarea class="textarea" id="messageContent" name="content" rows="3" maxlength="<%= maxLength %>" placeholder="Mesajınızı yazın" required style="margin:0"></textarea>
+          </div>
+          <div>
+            <label class="btn" style="cursor:pointer; height:38px; display:inline-flex; align-items:center; gap:4px" title="Fotoğraf Ekle">
+              <%- icon('camera', { size: 16 }) %> Fotoğraf
+              <input type="file" name="image" accept="image/*" class="visually-hidden" id="msgImageInput">
+            </label>
+          </div>
+        </div>
+        <div id="imageSelectedNote" class="small muted" style="margin-top:4px; display:none">
+          📷 Görsel seçildi: <span id="imageFileName"></span>
+        </div>
+
+        <div class="thread-form-foot" style="margin-top:8px">
           <span class="muted small">Ctrl + Enter ile gönderebilirsiniz.</span>
           <button class="btn btn-primary" type="submit">Gönder</button>
         </div>
@@ -58,5 +82,24 @@
     </section>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const fileInput = document.getElementById('msgImageInput');
+  const noteEl = document.getElementById('imageSelectedNote');
+  const nameEl = document.getElementById('imageFileName');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files[0]) {
+        nameEl.innerText = fileInput.files[0].name;
+        noteEl.style.display = 'block';
+      } else {
+        noteEl.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
 
 <%- include('../partials/footer') %>

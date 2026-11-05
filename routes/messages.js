@@ -11,6 +11,7 @@ const { str } = require('../lib/input');
 const { formatDateTime } = require('../lib/helpers');
 const { notify } = require('../lib/notify');
 const Notification = require('../models/Notification');
+const { uploadImages } = require('../middleware/upload');
 
 const { MAX_MESSAGE_LENGTH } = Message;
 const objectId = id => new mongoose.Types.ObjectId(id);
@@ -197,7 +198,7 @@ router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
 });
 
 // Mesaj gönder
-router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter, async (req, res, next) => {
+router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter, uploadImages, async (req, res, next) => {
   try {
     const thread = await loadThread(req);
     if (!thread) return denyThread(req, res);
@@ -206,7 +207,7 @@ router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter
     const content = str(req.body.content);
     const backToThread = `/messages/${requestId}/${userId}`;
 
-    if (!content) {
+    if (!content && !(req.files && req.files.length)) {
       req.flash('error', 'Boş mesaj gönderilemez.');
       return res.redirect(backToThread);
     }
@@ -215,7 +216,14 @@ router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter
       return res.redirect(backToThread);
     }
 
-    await Message.create({ request: requestId, sender: req.session.user.id, receiver: userId, content });
+    const imagePath = (req.files && req.files.length) ? '/uploads/' + req.files[0].filename : '';
+    await Message.create({
+      request: requestId,
+      sender: req.session.user.id,
+      receiver: userId,
+      content: content || '📷 Fotoğraf paylaştı',
+      image: imagePath
+    });
 
     // Art arda mesajlarda bildirim yığılmasın: okunmamış bildirim varsa yenisi açılmaz.
     const threadForReceiver = `/messages/${requestId}/${req.session.user.id}`;

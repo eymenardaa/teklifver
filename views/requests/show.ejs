@@ -87,7 +87,37 @@
         <tr><td>Talep No</td><td><strong style="color:var(--price)"><%= request.no %></strong></td></tr>
         <tr><td>Talep Tarihi</td><td><%= formatDate(request.createdAt) %></td></tr>
         <tr><td>Kategori</td><td><%= request.category %></td></tr>
-        <tr><td>Son Tarih</td><td><%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %></td></tr>
+        <tr><td>Son Tarih</td><td>
+          <%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %>
+          <% if (request.deadline && new Date(request.deadline) > new Date()) { %>
+            <div id="countdown" style="margin-top:3px; font-weight:bold; color:var(--price); font-size:12px">
+              ⏳ Kalan: <span id="countdownTimer">Hesaplanıyor...</span>
+            </div>
+            <script>
+              (function() {
+                const target = new Date('<%= request.deadline %>').getTime();
+                const timerEl = document.getElementById('countdownTimer');
+                function tick() {
+                  const now = new Date().getTime();
+                  const diff = target - now;
+                  if (diff <= 0) {
+                    timerEl.innerText = 'Süre doldu!';
+                    return;
+                  }
+                  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                  const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                  timerEl.innerText = `${d} gün ${h} sa ${m} dk`;
+                }
+                tick();
+                setInterval(tick, 60000);
+              })();
+            </script>
+          <% } %>
+        </td></tr>
+        <% if (request.discoveryTime) { %>
+          <tr><td>Keşif Uygunluğu</td><td><strong style="color:var(--navy)"><%- icon('calendar', { size: 12 }) %> <%= request.discoveryTime %></strong></td></tr>
+        <% } %>
         <tr><td>Durum</td><td><%- include('../partials/status', { status: requestStatus[request.status] }) %></td></tr>
         <tr><td>Teklif Sayısı</td><td><%= bids.length %></td></tr>
         <tr><td>Görüntülenme</td><td><%= request.viewCount %></td></tr>
@@ -300,6 +330,11 @@
       <div class="box-head">Teklif Ver</div>
       <div class="box-body">
         <form class="form" action="/bids" method="POST" style="max-width:560px">
+          <% if (averages) { %>
+            <div style="background:#eef7ff; border:1px solid #cfe0f3; padding:8px 12px; border-radius:4px; margin-bottom:12px; font-size:12.5px; color:#174066">
+              💡 <strong>Teklif İpucu:</strong> Bu kategoride müşteriler genelde <strong><%= averages.days %> gün</strong> teslim süreli ve ortalama <strong><%= money(averages.amount) %></strong> civarındaki teklifleri tercih ediyor.
+            </div>
+          <% } %>
           <input type="hidden" name="requestId" value="<%= request._id %>">
           <div class="field-row">
             <div class="field">
@@ -483,5 +518,21 @@
     </section>
   <% } %>
 </div>
+
+<% if (request.status === 'in_progress' || request.status === 'completed') { %>
+  <!-- Konfeti Efekti (Kabul Edilen Teklif Başarı Kutlaması) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        confetti({
+          particleCount: 90,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } catch (e) {}
+    });
+  </script>
+<% } %>
 
 <%- include('../partials/footer') %>

@@ -52,7 +52,8 @@ function parseRequestForm(req) {
     budgetMax: str(req.body.budgetMax),
     deadline: str(req.body.deadline),
     city: str(req.body.city),
-    location: str(req.body.location)
+    location: str(req.body.location),
+    discoveryTime: str(req.body.discoveryTime)
   };
 
   const errors = {};
@@ -90,6 +91,7 @@ function parseRequestForm(req) {
       budget: { min, max },
       city: values.city || undefined,
       location: values.location,
+      discoveryTime: values.discoveryTime,
       deadline: deadline || undefined,
       isUrgent: req.body.isUrgent === 'on',
       isFeatured: req.body.isFeatured === 'on'
