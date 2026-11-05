@@ -121,10 +121,12 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       await sendVerificationCode(user);
     } catch (e) {
       console.error("Doğrulama kodu gönderilemedi:", e.message);
+      req.flash("error", "Onay kodu e-postanıza gönderilemedi: " + e.message);
+      return res.redirect("/register");
     }
     req.session.pendingVerifyUserId = user._id;
     req.session.pendingVerifyRemember = false;
-    req.flash("success", `${values.email} adresinize 6 haneli güvenlik onay kodunuz gönderildi.`);
+    req.flash("success", `${values.email} adresinize 6 haneli güvenlik onay kodunuz gönderildi. Lütfen gelen kutunuzu (ve Spam klasörünü) kontrol edin.`);
     return res.redirect("/verify-code" + (redirectTo ? "?next=" + encodeURIComponent(redirectTo) : ""));
   } catch (err) {
     if (err.code === 11000) {
@@ -168,10 +170,12 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
       await sendVerificationCode(user);
     } catch (e) {
       console.error("Giriş onay kodu gönderilemedi:", e.message);
+      req.flash("error", "Giriş onay kodu e-postanıza gönderilemedi: " + e.message);
+      return res.redirect("/login");
     }
     req.session.pendingVerifyUserId = user._id;
     req.session.pendingVerifyRemember = req.body.remember === "on";
-    req.flash("success", `${user.email} adresinize 6 haneli giriş onay kodunuz gönderildi.`);
+    req.flash("success", `${user.email} adresinize 6 haneli giriş onay kodunuz gönderildi. Lütfen gelen kutunuzu (ve Spam klasörünü) kontrol edin.`);
     return res.redirect("/verify-code" + (redirectTo ? "?next=" + encodeURIComponent(redirectTo) : ""));
   } catch (err) {
     next(err);
