@@ -2,71 +2,120 @@
 
 <div class="wrap">
   <div class="auth-box">
-    <div class="box">
-      <div class="box-head">Hesap Aç</div>
-      <div class="box-body">
-        <%- include('../partials/social-login', { socialRole: values.role === 'company' ? 'company' : '' }) %>
-        <form class="form" action="/register" method="POST">
-          <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
-          <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+    <% if (locals.step === 'verify') { %>
+      <!-- 2. Adım: Kayıt İçin 6 Haneli E-posta Onay Kodu -->
+      <div class="box">
+        <div class="box-head">E-posta Doğrulama Kodu</div>
+        <div class="box-body">
+          <% if (errors && errors.form) { %><div class="form-error" role="alert" style="margin-bottom:14px"><%= errors.form %></div><% } %>
 
-          <fieldset class="role-picker">
-            <legend class="field-label" style="margin-bottom:4px">Hesap türü</legend>
-            <label class="role-line">
-              <input type="radio" name="role" value="customer" <%= values.role !== 'company' ? 'checked' : '' %>>
-              <div><strong>Bireysel</strong><span>Talep verip firmalardan teklif almak için</span></div>
-            </label>
-            <label class="role-line">
-              <input type="radio" name="role" value="company" <%= values.role === 'company' ? 'checked' : '' %>>
-              <div><strong>Firma</strong><span>Taleplere teklif vermek için</span></div>
-            </label>
-          </fieldset>
+          <div style="text-align:center; margin-bottom:18px">
+            <div style="font-size:36px; margin-bottom:6px">📩</div>
+            <p style="margin:0 0 6px; font-size:14.5px; color:#222">
+              <strong><%= maskedEmail %></strong> adresinize 6 haneli onay kodu gönderdik.
+            </p>
+            <p class="small muted" style="margin:0">
+              Hesabınızı tamamlamak ve aktif etmek için lütfen Gmail'inize gelen kodu aşağıya girin.
+            </p>
+          </div>
 
-          <div class="collapsible <%= values.role === 'company' ? 'is-open' : '' %>" id="companyFields">
-            <div class="field <%= errors.companyName ? 'has-error' : '' %>">
-              <label class="field-label" for="companyName">Firma adı</label>
-              <input class="input" type="text" id="companyName" name="companyName" maxlength="120" value="<%= values.companyName || '' %>" autocomplete="organization">
-              <% if (errors.companyName) { %><p class="field-error"><%= errors.companyName %></p><% } %>
+          <form class="form" action="/register" method="POST" style="text-align:center">
+            <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+            <input type="hidden" name="userId" value="<%= userId %>">
+            <input type="hidden" name="verifyStep" value="true">
+
+            <div class="field" style="margin-bottom:18px">
+              <label class="field-label visually-hidden" for="verificationCode">Onay Kodu</label>
+              <input class="input" 
+                     type="text" 
+                     id="verificationCode" 
+                     name="code" 
+                     maxlength="6" 
+                     pattern="[0-9]{6}" 
+                     inputmode="numeric" 
+                     placeholder="123456" 
+                     autocomplete="one-time-code"
+                     autofocus 
+                     required 
+                     style="text-align:center; font-size:28px; font-family:monospace; letter-spacing:8px; font-weight:bold; height:52px; max-width:260px; margin:0 auto; display:block">
             </div>
+
+            <button class="btn btn-primary btn-block" type="submit" style="height:44px; font-size:15px; font-weight:bold">
+              Kodu Doğrula ve Hesabı Aç
+            </button>
+          </form>
+
+          <p class="small" style="margin-top:14px; text-align:center; color:#e67700; background:#fff9db; padding:8px 10px; border-radius:4px; border:1px solid #ffe066">
+            ⚠️ E-posta gelen kutusunda görünmüyorsa lütfen <strong>Spam / Gereksiz</strong> klasörünü kontrol edin.
+          </p>
+          <div style="text-align:center; margin-top:12px">
+            <a href="/register" class="small muted">Yeniden başla</a>
           </div>
-
-          <div class="field <%= errors.name ? 'has-error' : '' %>">
-            <label class="field-label" for="name">Ad soyad</label>
-            <input class="input" type="text" id="name" name="name" maxlength="100" value="<%= values.name || '' %>" autocomplete="name" required>
-            <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
-          </div>
-
-          <div class="field <%= errors.email ? 'has-error' : '' %>">
-            <label class="field-label" for="email">E-posta adresi</label>
-            <input class="input" type="email" id="email" name="email" value="<%= values.email || '' %>" autocomplete="email" required>
-            <% if (errors.email) { %><p class="field-error"><%= errors.email %></p><% } %>
-          </div>
-
-          <%- include('../partials/password-field', {
-            fieldId: 'password', fieldLabel: 'Şifre', autocomplete: 'new-password',
-            minLength: 8, fieldError: errors.password
-          }) %>
-
-          <div class="field <%= errors.terms ? 'has-error' : '' %>">
-            <label class="checkbox terms-line">
-              <input type="checkbox" name="terms" required>
-              <span><a href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı kabul ediyorum, <a href="/gizlilik" target="_blank">Aydınlatma Metni</a>'ni okudum.</span>
-            </label>
-            <% if (errors.terms) { %><p class="field-error"><%= errors.terms %></p><% } %>
-          </div>
-
-          <div class="visually-hidden" aria-hidden="true">
-            <label for="registerWebsite">Bu alanı boş bırakın</label>
-            <input type="text" id="registerWebsite" name="website" tabindex="-1" autocomplete="off">
-          </div>
-
-          <button class="btn btn-primary btn-block" type="submit">Hesap Aç</button>
-        </form>
+        </div>
       </div>
-      <div class="auth-foot">
-        Zaten hesabınız var mı? <a href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>"><strong>Giriş Yap</strong></a>
+    <% } else { %>
+      <!-- 1. Adım: Kayıt Bilgileri Formu -->
+      <div class="box">
+        <div class="box-head">Hesap Aç</div>
+        <div class="box-body">
+          <%- include('../partials/social-login', { socialRole: values.role === 'company' ? 'company' : '' }) %>
+          <form class="form" action="/register" method="POST">
+            <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+            <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+
+            <fieldset class="role-picker">
+              <legend class="field-label" style="margin-bottom:4px">Hesap türü</legend>
+              <label class="role-line">
+                <input type="radio" name="role" value="customer" <%= values.role !== 'company' ? 'checked' : '' %>>
+                <div><strong>Bireysel</strong><span>Talep verip firmalardan teklif almak için</span></div>
+              </label>
+              <label class="role-line">
+                <input type="radio" name="role" value="company" <%= values.role === 'company' ? 'checked' : '' %>>
+                <div><strong>Firma</strong><span>Taleplere teklif vermek için</span></div>
+              </label>
+            </fieldset>
+
+            <div class="collapsible <%= values.role === 'company' ? 'is-open' : '' %>" id="companyFields">
+              <div class="field <%= errors.companyName ? 'has-error' : '' %>">
+                <label class="field-label" for="companyName">Firma adı</label>
+                <input class="input" type="text" id="companyName" name="companyName" maxlength="120" value="<%= values.companyName || '' %>" autocomplete="organization">
+                <% if (errors.companyName) { %><p class="field-error"><%= errors.companyName %></p><% } %>
+              </div>
+            </div>
+
+            <div class="field <%= errors.name ? 'has-error' : '' %>">
+              <label class="field-label" for="name">Ad soyad</label>
+              <input class="input" type="text" id="name" name="name" maxlength="100" value="<%= values.name || '' %>" autocomplete="name" required>
+              <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
+            </div>
+
+            <div class="field <%= errors.email ? 'has-error' : '' %>">
+              <label class="field-label" for="email">E-posta adresi</label>
+              <input class="input" type="email" id="email" name="email" value="<%= values.email || '' %>" autocomplete="email" required>
+              <% if (errors.email) { %><p class="field-error"><%= errors.email %></p><% } %>
+            </div>
+
+            <%- include('../partials/password-field', {
+              fieldId: 'password', fieldLabel: 'Şifre', autocomplete: 'new-password',
+              minLength: 8, fieldError: errors.password
+            }) %>
+
+            <div class="field <%= errors.terms ? 'has-error' : '' %>">
+              <label class="checkbox">
+                <input type="checkbox" name="terms" <%= values.terms ? 'checked' : '' %> required>
+                <span><a href="/kullanim-kosullari" target="_blank" rel="noopener">Kullanım Koşulları</a> ve <a href="/gizlilik" target="_blank" rel="noopener">Gizlilik Politikasını</a> okudum, kabul ediyorum.</span>
+              </label>
+              <% if (errors.terms) { %><p class="field-error"><%= errors.terms %></p><% } %>
+            </div>
+
+            <button class="btn btn-primary btn-block" type="submit">Kayıt Ol</button>
+          </form>
+        </div>
+        <div class="auth-foot">
+          Zaten hesabınız var mı? <a href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>"><strong>Giriş Yap</strong></a>
+        </div>
       </div>
-    </div>
+    <% } %>
   </div>
 </div>
 
