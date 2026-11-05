@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Request = require('../models/Request');
 const User = require('../models/User');
@@ -7,11 +8,18 @@ const { rateLimit } = require('express-rate-limit');
 const { liveFilter } = require('../lib/listing');
 const { openCountsByCategory, priceGuide } = require('../lib/stats');
 const { str, isEmail } = require('../lib/input');
-const { sendMail } = require('../lib/mailer');
+const { sendInBackground, isEnabled: mailEnabled } = require('../lib/mailer');
+const ContactMessage = require('../models/ContactMessage');
+const Ad = require('../models/Ad');
+const { siteUrl } = require('../lib/url');
 
 const pages = {
   '/yardim': { view: 'help', title: 'Yardım' },
   '/reklam': { view: 'ads', title: 'Reklam Ver' },
+  '/hakkimizda': { view: 'about', title: 'Hakkımızda', metaDescription: 'TeklifVer nedir, nasıl çalışır? Hizmet arayanlarla firmaları buluşturan teklif platformu.' },
+  '/firmalar-icin': { view: 'for-companies', title: 'Firmalar İçin', metaDescription: 'Firmanızı tanıtın, size uygun taleplere teklif verin, müşteri yorumlarıyla güven kazanın.' },
+  '/guvenli-hizmet': { view: 'safety', title: 'Güvenli Hizmet Rehberi', metaDescription: 'Hizmet alırken dikkat edilmesi gerekenler: firma seçimi, sözleşme, ödeme ve dolandırıcılık uyarıları.' },
+  '/veri-silme': { view: 'data-deletion', title: 'Hesap ve Veri Silme', metaDescription: 'TeklifVer hesabınızı ve kişisel verilerinizi nasıl silebilirsiniz?' },
   '/kullanim-kosullari': { view: 'terms', title: 'Kullanım Koşulları' },
   '/gizlilik': { view: 'privacy', title: 'Gizlilik ve KVKK Aydınlatma Metni' },
   '/cerez-politikasi': { view: 'cookies', title: 'Çerez Politikası' }
@@ -19,7 +27,7 @@ const pages = {
 
 Object.entries(pages).forEach(([path, page]) => {
   router.get(path, (req, res) => {
-    res.render(`pages/${page.view}`, { title: page.title, pagePath: path });
+    res.render(`pages/${page.view}`, { title: page.title, metaDescription: page.metaDescription || '', pagePath: path });
   });
 });
 
@@ -83,7 +91,8 @@ const contactLimiter = rateLimit({
 
 router.get('/iletisim', (req, res) => {
   const user = req.session.user;
-  renderContact(res, { values: user ? { name: user.name, email: user.email } : {} });
+  const subject = CONTACT_SUBJECTS.includes(req.query.konu) ? req.query.konu : '';
+  renderContact(res, { values: { subject, ...(user ? { name: user.name, email: user.email } : {}) } });
 });
 
 router.post('/iletisim', contactLimiter, async (req, res, next) => {
@@ -113,15 +122,14 @@ router.post('/iletisim', contactLimiter, async (req, res, next) => {
   }
 
   try {
-    const to = process.env.SITE_EMAIL;
-    const sent = (to || process.env.NODE_ENV !== 'production') && await sendMail({
-      to: to || 'iletisim@localhost',
-      subject: `TeklifVer iletişim: ${values.subject}`,
-      text: `Gönderen: ${values.name}\nE-posta: ${values.email}\nKonu: ${values.subject}\n\n${values.message}`
-    });
-    if (!sent) {
-      res.status(503);
-      return renderContact(res, { values, errors: { form: 'İletişim formu şu anda kullanılamıyor.' } });
+    // Mesaj önce kaydedilir: e-posta gönderilemese de yönetim panelinde okunur.
+    await ContactMessage.create(values);
+    if (process.env.SITE_EMAIL && mailEnabled()) {
+      sendInBackground({
+        to: process.env.SITE_EMAIL,
+        subject: `TeklifVer iletişim: ${values.subject}`,
+        text: `Gönderen: ${values.name}\nE-posta: ${values.email}\nKonu: ${values.subject}\n\n${values.message}`
+      });
     }
     req.flash('success', 'Mesajınız alındı. Teşekkür ederiz.');
     res.redirect('/iletisim');
@@ -130,7 +138,19 @@ router.post('/iletisim', contactLimiter, async (req, res, next) => {
   }
 });
 
-const baseUrl = req => process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+const baseUrl = siteUrl;
+
+// Reklam tıklaması sayılır ve hedefe gidilir.
+router.get('/reklam-tik/:id', async (req, res, next) => {
+  try {
+    const ad = mongoose.isValidObjectId(req.params.id)
+      ? await Ad.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } }).select('url').lean()
+      : null;
+    res.redirect(ad ? ad.url : '/');
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(
@@ -142,6 +162,9 @@ router.get('/robots.txt', (req, res) => {
       'Disallow: /profile',
       'Disallow: /admin',
       'Disallow: /reset',
+      'Disallow: /email',
+      'Disallow: /auth',
+      'Disallow: /reklam-tik',
       `Sitemap: ${baseUrl(req)}/sitemap.xml`
     ].join('\n')
   );
@@ -167,6 +190,9 @@ router.get('/sitemap.xml', async (req, res, next) => {
       entry('/fiyat-rehberi'),
       entry('/iller'),
       entry('/iletisim'),
+      entry('/hakkimizda'),
+      entry('/firmalar-icin'),
+      entry('/guvenli-hizmet'),
       ...categories.names.map(name => entry(`/requests?category=${encodeURIComponent(name)}`)),
       ...requests.map(item => entry(`/requests/${item._id}`, item.updatedAt)),
       ...firms.map(item => entry(`/companies/${item._id}`, item.updatedAt))

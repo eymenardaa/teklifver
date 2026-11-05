@@ -29,7 +29,8 @@ function startSite(mongoUri, cwd) {
       MONGODB_URI: mongoUri,
       PORT: String(PORT),
       SITE_URL: SITE + BASE,
-      SESSION_SECRET: crypto.randomBytes(24).toString('hex')
+      SESSION_SECRET: crypto.randomBytes(24).toString('hex'),
+      RATE_LIMIT_PER_MINUTE: '100000'
     },
     stdio: ['ignore', 'pipe', 'inherit']
   });
@@ -109,8 +110,11 @@ async function collectListingParts() {
   }
 
   const companyRows = new Map();
-  for (const row of (await getHtml('/companies')).match(ROW) || []) {
-    companyRows.set(row.match(/class="listing-title" href="\/companies\/([a-f0-9]{24})"/)[1], row);
+  for (let page = 1; ; page += 1) {
+    const found = (await getHtml(`/companies?page=${page}`)).match(ROW) || [];
+    const before = companyRows.size;
+    for (const row of found) companyRows.set(row.match(/class="listing-title" href="\/companies\/([a-f0-9]{24})"/)[1], row);
+    if (companyRows.size === before) break;
   }
   return { rows, cards, ads: [...new Set(ads)], companyRows };
 }
@@ -191,14 +195,13 @@ function makeRewriter(aliases) {
 }
 
 function finishPage(html, rewrite) {
-  const page = rewrite(html.replace(/<div class="demo-note">[\s\S]*?<\/div>\s*<\/div>/, ''))
-    .replace(/(<meta property="og:image" content=")\/(?!\/)/, `$1${SITE}${BASE}/`);
+  const page = rewrite(html.replace(/<div class="demo-note">[\s\S]*?<\/div>\s*<\/div>/, ''));
 
   return page
     .replace('<html lang="tr">', `<html lang="tr" data-base="${BASE}">`)
     .replace('<meta charset="UTF-8">', '<meta charset="UTF-8">\n  <meta name="robots" content="noindex">')
-    .replace(`<script src="${BASE}/js/main.js" defer></script>`,
-      `<link href="${BASE}/css/static.css" rel="stylesheet">\n  <script src="${BASE}/js/static.js" defer></script>\n  <script src="${BASE}/js/main.js" defer></script>`)
+    .replace(/<script src="[^"]*\/js\/main\.js[^"]*" defer><\/script>/, match =>
+      `<link href="${BASE}/css/static.css" rel="stylesheet">\n  <script src="${BASE}/js/static.js" defer></script>\n  ${match}`)
     .replace('<body>', `<body>\n  <div class="preview-bar">Önizleme sürümü: talepler, firmalar ve puanlar örnek veridir. Üyelik, talep verme, teklif ve mesajlaşma kapalıdır.</div>`);
 }
 

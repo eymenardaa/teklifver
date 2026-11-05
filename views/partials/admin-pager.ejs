@@ -1,0 +1,7 @@
+<% if (pager.totalPages > 1) { %>
+  <nav class="pagination" aria-label="Sayfalar">
+    <% for (let n = Math.max(1, pager.page - 3); n <= Math.min(pager.totalPages, pager.page + 3); n += 1) { %>
+      <% if (n === pager.page) { %><span class="is-current"><%= n %></span><% } else { %><a href="<%= pagerBase %>?<%= pageQuery ? pageQuery + '&' : '' %>page=<%= n %>"><%= n %></a><% } %>
+    <% } %>
+  </nav>
+<% } %>

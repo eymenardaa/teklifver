@@ -23,5 +23,6 @@ const notificationSchema = new mongoose.Schema({
 });
 
 notificationSchema.index({ user: 1, read: 1, createdAt: -1 });
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 }); // 6 ay sonra silinir
 
 module.exports = mongoose.model('Notification', notificationSchema);

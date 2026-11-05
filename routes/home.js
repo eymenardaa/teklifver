@@ -36,7 +36,7 @@ router.get('/', async (req, res, next) => {
         User.countDocuments({ role: 'company' }),
         Bid.countDocuments(),
         Request.countDocuments({ status: 'completed' }),
-        Review.find({ comment: { $nin: [null, ''] } })
+        Review.find({ comment: { $nin: [null, ''] }, hidden: { $ne: true } })
           .populate('customer', 'name')
           .populate('company', 'name companyName')
           .sort({ createdAt: -1 })
@@ -46,6 +46,17 @@ router.get('/', async (req, res, next) => {
 
     res.render('home', {
       title: '',
+      jsonLdData: {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'TeklifVer',
+        url: `${res.locals.siteBase}/`,
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${res.locals.siteBase}/requests?search={search_term_string}`,
+          'query-input': 'required name=search_term_string'
+        }
+      },
       showcase: uniqueByPhoto(showcase, 20),
       latest,
       closing: uniqueByPhoto(closing, 8),

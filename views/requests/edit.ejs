@@ -8,7 +8,7 @@
     category: request.category,
     budgetMin: request.budget && request.budget.min > 0 ? request.budget.min : '',
     budgetMax: request.budget && request.budget.max > 0 ? request.budget.max : '',
-    deadline: request.deadline ? new Date(request.deadline).toISOString().split('T')[0] : '',
+    deadline: request.deadline ? dateInput(request.deadline) : '',
     city: request.city || '',
     location: request.location || ''
   };

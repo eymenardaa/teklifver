@@ -4,7 +4,7 @@
   <%- include('partials/ad', { format: 'leaderboard' }) %>
 
   <div class="layout-home">
-    <aside>
+    <aside aria-label="Kategoriler ve hızlı erişim">
       <%- include('partials/category-menu', { active: '', expanded: true }) %>
 
       <div class="desktop-only">
@@ -45,7 +45,7 @@
         <% if (latest.length) { %>
           <%- include('partials/listing-table', { items: latest, compact: true, adEvery: 6 }) %>
         <% } else { %>
-          <div class="empty"><h3>Henüz talep yok</h3><a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a></div>
+          <div class="empty"><h2>Henüz talep yok</h2><a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a></div>
         <% } %>
       </section>
 
@@ -73,12 +73,12 @@
           <div class="review-grid">
             <% latestReviews.forEach(review => { %>
               <figure class="review-card">
-                <div class="review-stars" aria-label="<%= review.rating %> üzerinden 5 puan">
+                <div class="review-stars" role="img" aria-label="<%= review.rating %> üzerinden 5 puan">
                   <% for (let n = 1; n <= 5; n += 1) { %><%- icon('star', { size: 12, class: n <= review.rating ? 'star' : 'star-empty' }) %><% } %>
                 </div>
                 <blockquote><%= truncate(review.comment, 140) %></blockquote>
                 <figcaption>
-                  <%= review.customer.name %> · <a href="/companies/<%= review.company._id %>"><%= review.company.companyName || review.company.name %></a>
+                  <%= shortName(review.customer.name) %> · <a href="/companies/<%= review.company._id %>"><%= review.company.companyName || review.company.name %></a>
                 </figcaption>
               </figure>
             <% }) %>
@@ -96,7 +96,7 @@
       </section>
     </div>
 
-    <aside class="home-right">
+    <aside class="home-right" aria-label="Rakamlar ve öneriler">
       <div class="box">
         <div class="box-head">Rakamlarla</div>
         <table class="mini-stats">

@@ -15,7 +15,28 @@
           <div><strong><%= counts.requests %></strong><span>Toplam talep</span></div>
           <div><strong><%= counts.bids %></strong><span>Teklif</span></div>
           <div><strong><%= counts.messages %></strong><span>Mesaj</span></div>
-          <div><strong><%= reports.length %></strong><span>Açık şikayet</span></div>
+          <div><strong><%= reports.length + companyReports.length %></strong><span>Açık şikayet</span></div>
+          <div><strong><%= counts.newContacts %></strong><span>Yeni iletişim mesajı</span></div>
+        </div>
+      </section>
+
+      <% if (demoActive) { %>
+        <section class="box">
+          <div class="box-head">Örnek Veriler</div>
+          <div class="box-body">
+            <p class="muted" style="margin-bottom:8px">Sitede örnek hesaplar ve talepler var. Gerçek kullanıcılar gelmeye başlayınca silin. Bu işlem geri alınamaz, gerçek kullanıcıların verilerine dokunmaz.</p>
+            <form action="/admin/demo/remove" method="POST" data-confirm="Tüm örnek hesaplar, talepler ve mesajlar silinecek." data-confirm-label="Örnek Verileri Sil" data-confirm-tone="danger">
+              <button class="btn btn-danger-quiet" type="submit">Örnek Verileri Sil</button>
+            </form>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box">
+        <div class="box-head">Sunucu Kontrolü</div>
+        <div class="box-body small">
+          <p>Sitenin gördüğü IP adresiniz: <strong><%= clientIp %></strong> (vekil zincirinde <%= proxyHops %> adres)</p>
+          <p class="muted">Bu adres sizin internet IP'niz değilse istek sınırları tüm ziyaretçileri tek kişi sayar. O zaman <code>TRUST_PROXY_HOPS</code> ayarını artırın. Yayın rehberinde anlatılıyor.</p>
         </div>
       </section>
 
@@ -26,7 +47,7 @@
         <% } else { %>
           <table class="listing-table bid-table">
             <thead>
-              <tr><th>Talep</th><th>Neden</th><th>Şikayet Eden</th><th class="col-date">Tarih</th><th></th></tr>
+              <tr><th>Talep</th><th>Neden</th><th>Şikayet Eden</th><th class="col-date">Tarih</th><th><span class="visually-hidden">İşlem</span></th></tr>
             </thead>
             <tbody>
               <% reports.forEach(report => { %>
@@ -59,6 +80,26 @@
           </table>
         <% } %>
       </section>
+
+      <% if (companyReports.length) { %>
+        <section class="box">
+          <div class="box-head">Firma Şikayetleri (<%= companyReports.length %>)</div>
+          <table class="listing-table bid-table">
+            <thead><tr><th>Firma</th><th>Neden</th><th>Şikayet Eden</th><th class="col-date">Tarih</th><th><span class="visually-hidden">İşlem</span></th></tr></thead>
+            <tbody>
+              <% companyReports.forEach(report => { %>
+                <tr>
+                  <td><a class="listing-title" href="/companies/<%= report.company._id %>"><%= report.company.companyName || report.company.name %></a></td>
+                  <td><%= report.reason %><% if (report.note) { %><div class="listing-sub bid-text"><%= report.note %></div><% } %></td>
+                  <td><%= report.reporter.name %></td>
+                  <td class="col-date"><%= formatDate(report.createdAt) %></td>
+                  <td><form action="/admin/company-reports/<%= report._id %>/resolve" method="POST"><button class="btn btn-sm" type="submit">Kapat</button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </section>
+      <% } %>
     </div>
   </div>
 </div>

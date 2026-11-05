@@ -14,12 +14,14 @@ const bidSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: [true, 'Teklif tutarı gereklidir'],
-    min: 0
+    min: 0,
+    max: 10000000000
   },
   description: {
     type: String,
     required: [true, 'Teklif açıklaması gereklidir'],
-    trim: true
+    trim: true,
+    maxlength: 3000
   },
   deliveryTime: {
     type: Number, // gün cinsinden
@@ -27,8 +29,13 @@ const bidSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'rejected'],
+    enum: ['pending', 'accepted', 'rejected', 'cancelled'],
     default: 'pending'
+  },
+  // Başka teklif kabul edildiği için reddedildi; anlaşma bozulursa tekrar değerlendirilir.
+  autoRejected: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -36,5 +43,6 @@ const bidSchema = new mongoose.Schema({
 
 // Aynı şirket aynı talebe birden fazla teklif veremesin
 bidSchema.index({ request: 1, company: 1 }, { unique: true });
+bidSchema.index({ company: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Bid', bidSchema);

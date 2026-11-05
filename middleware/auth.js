@@ -1,3 +1,5 @@
+const { verificationRequired } = require('../lib/mailer');
+
 // Giriş yapmamış kullanıcıyı, işi bitince geri dönecek şekilde giriş sayfasına yollar.
 function redirectToLogin(req, res) {
   req.flash('error', 'Devam etmek için giriş yapın.');
@@ -26,6 +28,13 @@ module.exports.isCompany = (req, res, next) => {
     return res.redirect('/requests');
   }
   next();
+};
+
+// E-postası doğrulanmamış hesap talep, teklif ve mesaj gönderemez (zorunluluk açıksa).
+module.exports.requireVerifiedEmail = (req, res, next) => {
+  if (!verificationRequired() || req.session.user.emailVerified) return next();
+  req.flash('error', 'Bu işlem için önce e-posta adresinizi doğrulayın. Bağlantıyı e-postanızda bulabilirsiniz.');
+  res.redirect('/dashboard');
 };
 
 module.exports.isAdmin = (req, res, next) => {

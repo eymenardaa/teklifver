@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">İletişim Mesajları (<%= pager.total %>)</div>
+      <% if (contacts.length === 0) { %>
+        <div class="empty">Henüz mesaj yok.</div>
+      <% } else { %>
+        <table class="listing-table bid-table">
+          <thead><tr><th>Gönderen</th><th>Mesaj</th><th class="col-date">Tarih</th><th><span class="visually-hidden">İşlem</span></th></tr></thead>
+          <tbody>
+            <% contacts.forEach(contact => { %>
+              <tr class="<%= contact.status === 'closed' ? 'is-rejected' : '' %>">
+                <td>
+                  <strong><%= contact.name %></strong>
+                  <div class="listing-sub"><a href="mailto:<%= contact.email %>"><%= contact.email %></a></div>
+                </td>
+                <td>
+                  <strong class="small"><%= contact.subject %></strong>
+                  <div class="bid-text"><%= contact.message %></div>
+                </td>
+                <td class="col-date"><%= formatDateTime(contact.createdAt) %></td>
+                <td>
+                  <form action="/admin/messages/<%= contact._id %>/toggle" method="POST">
+                    <button class="btn btn-sm" type="submit"><%= contact.status === 'open' ? 'Kapat' : 'Yeniden Aç' %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <%- include('../partials/admin-pager') %>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

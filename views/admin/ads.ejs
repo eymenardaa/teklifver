@@ -1,0 +1,101 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <div>
+      <section class="box">
+        <div class="box-head">Reklamlar (<%= ads.length %>)</div>
+        <% if (ads.length === 0) { %>
+          <div class="empty">Henüz reklam eklemediniz. Reklam yokken sitenin kendi tanıtımları gösterilir.</div>
+        <% } else { %>
+          <table class="listing-table bid-table">
+            <thead><tr><th>Reklam</th><th class="col-date">Tarih</th><th class="col-date">Gösterim</th><th class="col-date">Tıklama</th><th><span class="visually-hidden">İşlem</span></th></tr></thead>
+            <tbody>
+              <% ads.forEach(ad => { %>
+                <tr class="<%= ad.active ? '' : 'is-rejected' %>">
+                  <td>
+                    <strong><%= ad.title %></strong>
+                    <div class="listing-sub"><%= ad.text %></div>
+                    <div class="listing-sub bid-text"><%= ad.url %></div>
+                  </td>
+                  <td class="col-date">
+                    <%= ad.startsAt ? formatDate(ad.startsAt) : 'Hemen' %><br><%= ad.endsAt ? formatDate(ad.endsAt) : 'Süresiz' %>
+                  </td>
+                  <td class="col-date"><%= ad.impressions %></td>
+                  <td class="col-date"><%= ad.clicks %></td>
+                  <td style="width:150px">
+                    <div class="bid-actions">
+                      <form action="/admin/ads/<%= ad._id %>/toggle" method="POST"><button class="btn btn-sm" type="submit"><%= ad.active ? 'Durdur' : 'Başlat' %></button></form>
+                      <form action="/admin/ads/<%= ad._id %>/delete" method="POST" data-confirm="Reklam silinecek." data-confirm-label="Sil" data-confirm-tone="danger"><button class="btn btn-sm btn-danger-quiet" type="submit">Sil</button></form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Yeni Reklam</div>
+        <div class="box-body" style="max-width:560px">
+          <form class="form" action="/admin/ads" method="POST" enctype="multipart/form-data">
+            <div class="field <%= errors.title ? 'has-error' : '' %>">
+              <label class="field-label" for="adTitle">Başlık</label>
+              <input class="input" id="adTitle" name="title" maxlength="80" value="<%= adValues.title || '' %>" required>
+              <% if (errors.title) { %><p class="field-error"><%= errors.title %></p><% } %>
+            </div>
+            <div class="field <%= errors.text ? 'has-error' : '' %>">
+              <label class="field-label" for="adText">Metin <span class="optional">İsteğe bağlı</span></label>
+              <input class="input" id="adText" name="text" maxlength="140" value="<%= adValues.text || '' %>">
+              <% if (errors.text) { %><p class="field-error"><%= errors.text %></p><% } %>
+            </div>
+            <div class="field <%= errors.url ? 'has-error' : '' %>">
+              <label class="field-label" for="adUrl">Tıklanınca gidilecek adres</label>
+              <input class="input" id="adUrl" name="url" maxlength="500" placeholder="https://..." value="<%= adValues.url || '' %>" required>
+              <% if (errors.url) { %><p class="field-error"><%= errors.url %></p><% } %>
+            </div>
+            <div class="field-row">
+              <div class="field <%= errors.cta ? 'has-error' : '' %>">
+                <label class="field-label" for="adCta">Düğme yazısı</label>
+                <input class="input" id="adCta" name="cta" maxlength="24" placeholder="İncele" value="<%= adValues.cta || '' %>">
+                <% if (errors.cta) { %><p class="field-error"><%= errors.cta %></p><% } %>
+              </div>
+              <div class="field <%= errors.color ? 'has-error' : '' %>">
+                <label class="field-label" for="adColor">Renk</label>
+                <select class="select" id="adColor" name="color">
+                  <% [['navy', 'Lacivert'], ['orange', 'Turuncu'], ['green', 'Yeşil'], ['yellow', 'Sarı'], ['red', 'Kırmızı']].forEach(([value, label]) => { %>
+                    <option value="<%= value %>" <%= adValues.color === value ? 'selected' : '' %>><%= label %></option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field <%= errors.startsAt ? 'has-error' : '' %>">
+                <label class="field-label" for="adStart">Başlangıç <span class="optional">İsteğe bağlı</span></label>
+                <input class="input" type="date" id="adStart" name="startsAt" value="<%= adValues.startsAt || '' %>">
+                <% if (errors.startsAt) { %><p class="field-error"><%= errors.startsAt %></p><% } %>
+              </div>
+              <div class="field <%= errors.endsAt ? 'has-error' : '' %>">
+                <label class="field-label" for="adEnd">Bitiş <span class="optional">İsteğe bağlı</span></label>
+                <input class="input" type="date" id="adEnd" name="endsAt" value="<%= adValues.endsAt || '' %>">
+                <% if (errors.endsAt) { %><p class="field-error"><%= errors.endsAt %></p><% } %>
+              </div>
+            </div>
+            <div class="field <%= errors.banner ? 'has-error' : '' %>">
+              <label class="field-label" for="adBanner">Banner görseli <span class="optional">İsteğe bağlı</span></label>
+              <input class="input" type="file" id="adBanner" name="logo" accept="image/jpeg,image/png,image/gif,image/webp">
+              <p class="field-hint">Görsel eklerseniz yazılar yerine görsel gösterilir. Önerilen boyutlar <a href="/reklam">Reklam Ver</a> sayfasında.</p>
+              <% if (errors.banner) { %><p class="field-error"><%= errors.banner %></p><% } %>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Reklamı Ekle</button></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

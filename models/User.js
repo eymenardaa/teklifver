@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'İsim gereklidir'],
-    trim: true
+    trim: true,
+    maxlength: 100
   },
   email: {
     type: String,
@@ -18,6 +19,30 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [function() { return !(this.socialAccounts && this.socialAccounts.length); }, 'Şifre gereklidir']
+  },
+  // Şifre değişince artar; eski oturumlar geçersiz olur.
+  sessionVersion: {
+    type: Number,
+    default: 0
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailTokenHash: String,
+  emailTokenExpires: Date,
+  // Doğrulanana kadar hesabın e-postası değişmez.
+  pendingEmail: {
+    type: String,
+    lowercase: true,
+    trim: true
+  },
+  // E-postayla gönderilecek bildirim türleri
+  emailPrefs: {
+    bids: { type: Boolean, default: true },
+    messages: { type: Boolean, default: true },
+    matches: { type: Boolean, default: true },
+    searches: { type: Boolean, default: true }
   },
   socialAccounts: [{
     _id: false,
@@ -32,24 +57,32 @@ const userSchema = new mongoose.Schema({
   // Şirket bilgileri
   companyName: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 120
   },
   companyDescription: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 3000
   },
   phone: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 25
   },
   address: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 200
   },
   avatar: {
     type: String,
     default: ''
   },
+  // Firma sayfasındaki iş örnekleri
+  portfolio: [{
+    type: String
+  }],
   specialties: [{
     type: String,
     trim: true
@@ -108,6 +141,8 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+userSchema.index({ role: 1, rating: -1, ratingCount: -1 });
 
 // Aynı sosyal hesap iki kullanıcıya bağlanamaz.
 userSchema.index(

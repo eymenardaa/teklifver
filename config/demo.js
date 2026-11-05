@@ -1,6 +1,7 @@
 // Geliştirme ortamı için örnek veri. Veritabanında hiç talep yoksa sunucu açılışında eklenir.
 // Kapatmak için .env dosyasına DEMO_DATA=false yazın; silmek için: npm run demo:sil
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Request = require('../models/Request');
@@ -426,9 +427,10 @@ function makeBids(category, min, max, count, status, random) {
   });
 }
 
-async function createDemoData() {
+async function createDemoData({ showcase = false } = {}) {
   await removeDemoData();
-  const password = await bcrypt.hash(DEMO_PASSWORD, 10);
+  // Vitrin modunda (canlıda) örnek hesaplara kimse giremesin diye şifre rastgeledir.
+  const password = await bcrypt.hash(showcase ? crypto.randomBytes(32).toString('hex') : DEMO_PASSWORD, 10);
   const monthsAgo = months => hoursAgo(months * 30 * 24);
 
   const people = {};
@@ -535,14 +537,20 @@ async function createDemoData() {
   }
 }
 
-// Boş veritabanına örnek veri ekler; giriş butonları için hesapların varlığını döndürür.
-async function seedDemoData() {
+// Yönetici örnek verileri sildiyse sunucu yeniden başlayınca geri gelmesin.
+const siteState = () => mongoose.connection.collection('site_state');
+const markDemoRemoved = () => siteState().updateOne({ _id: 'demo' }, { $set: { removed: true } }, { upsert: true });
+
+// Boş veritabanına örnek veri ekler; örnek verinin varlığını döndürür.
+async function seedDemoData({ showcase = false } = {}) {
   if (process.env.DEMO_DATA === 'false') return false;
+  const state = await siteState().findOne({ _id: 'demo' });
+  if (state && state.removed) return false;
   if ((await Request.countDocuments()) === 0) {
-    await createDemoData();
+    await createDemoData({ showcase });
     console.log('  Örnek veriler eklendi.');
   }
   return (await User.countDocuments({ email: demoAccounts[0].email })) > 0;
 }
 
-module.exports = { seedDemoData, removeDemoData, demoAccounts };
+module.exports = { seedDemoData, removeDemoData, markDemoRemoved, demoAccounts };

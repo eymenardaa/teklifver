@@ -17,7 +17,7 @@
 
       <% if (myBids.length === 0) { %>
         <div class="empty">
-          <h3>Henüz teklif vermediniz</h3>
+          <h2>Henüz teklif vermediniz</h2>
           <a class="btn btn-primary" href="/requests">Teklif Verilecek İşler</a>
         </div>
       <% } else { %>
@@ -31,7 +31,7 @@
         <table class="listing-table" id="bidRows">
           <thead>
             <tr>
-              <th class="col-photo"></th>
+              <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
               <th>Talep</th>
               <th class="col-budget" style="color:inherit">Teklifim</th>
               <th class="col-date">Süre</th>

@@ -29,11 +29,8 @@
       <section class="box">
         <div class="box-head">Reklam Vermek İçin</div>
         <div class="box-body">
-          <% if (site.email) { %>
-            <p>Reklam talepleriniz için <a href="mailto:<%= site.email %>"><%= site.email %></a> adresine yazabilirsiniz. Reklam vermek istediğiniz alanı ve süreyi belirtin.</p>
-          <% } else { %>
-            <p class="muted">Reklam iletişim adresi henüz eklenmedi.</p>
-          <% } %>
+          <p style="margin-bottom:8px">Reklam vermek istediğiniz alanı ve süreyi yazın, size dönüş yapalım.</p>
+          <a class="btn btn-primary" href="/iletisim?konu=Reklam">Reklam İçin Yazın</a>
         </div>
       </section>
     </div>

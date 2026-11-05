@@ -8,15 +8,37 @@ const Report = require('../models/Report');
 const Review = require('../models/Review');
 const categories = require('../config/categories');
 const cities = require('../config/cities');
-const { isCustomer, isLoggedIn } = require('../middleware/auth');
+const { isCustomer, isLoggedIn, requireVerifiedEmail } = require('../middleware/auth');
+const { limits } = require('../lib/limits');
+const { alertSavedSearches } = require('../lib/search-alerts');
+const { parseDateInput } = require('../lib/helpers');
+const { rateLimit } = require('express-rate-limit');
 const { uploadImages, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
 const { str, safeNext, searchPattern } = require('../lib/input');
 const { openCountsByCategory, uniqueByPhoto, categoryAverages } = require('../lib/stats');
 const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery } = require('../lib/listing');
-const { notifyMany } = require('../lib/notify');
+const { notify, notifyMany } = require('../lib/notify');
+const mongoose = require('mongoose');
 const { REPORT_REASONS } = Report;
 
 const PAGE_SIZE = 20;
+const MAX_BUDGET = 10000000000;
+const MAX_DESCRIPTION = 5000;
+
+const suggestLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ items: [] })
+});
+
+const notFoundPage = res =>
+  res.status(404).render('error', {
+    title: 'Talep bulunamadı',
+    code: 404,
+    message: 'Bu talep silinmiş, yayından kaldırılmış veya hiç var olmamış olabilir.'
+  });
 
 const uploadedPaths = req => (req.files || []).map(file => '/uploads/' + file.filename);
 
@@ -36,19 +58,22 @@ function parseRequestForm(req) {
   const errors = {};
   const min = Number(values.budgetMin || 0);
   const max = Number(values.budgetMax || 0);
-  const deadline = values.deadline ? new Date(values.deadline) : null;
+  const deadline = values.deadline ? parseDateInput(values.deadline) : null;
 
   if (!values.title) errors.title = 'Başlık yazın.';
   else if (values.title.length > 200) errors.title = 'Başlık en fazla 200 karakter olabilir.';
   if (!values.description) errors.description = 'Açıklama yazın.';
+  else if (values.description.length > MAX_DESCRIPTION) errors.description = `Açıklama en fazla ${MAX_DESCRIPTION} karakter olabilir.`;
+  if (values.location.length > 100) errors.location = 'İlçe / semt en fazla 100 karakter olabilir.';
   if (!categories.names.includes(values.category)) errors.category = 'Kategori seçin.';
   if (values.city && !cities.includes(values.city)) errors.city = 'Listeden bir il seçin.';
-  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0) {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0 || min > MAX_BUDGET || max > MAX_BUDGET) {
     errors.budget = 'Bütçe geçerli bir tutar olmalı.';
   } else if (max > 0 && min > max) {
     errors.budget = 'En az bütçe, en fazla bütçeden büyük olamaz.';
   }
-  if (deadline && Number.isNaN(deadline.getTime())) errors.deadline = 'Geçerli bir tarih seçin.';
+  if (values.deadline && !deadline) errors.deadline = 'Geçerli bir tarih seçin.';
+  else if (deadline && deadline.getTime() < Date.now()) errors.deadline = 'Son tarih geçmiş bir gün olamaz.';
   if (req.uploadError) errors.images = req.uploadError;
 
   return {
@@ -85,8 +110,12 @@ router.get('/', async (req, res, next) => {
 
     res.render('requests/index', {
       title: filters.category === 'all' ? 'Talepler' : filters.category,
+      metaDescription: filters.category === 'all'
+        ? 'Açık hizmet talepleri: tadilat, nakliye, temizlik, yazılım ve daha fazlası. Firmalar teklif verebilir.'
+        : `${filters.category} kategorisindeki açık hizmet talepleri. Firmalar ücretsiz teklif verebilir.`,
       requests,
       filters,
+      canonicalUrl: `${res.locals.siteBase}/requests${filters.category === 'all' ? '' : `?category=${encodeURIComponent(filters.category)}`}`,
       savedQuery: filtersToQuery(filters),
       counts,
       total,
@@ -99,7 +128,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // Arama kutusu için öneriler
-router.get('/suggest', async (req, res, next) => {
+router.get('/suggest', suggestLimiter, async (req, res, next) => {
   try {
     const q = str(req.query.q);
     if (q.length < 2) return res.json({ items: [] });
@@ -128,12 +157,12 @@ router.get('/suggest', async (req, res, next) => {
 });
 
 // Yeni talep formu
-router.get('/new', isCustomer, (req, res) => {
+router.get('/new', isCustomer, requireVerifiedEmail, (req, res) => {
   res.render('requests/new', { title: 'Talep Ver', categories, maxImages: MAX_IMAGES });
 });
 
 // Yeni talep oluştur
-router.post('/', isCustomer, uploadImages, async (req, res, next) => {
+router.post('/', isCustomer, requireVerifiedEmail, limits.newRequest, uploadImages, async (req, res, next) => {
   try {
     const { values, errors, data } = parseRequestForm(req);
 
@@ -162,8 +191,12 @@ router.post('/', isCustomer, uploadImages, async (req, res, next) => {
     await notifyMany(
       firms.map(firm => firm._id),
       `${created.category} kategorisinde yeni talep: "${created.title}"`,
-      '/requests/' + created._id
+      '/requests/' + created._id,
+      { mail: 'matches' }
     );
+    // Beklenmez: kayıtlı arama sayısı yanıtı geciktirmesin. Kategori bildirimi alan firmaya ikinci kez yazılmaz.
+    alertSavedSearches(created, { except: firms.map(firm => firm._id) })
+      .catch(err => console.error('Arama bildirimi gönderilemedi:', err.message));
 
     req.flash('success', `Talebiniz yayınlandı. Talep No: ${created.no}`);
     res.redirect('/requests/' + created._id);
@@ -203,7 +236,7 @@ router.post('/:id/favorite', isLoggedIn, async (req, res, next) => {
 });
 
 // Talebi şikayet et
-router.post('/:id/report', isLoggedIn, async (req, res, next) => {
+router.post('/:id/report', isLoggedIn, limits.report, async (req, res, next) => {
   try {
     const request = await Request.findById(req.params.id).select('customer');
     if (!request) {
@@ -247,43 +280,44 @@ router.get('/:id', async (req, res, next) => {
       .populate('customer', 'name email phone createdAt')
       .lean();
 
-    if (!request) {
-      req.flash('error', 'Talep bulunamadı.');
-      return res.redirect('/requests');
-    }
+    if (!request || !request.customer) return notFoundPage(res);
 
     const viewer = req.session.user;
     const isOwner = Boolean(viewer && viewer.id === request.customer._id.toString());
+    const isAdminViewer = Boolean(viewer && viewer.isAdmin);
 
     // Yönetici tarafından kaldırılan talebi yalnızca sahibi ve yöneticiler görür.
-    if (request.status === 'removed' && !isOwner && !(viewer && viewer.isAdmin)) {
-      req.flash('error', 'Bu talep yayından kaldırılmış.');
-      return res.redirect('/requests');
-    }
+    if (request.status === 'removed' && !isOwner && !isAdminViewer) return notFoundPage(res);
 
     if (!isOwner) {
       await Request.updateOne({ _id: request._id }, { $inc: { viewCount: 1 } });
       request.viewCount += 1;
     }
 
+    const canSeeBids = isOwner || isAdminViewer;
     const bidSort = ['amount', 'days', 'rating'].includes(req.query.bidSort) ? req.query.bidSort : 'amount';
-    const bids = (
+    const allBids = (
       await Bid.find({ request: request._id })
-        .populate('company', 'name companyName rating ratingCount email phone verified')
+        .populate('company', 'name companyName rating ratingCount email phone verified suspended')
         .sort({ amount: 1, createdAt: 1 })
         .lean()
-    ).filter(bid => bid.company);
+    ).filter(bid => bid.company && !(bid.company.suspended && bid.status === 'pending'));
 
-    if (bidSort === 'days') bids.sort((a, b) => a.deliveryTime - b.deliveryTime);
-    if (bidSort === 'rating') bids.sort((a, b) => b.company.rating - a.company.rating);
+    if (canSeeBids) {
+      if (bidSort === 'days') allBids.sort((a, b) => a.deliveryTime - b.deliveryTime);
+      if (bidSort === 'rating') allBids.sort((a, b) => b.company.rating - a.company.rating);
+    } else {
+      // Sıralama tutarı ele vermesin diye dışarıdan bakana tarih sırasıyla gösterilir.
+      allBids.sort((a, b) => a.createdAt - b.createdAt);
+    }
 
     const userBid =
       viewer && viewer.role === 'company'
-        ? bids.find(bid => bid.company._id.toString() === viewer.id)
+        ? allBids.find(bid => bid.company._id.toString() === viewer.id)
         : null;
 
     // İletişim bilgileri yalnızca teklif kabul edildikten sonra iki tarafa da gösterilir.
-    const acceptedBid = bids.find(bid => bid.status === 'accepted');
+    const acceptedBid = allBids.find(bid => bid.status === 'accepted');
     let contact = null;
     if (acceptedBid && isOwner) {
       contact = {
@@ -299,7 +333,14 @@ router.get('/:id', async (req, res, next) => {
       };
     }
 
-    const pendingAmounts = bids.filter(bid => bid.status === 'pending').map(bid => bid.amount);
+    const pendingAmounts = allBids.filter(bid => bid.status === 'pending').map(bid => bid.amount);
+
+    // Tutar ve açıklama yalnızca talep sahibine, yöneticiye ve teklifi verene görünür; rakip firmalar görmez.
+    const bids = allBids.map(bid => {
+      const company = { _id: bid.company._id, name: bid.company.name, companyName: bid.company.companyName, rating: bid.company.rating, ratingCount: bid.company.ratingCount, verified: bid.company.verified };
+      if (canSeeBids || bid === userBid) return { ...bid, company };
+      return { _id: bid._id, status: bid.status, createdAt: bid.createdAt, company, hidden: true };
+    });
 
     const [similarAll, ownerOpenCount, averages, review, alreadyReported] = await Promise.all([
       Request.find({ ...liveFilter(), category: request.category, _id: { $ne: request._id } })
@@ -308,7 +349,7 @@ router.get('/:id', async (req, res, next) => {
         .lean(),
       Request.countDocuments({ ...liveFilter(), customer: request.customer._id }),
       categoryAverages(request.category),
-      Review.findOne({ request: request._id }).lean(),
+      Review.findOne({ request: request._id, hidden: { $ne: true } }).lean(),
       viewer ? Report.exists({ request: request._id, reporter: viewer.id }) : null
     ]);
 
@@ -316,6 +357,17 @@ router.get('/:id', async (req, res, next) => {
       title: request.title,
       metaDescription: request.description.slice(0, 155),
       ogImage: request.images && request.images[0],
+      noIndex: request.status === 'removed',
+      ownHeading: true,
+      jsonLdData: {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Talepler', item: `${res.locals.siteBase}/requests` },
+          { '@type': 'ListItem', position: 2, name: request.category, item: `${res.locals.siteBase}/requests?category=${encodeURIComponent(request.category)}` },
+          { '@type': 'ListItem', position: 3, name: request.title }
+        ]
+      },
       request,
       bids,
       bidSort,
@@ -331,13 +383,11 @@ router.get('/:id', async (req, res, next) => {
         5
       ),
       ownerOpenCount,
-      lowestAmount: pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null
+      canSeeBids,
+      lowestAmount: canSeeBids && pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null
     });
   } catch (err) {
-    if (err.name === 'CastError') {
-      req.flash('error', 'Talep bulunamadı.');
-      return res.redirect('/requests');
-    }
+    if (err.name === 'CastError') return notFoundPage(res);
     next(err);
   }
 });
@@ -434,6 +484,42 @@ router.put('/:id', isCustomer, uploadImages, async (req, res, next) => {
   }
 });
 
+// Firmayı açık talebe teklif vermeye davet et
+router.post('/:id/invite/:companyId', isCustomer, requireVerifiedEmail, limits.invite, async (req, res, next) => {
+  const companyId = str(req.params.companyId);
+  const back = mongoose.isValidObjectId(companyId) ? `/companies/${companyId}` : '/companies';
+  try {
+    const request = await loadOwnOpenRequest(req, res);
+    if (!request) return;
+
+    const company = mongoose.isValidObjectId(companyId)
+      ? await User.findOne({ _id: companyId, role: 'company', suspended: { $ne: true } }).select('_id').lean()
+      : null;
+    if (!company) {
+      req.flash('error', 'Firma bulunamadı.');
+      return res.redirect('/companies');
+    }
+    if (await Bid.exists({ request: request._id, company: company._id })) {
+      req.flash('error', 'Bu firma talebinize zaten teklif verdi.');
+      return res.redirect(back);
+    }
+
+    // Koşullu güncelleme: aynı firma aynı talebe iki kez davet edilip bildirim yağmuruna tutulmaz.
+    const invited = await Request.updateOne(
+      { _id: request._id, invitedCompanies: { $ne: company._id } },
+      { $addToSet: { invitedCompanies: company._id } }
+    );
+    if (invited.modifiedCount) {
+      await notify(company._id, `Bir müşteri sizi "${request.title}" talebine teklif vermeye davet etti.`, `/requests/${request._id}`, { mail: 'matches' });
+    }
+
+    req.flash('success', 'Firma talebinize davet edildi.');
+    res.redirect(back);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Talebi kapat: yayından çıkar, bekleyen teklifleri reddeder.
 router.post('/:id/close', isCustomer, async (req, res, next) => {
   try {
@@ -448,7 +534,8 @@ router.post('/:id/close', isCustomer, async (req, res, next) => {
     await notifyMany(
       pending.map(bid => bid.company),
       `"${request.title}" talebi sahibi tarafından kapatıldı.`,
-      '/requests/' + request._id
+      '/requests/' + request._id,
+      { mail: 'bids' }
     );
 
     req.flash('success', 'Talebiniz kapatıldı.');

@@ -35,6 +35,8 @@ const messageSchema = new mongoose.Schema({
 // Üst menüdeki okunmamış sayısı ve konuşma sayfası için
 messageSchema.index({ receiver: 1, read: 1 });
 messageSchema.index({ request: 1, sender: 1, receiver: 1, createdAt: 1 });
+messageSchema.index({ sender: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);
 module.exports.MAX_MESSAGE_LENGTH = MAX_MESSAGE_LENGTH;

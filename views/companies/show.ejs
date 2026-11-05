@@ -42,6 +42,33 @@
     </div>
   </section>
 
+  <% if (company.portfolio && company.portfolio.length) { %>
+    <section class="box">
+      <div class="box-head">İş Örnekleri (<%= company.portfolio.length %>)</div>
+      <div class="portfolio-grid">
+        <% company.portfolio.forEach(image => { %>
+          <a href="<%= image %>" target="_blank" rel="noopener"><img src="<%= thumb(image) %>" alt="<%= companyTitle %> iş örneği" loading="lazy" width="240" height="180"></a>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (inviteOptions.length) { %>
+    <section class="box">
+      <div class="box-head">Bu Firmadan Teklif İsteyin</div>
+      <div class="box-body">
+        <form class="invite-form" method="POST" data-invite="<%= company._id %>">
+          <label class="field-label" for="inviteRequest">Açık talebiniz</label>
+          <select class="select" id="inviteRequest" required>
+            <% inviteOptions.forEach(item => { %><option value="<%= item._id %>"><%= truncate(item.title, 80) %></option><% }) %>
+          </select>
+          <button class="btn btn-primary" type="submit">Davet Et</button>
+        </form>
+        <noscript><p class="small muted">Davet göndermek için JavaScript gereklidir.</p></noscript>
+      </div>
+    </section>
+  <% } %>
+
   <section class="box">
     <div class="box-head">Müşteri Yorumları (<%= reviews.length %>)</div>
     <% if (reviews.length === 0) { %>
@@ -51,14 +78,24 @@
         <% reviews.forEach(review => { %>
           <li>
             <div class="review-top">
-              <span class="review-stars" aria-label="<%= review.rating %> yıldız">
+              <span class="review-stars" role="img" aria-label="<%= review.rating %> yıldız">
                 <% for (let i = 1; i <= 5; i += 1) { %><%- icon('star', { size: 13, class: i <= review.rating ? 'star' : 'star-empty' }) %><% } %>
               </span>
-              <strong><%= review.customer.name %></strong>
+              <strong><%= shortName(review.customer.name) %></strong>
               <span class="muted small"><%= formatDate(review.createdAt) %></span>
             </div>
             <% if (review.comment) { %><p class="prose"><%= review.comment %></p><% } %>
             <% if (review.request) { %><a class="small" href="/requests/<%= review.request._id %>"><%= review.request.title %></a><% } %>
+            <% if (review.reply && review.reply.text) { %><p class="review-reply"><strong>Firmanın cevabı:</strong> <%= review.reply.text %></p><% } %>
+            <% if (isOwnPage) { %>
+              <details class="reply-box">
+                <summary class="small"><%= review.reply && review.reply.text ? 'Cevabı Düzenle' : 'Cevap Yaz' %></summary>
+                <form class="form" action="/companies/reviews/<%= review._id %>/reply" method="POST">
+                  <textarea class="textarea" name="reply" rows="2" maxlength="1000" aria-label="Cevabınız"><%= review.reply ? review.reply.text : '' %></textarea>
+                  <button class="btn btn-sm" type="submit">Kaydet</button>
+                </form>
+              </details>
+            <% } %>
           </li>
         <% }) %>
       </ul>
@@ -73,7 +110,7 @@
       <table class="listing-table">
         <thead>
           <tr>
-            <th class="col-photo"></th>
+            <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
             <th>Talep</th>
             <th class="col-place">İl / İlçe</th>
             <th class="col-date">Tarih</th>
@@ -86,7 +123,7 @@
               <td class="col-photo">
                 <a class="thumb" href="/requests/<%= job._id %>" tabindex="-1" aria-hidden="true">
                   <% if (job.images && job.images.length) { %>
-                    <img src="<%= job.images[0] %>" alt="" loading="lazy">
+                    <img src="<%= thumb(job.images[0]) %>" alt="" loading="lazy" width="120" height="90">
                   <% } else { %>
                     <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
                   <% } %>
@@ -105,6 +142,24 @@
       </table>
     <% } %>
   </section>
+
+  <% if (currentUser && !isOwnPage) { %>
+    <details class="report-box">
+      <summary><%- icon('flag', { size: 12 }) %> Bu firmayı şikayet et</summary>
+      <% if (alreadyReported) { %>
+        <p class="small muted">Bu firmayı şikayet ettiniz, inceleniyor.</p>
+      <% } else { %>
+        <form class="form" action="/companies/<%= company._id %>/report" method="POST">
+          <select class="select" name="reason" aria-label="Şikayet nedeni" required>
+            <option value="">Neden seçin</option>
+            <% reportReasons.forEach(reason => { %><option value="<%= reason %>"><%= reason %></option><% }) %>
+          </select>
+          <textarea class="textarea" name="note" rows="2" maxlength="500" placeholder="Açıklama (isteğe bağlı)" aria-label="Açıklama"></textarea>
+          <button class="btn btn-sm" type="submit">Gönder</button>
+        </form>
+      <% } %>
+    </details>
+  <% } %>
 </div>
 
 <%- include('../partials/footer') %>

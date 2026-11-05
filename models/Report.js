@@ -40,6 +40,7 @@ const reportSchema = new mongoose.Schema({
 
 // Aynı kişi aynı talebi bir kez şikayet edebilir.
 reportSchema.index({ request: 1, reporter: 1 }, { unique: true });
+reportSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Report', reportSchema);
 module.exports.REPORT_REASONS = REPORT_REASONS;

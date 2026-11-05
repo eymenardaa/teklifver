@@ -15,6 +15,11 @@ router.get('/', isLoggedIn, async (req, res, next) => {
   }
 });
 
+// Üst menüdeki sayıları sayfa yenilenmeden günceller
+router.get('/count', isLoggedIn, (req, res) => {
+  res.json({ notifications: res.locals.unreadNotifications, messages: res.locals.unreadMessages });
+});
+
 // Bildirimi okundu yapıp ilgili sayfaya götürür
 router.get('/:id/open', isLoggedIn, async (req, res, next) => {
   try {

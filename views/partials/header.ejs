@@ -10,15 +10,28 @@
   <meta property="og:title" content="<%= title || 'TeklifVer' %>">
   <meta property="og:description" content="<%= pageDescription %>">
   <meta property="og:url" content="<%= pageUrl %>">
-  <% if (ogImage) { %><meta property="og:image" content="<%= ogImage %>"><% } %>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="<%= siteBase %><%= ogImage || '/img/paylasim.png' %>">
+  <meta name="twitter:card" content="summary_large_image">
   <title><%= title ? title + ' - ' : '' %>TeklifVer</title>
+  <link rel="canonical" href="<%= canonicalUrl %>">
+  <% if (noIndex) { %><meta name="robots" content="noindex"><% } %>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link href="/css/style.css" rel="stylesheet">
-  <script src="/js/main.js" defer></script>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link href="/css/style.css?v=<%= assetVersion %>" rel="stylesheet">
+  <script src="/js/main.js?v=<%= assetVersion %>" defer></script>
+  <% if (jsonLdData) { %><script type="application/ld+json"><%- jsonLd(jsonLdData) %></script><% } %>
 </head>
-<body>
+<body<%- currentUser ? ' data-logged-in="true"' : '' %>>
   <a class="skip-link" href="#main">İçeriğe geç</a>
-  <div class="topbar">
+  <% if (needsEmailVerification) { %>
+    <div class="verify-bar" role="status">
+      <span>E-posta adresiniz doğrulanmadı. Talep, teklif ve mesaj göndermek için e-postanıza gelen bağlantıyı açın.</span>
+      <form action="/email/resend" method="POST"><button class="btn btn-sm" type="submit">Bağlantıyı Tekrar Gönder</button></form>
+    </div>
+  <% } %>
+  <nav class="topbar" aria-label="Üst menü">
     <div class="wrap topbar-inner">
       <div class="topbar-left">
         <a href="/requests">Tüm Talepler</a>
@@ -28,8 +41,8 @@
         <a href="/reklam">Reklam Ver</a>
       </div>
       <% if (currentUser) { %>
-        <a href="/notifications">Bildirimler<% if (unreadNotifications) { %> <span class="unread-count" id="notifCount"><%= unreadNotifications %></span><% } %></a>
-        <a href="/messages">Mesajlarım<% if (unreadMessages) { %> <span class="unread-count"><%= unreadMessages %></span><% } %></a>
+        <a href="/notifications">Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
+        <a href="/messages">Mesajlarım <span class="unread-count" data-count="messages" <%= unreadMessages ? '' : 'hidden' %>><%= unreadMessages %></span></a>
         <a href="/dashboard/favorites">Favorilerim (<span id="favCount"><%= favoriteIds.length %></span>)</a>
         <div class="menu">
           <button class="menu-button" type="button" aria-expanded="false">
@@ -52,7 +65,7 @@
         <a href="/register">Hesap Aç</a>
       <% } %>
     </div>
-  </div>
+  </nav>
 
   <header class="mainbar">
     <div class="wrap mainbar-inner">
@@ -70,6 +83,8 @@
     </div>
   </header>
 
+  <main id="main">
+  <% if (!locals.ownHeading) { %><h1 class="visually-hidden"><%= title || 'Hizmet talebi verin, firmalardan teklif alın' %></h1><% } %>
   <% if (success.length || error.length) { %>
     <div class="wrap alerts">
       <% success.forEach(message => { %>
@@ -87,4 +102,4 @@
     </div>
   <% } %>
 
-  <main id="main">
+

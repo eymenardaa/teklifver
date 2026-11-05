@@ -9,7 +9,7 @@
         <summary class="box-head">Firma Ara <%- icon('chevron-down', { size: 14 }) %></summary>
         <form action="/companies" method="GET">
           <div class="filter-group">
-            <label class="filter-title" for="companySearch">Firma adı</label>
+            <label class="filter-title" for="companySearch">Firma adı veya hizmet</label>
             <input class="input" type="search" id="companySearch" name="search" value="<%= search %>">
           </div>
           <div class="filter-group">
@@ -54,7 +54,7 @@
 
     <section class="box">
       <div class="result-bar">
-        <span class="result-count"><strong><%= companies.length %></strong> firma bulundu</span>
+        <span class="result-count"><strong><%= total %></strong> firma bulundu</span>
         <form action="/companies" method="GET">
           <% Object.entries({ search, category, city, minRating, verified: verified ? 'on' : '' }).forEach(([key, value]) => { if (value) { %>
             <input type="hidden" name="<%= key %>" value="<%= value %>">
@@ -67,12 +67,12 @@
         </form>
       </div>
       <% if (companies.length === 0) { %>
-        <div class="empty"><h3>Firma bulunamadı</h3><a class="btn" href="/companies">Tüm Firmalar</a></div>
+        <div class="empty"><h2>Firma bulunamadı</h2><a class="btn" href="/companies">Tüm Firmalar</a></div>
       <% } else { %>
         <table class="listing-table company-table">
           <thead>
             <tr>
-              <th></th>
+              <th><span class="visually-hidden">Logo</span></th>
               <th>Firma</th>
               <th class="col-date">Puan</th>
               <th class="col-date">İl</th>
@@ -101,6 +101,13 @@
             <% }) %>
           </tbody>
         </table>
+        <% if (totalPages > 1) { %>
+          <nav class="pagination" aria-label="Sayfalar">
+            <% for (let n = Math.max(1, page - 3); n <= Math.min(totalPages, page + 3); n += 1) { %>
+              <% if (n === page) { %><span class="is-current"><%= n %></span><% } else { %><a href="/companies?<%= pageQuery ? pageQuery + '&' : '' %>page=<%= n %>"><%= n %></a><% } %>
+            <% } %>
+          </nav>
+        <% } %>
       <% } %>
     </section>
   </div>

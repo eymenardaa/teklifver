@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
 const router = express.Router();
 const User = require('../models/User');
@@ -12,12 +13,25 @@ const Notification = require('../models/Notification');
 const SavedSearch = require('../models/SavedSearch');
 const categories = require('../config/categories');
 const { isLoggedIn } = require('../middleware/auth');
-const { uploadLogo, deleteImages } = require('../middleware/upload');
+const { uploadLogo, uploadImages, deleteImages } = require('../middleware/upload');
 const { str, isEmail, safeNext } = require('../lib/input');
-const { sendMail } = require('../lib/mailer');
+const cities = require('../config/cities');
+const { sendInBackground, canDeliver, verificationRequired } = require('../lib/mailer');
+const { resetMail, emailChangeNotice, passwordChangedMail, CATEGORY_LABELS } = require('../lib/mail-templates');
+const { sendVerification } = require('../lib/email-verify');
+const { siteUrl } = require('../lib/url');
 const { startSession } = require('../lib/session');
+const { limits } = require('../lib/limits');
+const { recalcCompanyRating, cancelDeal } = require('../lib/deals');
+const { notify } = require('../lib/notify');
 
 const MIN_PASSWORD = 8;
+const MAX_PASSWORD = 200;
+const MAX_NAME = 100;
+const MAX_COMPANY_NAME = 120;
+const MAX_EMAIL = 254;
+// Hesap yokken de aynı sürede yanıt dönsün diye karşılaştırılan sabit özet
+const DUMMY_HASH = '$2a$12$xVjut1s6W6wj8QVcwCKUyO3XqLKbUpr1fCIu8q/foVFOMwm9twMqy';
 const RESET_TOKEN_MS = 60 * 60 * 1000; // 1 saat
 
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
@@ -53,7 +67,7 @@ const forgotLimiter = rateLimit({
 });
 
 const renderProfile = (res, profile, extra = {}) =>
-  res.render('auth/profile', { title: 'Hesabım', section: 'profile', categories, profile, ...extra });
+  res.render('auth/profile', { title: 'Hesabım', section: 'profile', categories, profile, mailLabels: CATEGORY_LABELS, ...extra });
 
 // ---- Kayıt ----
 
@@ -78,9 +92,14 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
 
   const errors = {};
   if (!values.name) errors.name = 'Adınızı yazın.';
-  if (!isEmail(values.email)) errors.email = 'Geçerli bir e-posta adresi yazın.';
+  else if (values.name.length > MAX_NAME) errors.name = `Ad en fazla ${MAX_NAME} karakter olabilir.`;
+  if (!isEmail(values.email) || values.email.length > MAX_EMAIL) errors.email = 'Geçerli bir e-posta adresi yazın.';
   if (password.length < MIN_PASSWORD) errors.password = `Şifre en az ${MIN_PASSWORD} karakter olmalı.`;
+  else if (password.length > MAX_PASSWORD) errors.password = `Şifre en fazla ${MAX_PASSWORD} karakter olabilir.`;
   if (values.role === 'company' && !values.companyName) errors.companyName = 'Şirket adını yazın.';
+  else if (values.companyName.length > MAX_COMPANY_NAME) errors.companyName = `Şirket adı en fazla ${MAX_COMPANY_NAME} karakter olabilir.`;
+  // Formdaki gizli alanı yalnızca otomatik kayıt yazılımları doldurur.
+  if (str(req.body.website)) errors.form = 'Kayıt tamamlanamadı.';
   if (req.body.terms !== 'on') errors.terms = 'Devam etmek için koşulları onaylamalısınız.';
 
   const fail = () =>
@@ -98,8 +117,14 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       termsAcceptedAt: new Date()
     });
 
+    if (canDeliver()) await sendVerification(user);
     await startSession(req, user, false);
-    req.flash('success', `Hoş geldin, ${user.name}!`);
+    req.flash(
+      'success',
+      verificationRequired()
+        ? `Hoş geldin, ${user.name}! E-postana gönderdiğimiz bağlantıyla hesabını doğrula.`
+        : `Hoş geldin, ${user.name}!`
+    );
     res.redirect(redirectTo || '/dashboard');
   } catch (err) {
     if (err.code === 11000) {
@@ -133,6 +158,8 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
   try {
     const user = email && password ? await User.findOne({ email }) : null;
 
+    // Yanıt süresinden e-postanın kayıtlı olup olmadığı anlaşılmasın.
+    if (!user) await bcrypt.compare(password.slice(0, MAX_PASSWORD), DUMMY_HASH);
     if (!user || !(await user.comparePassword(password))) return fail('E-posta veya şifre hatalı.');
     if (user.suspended) return fail('Hesabınız askıya alınmıştır.');
 
@@ -160,6 +187,11 @@ router.get('/forgot', (req, res) => {
 
 router.post('/forgot', forgotLimiter, async (req, res, next) => {
   try {
+    if (!canDeliver()) {
+      req.flash('error', 'E-posta gönderimi şu anda kapalı. Lütfen iletişim formundan bize ulaşın.');
+      return res.redirect('/forgot');
+    }
+
     const email = str(req.body.email).toLowerCase();
     const user = isEmail(email) ? await User.findOne({ email }) : null;
 
@@ -169,12 +201,7 @@ router.post('/forgot', forgotLimiter, async (req, res, next) => {
       user.resetTokenExpires = new Date(Date.now() + RESET_TOKEN_MS);
       await user.save();
 
-      const link = `${req.protocol}://${req.get('host')}/reset/${token}`;
-      await sendMail({
-        to: user.email,
-        subject: 'TeklifVer şifre sıfırlama',
-        text: `Şifrenizi sıfırlamak için bağlantıyı açın (1 saat geçerlidir):\n${link}\n\nBu isteği siz yapmadıysanız bu e-postayı dikkate almayın.`
-      });
+      sendInBackground({ to: user.email, ...resetMail(`${siteUrl(req)}/reset/${token}`) });
     }
 
     // Hesabın var olup olmadığı dışarıdan anlaşılmasın diye sonuç hep aynıdır.
@@ -210,18 +237,22 @@ router.post('/reset/:token', async (req, res, next) => {
     }
 
     const password = typeof req.body.password === 'string' ? req.body.password : '';
-    if (password.length < MIN_PASSWORD) {
+    if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) {
       return res.status(422).render('auth/reset', {
         title: 'Yeni Şifre',
         token: req.params.token,
-        errors: { password: `Şifre en az ${MIN_PASSWORD} karakter olmalı.` }
+        errors: { password: `Şifre ${MIN_PASSWORD} ile ${MAX_PASSWORD} karakter arasında olmalı.` }
       });
     }
 
     user.password = password;
     user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
+    user.sessionVersion = (user.sessionVersion || 0) + 1;
+    // Bağlantı e-postaya gittiği için adresin sahibi olduğu kanıtlanmıştır.
+    user.emailVerified = true;
     await user.save();
+    sendInBackground({ to: user.email, ...passwordChangedMail() });
 
     req.flash('success', 'Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz.');
     res.redirect('/login');
@@ -263,7 +294,16 @@ router.post('/profile', isLoggedIn, async (req, res, next) => {
 
     const errors = {};
     if (!update.name) errors.name = 'Adınızı yazın.';
-    if (isCompany && !update.companyName) errors.companyName = 'Şirket adını yazın.';
+    else if (update.name.length > MAX_NAME) errors.name = `Ad en fazla ${MAX_NAME} karakter olabilir.`;
+    if (update.phone && !/^[+0-9 ()-]{7,25}$/.test(update.phone)) errors.phone = 'Geçerli bir telefon numarası yazın.';
+    if (update.address.length > 200) errors.address = 'Adres en fazla 200 karakter olabilir.';
+    if (isCompany) {
+      if (!update.companyName) errors.companyName = 'Şirket adını yazın.';
+      else if (update.companyName.length > MAX_COMPANY_NAME) errors.companyName = `Şirket adı en fazla ${MAX_COMPANY_NAME} karakter olabilir.`;
+      if (update.companyDescription.length > 3000) errors.companyDescription = 'Tanıtım en fazla 3000 karakter olabilir.';
+      // Firma rehberi ile göre filtrelediği için listeden seçilir.
+      if (update.address && !cities.includes(update.address)) errors.address = 'Listeden bir il seçin.';
+    }
 
     const profile = await User.findById(req.session.user.id);
     if (!profile) return req.session.destroy(() => res.redirect('/login'));
@@ -310,6 +350,48 @@ router.post('/profile/logo', isLoggedIn, uploadLogo, async (req, res, next) => {
   }
 });
 
+// Firma sayfasındaki iş örnekleri
+const MAX_PORTFOLIO = 8;
+
+router.post('/profile/portfolio', isLoggedIn, uploadImages, async (req, res, next) => {
+  try {
+    const added = (req.files || []).map(file => '/uploads/' + file.filename);
+    const profile = await User.findById(req.session.user.id);
+    if (!profile || profile.role !== 'company') {
+      deleteImages(added);
+      req.flash('error', 'İş örnekleri yalnızca firma hesaplarına eklenebilir.');
+      return res.redirect('/profile');
+    }
+    if (req.uploadError || !added.length) {
+      req.flash('error', req.uploadError || 'Bir görsel seçin.');
+      return res.redirect('/profile');
+    }
+    if ((profile.portfolio || []).length + added.length > MAX_PORTFOLIO) {
+      deleteImages(added);
+      req.flash('error', `En fazla ${MAX_PORTFOLIO} iş örneği ekleyebilirsiniz.`);
+      return res.redirect('/profile');
+    }
+
+    profile.portfolio = [...(profile.portfolio || []), ...added];
+    await profile.save();
+    req.flash('success', 'İş örnekleri eklendi.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/profile/portfolio/delete', isLoggedIn, async (req, res, next) => {
+  try {
+    const image = str(req.body.image);
+    const result = await User.updateOne({ _id: req.session.user.id, portfolio: image }, { $pull: { portfolio: image } });
+    if (result.modifiedCount) deleteImages([image]);
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/profile/logo/delete', isLoggedIn, async (req, res, next) => {
   try {
     const profile = await User.findById(req.session.user.id);
@@ -334,7 +416,9 @@ router.post('/profile/password', isLoggedIn, async (req, res, next) => {
     const errors = {};
     // Sosyal girişle açılan hesapta mevcut şifre yoktur; ilk şifre doğrudan belirlenir.
     if (profile.password && !(await profile.comparePassword(current))) errors.currentPassword = 'Mevcut şifre hatalı.';
-    if (updated.length < MIN_PASSWORD) errors.newPassword = `Yeni şifre en az ${MIN_PASSWORD} karakter olmalı.`;
+    if (updated.length < MIN_PASSWORD || updated.length > MAX_PASSWORD) {
+      errors.newPassword = `Yeni şifre ${MIN_PASSWORD} ile ${MAX_PASSWORD} karakter arasında olmalı.`;
+    }
 
     if (Object.keys(errors).length) {
       res.status(422);
@@ -342,9 +426,74 @@ router.post('/profile/password', isLoggedIn, async (req, res, next) => {
     }
 
     profile.password = updated;
+    profile.sessionVersion = (profile.sessionVersion || 0) + 1;
     await profile.save();
+    // Bu oturum açık kalır, diğer cihazlardakiler kapanır.
+    req.session.user.sv = profile.sessionVersion;
+    sendInBackground({ to: profile.email, ...passwordChangedMail() });
 
-    req.flash('success', 'Şifreniz değiştirildi.');
+    req.flash('success', 'Şifreniz değiştirildi. Diğer cihazlardaki oturumlarınız kapatıldı.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Diğer cihazlardaki oturumları kapat
+router.post('/profile/sessions', isLoggedIn, async (req, res, next) => {
+  try {
+    const updated = await User.findByIdAndUpdate(
+      req.session.user.id,
+      { $inc: { sessionVersion: 1 } },
+      { new: true }
+    ).select('sessionVersion');
+    if (!updated) return req.session.destroy(() => res.redirect('/login'));
+    req.session.user.sv = updated.sessionVersion;
+    req.flash('success', 'Diğer cihazlardaki oturumlarınız kapatıldı.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// E-posta bildirim tercihleri
+router.post('/profile/notifications', isLoggedIn, async (req, res, next) => {
+  try {
+    const emailPrefs = Object.fromEntries(Object.keys(CATEGORY_LABELS).map(key => [key, req.body[key] === 'on']));
+    await User.updateOne({ _id: req.session.user.id }, { emailPrefs });
+    req.flash('success', 'Bildirim tercihleriniz kaydedildi.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// E-posta değiştir: yeni adres doğrulanana kadar eski adres geçerli kalır.
+router.post('/profile/email', isLoggedIn, limits.emailAction, async (req, res, next) => {
+  try {
+    const profile = await User.findById(req.session.user.id);
+    if (!profile) return req.session.destroy(() => res.redirect('/login'));
+
+    const newEmail = str(req.body.newEmail).toLowerCase();
+    const password = typeof req.body.emailPassword === 'string' ? req.body.emailPassword : '';
+    const errors = {};
+
+    if (!canDeliver()) errors.newEmail = 'E-posta gönderimi şu anda kapalı olduğu için adres değiştirilemiyor.';
+    else if (!isEmail(newEmail) || newEmail.length > MAX_EMAIL) errors.newEmail = 'Geçerli bir e-posta adresi yazın.';
+    else if (newEmail === profile.email) errors.newEmail = 'Bu zaten mevcut adresiniz.';
+    else if (await User.exists({ email: newEmail })) errors.newEmail = 'Bu e-posta başka bir hesapta kullanılıyor.';
+    if (profile.password && !(await profile.comparePassword(password))) errors.emailPassword = 'Şifre hatalı.';
+
+    if (Object.keys(errors).length) {
+      res.status(422);
+      return renderProfile(res, profile.toObject(), { errors, newEmail });
+    }
+
+    profile.pendingEmail = newEmail;
+    await sendVerification(profile, newEmail);
+    sendInBackground({ to: profile.email, ...emailChangeNotice(newEmail) });
+
+    req.flash('success', `${newEmail} adresine doğrulama bağlantısı gönderildi. Bağlantıyı açınca adresiniz değişir.`);
     res.redirect('/profile');
   } catch (err) {
     next(err);
@@ -356,7 +505,7 @@ router.get('/profile/export', isLoggedIn, async (req, res, next) => {
   try {
     const id = req.session.user.id;
     const [profile, requests, bids, messages, reviews, searches] = await Promise.all([
-      User.findById(id).select('-password -resetTokenHash -resetTokenExpires').lean(),
+      User.findById(id).select('-password -resetTokenHash -resetTokenExpires -emailTokenHash -emailTokenExpires -sessionVersion').lean(),
       Request.find({ customer: id }).lean(),
       Bid.find({ company: id }).lean(),
       Message.find({ $or: [{ sender: id }, { receiver: id }] }).lean(),
@@ -393,9 +542,23 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
     const requests = await Request.find({ customer: id }).select('images');
     const requestIds = requests.map(request => request._id);
 
+    // İşi alan firma ayrılıyorsa talep kilitli kalmasın, yeniden yayına girsin.
+    const activeDeals = await Bid.find({ company: id, status: 'accepted' });
+    for (const bid of activeDeals) {
+      const reopened = await cancelDeal(bid);
+      if (reopened) {
+        await notify(reopened.customer, `İşi alan firma sitemizden ayrıldı. "${reopened.title}" talebiniz yeniden yayında.`, `/requests/${reopened._id}`, { mail: 'bids' });
+      }
+    }
+
     // Silinen firmanın bekleyen teklif sayıları düşer, talepler listede doğru görünür.
     const companyBids = await Bid.find({ company: id }).select('request');
     await Request.updateMany({ _id: { $in: companyBids.map(bid => bid.request) } }, { $inc: { bidCount: -1 } });
+
+    // Silinen müşterinin yorumları kalkınca firmaların puanı yeniden hesaplanır.
+    const ratedCompanies = await Review.distinct('company', {
+      $or: [{ customer: id }, { request: { $in: requestIds } }]
+    });
 
     await Promise.all([
       Bid.deleteMany({ $or: [{ company: id }, { request: { $in: requestIds } }] }),
@@ -409,8 +572,9 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
     ]);
 
     deleteImages(requests.flatMap(request => request.images));
-    deleteImages([profile.avatar]);
+    deleteImages([profile.avatar, ...(profile.portfolio || [])]);
     await User.deleteOne({ _id: id });
+    await Promise.all(ratedCompanies.filter(company => String(company) !== id).map(recalcCompanyRating));
 
     req.session.destroy(err => {
       if (err) return next(err);

@@ -25,14 +25,14 @@
           <div class="collapsible <%= values.role === 'company' ? 'is-open' : '' %>" id="companyFields">
             <div class="field <%= errors.companyName ? 'has-error' : '' %>">
               <label class="field-label" for="companyName">Firma adı</label>
-              <input class="input" type="text" id="companyName" name="companyName" value="<%= values.companyName || '' %>" autocomplete="organization">
+              <input class="input" type="text" id="companyName" name="companyName" maxlength="120" value="<%= values.companyName || '' %>" autocomplete="organization">
               <% if (errors.companyName) { %><p class="field-error"><%= errors.companyName %></p><% } %>
             </div>
           </div>
 
           <div class="field <%= errors.name ? 'has-error' : '' %>">
             <label class="field-label" for="name">Ad soyad</label>
-            <input class="input" type="text" id="name" name="name" value="<%= values.name || '' %>" autocomplete="name" required>
+            <input class="input" type="text" id="name" name="name" maxlength="100" value="<%= values.name || '' %>" autocomplete="name" required>
             <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
           </div>
 
@@ -53,6 +53,11 @@
               <span><a href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı kabul ediyorum, <a href="/gizlilik" target="_blank">Aydınlatma Metni</a>'ni okudum.</span>
             </label>
             <% if (errors.terms) { %><p class="field-error"><%= errors.terms %></p><% } %>
+          </div>
+
+          <div class="visually-hidden" aria-hidden="true">
+            <label for="registerWebsite">Bu alanı boş bırakın</label>
+            <input type="text" id="registerWebsite" name="website" tabindex="-1" autocomplete="off">
           </div>
 
           <button class="btn btn-primary btn-block" type="submit">Hesap Aç</button>

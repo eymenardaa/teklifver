@@ -1,0 +1,17 @@
+<%- include('../partials/header') %>
+
+<div class="wrap">
+  <div class="auth-box">
+    <div class="box">
+      <div class="box-head">Bildirimleri Kapat</div>
+      <div class="box-body">
+        <p style="margin-bottom:10px">E-postayla gelen <strong><%= label %></strong> kapatılsın mı? Site içi bildirimleriniz devam eder.</p>
+        <form action="/email/unsub/<%= token %>" method="POST">
+          <button class="btn btn-primary btn-block" type="submit">Bildirimleri Kapat</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

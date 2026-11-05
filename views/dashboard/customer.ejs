@@ -17,7 +17,7 @@
 
       <% if (myRequests.length === 0) { %>
         <div class="empty">
-          <h3>Henüz talebiniz yok</h3>
+          <h2>Henüz talebiniz yok</h2>
           <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
         </div>
       <% } else { %>
@@ -31,7 +31,7 @@
         <table class="listing-table" id="requestRows">
           <thead>
             <tr>
-              <th class="col-photo"></th>
+              <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
               <th>Talep Başlığı</th>
               <th class="col-bids">Teklif</th>
               <th class="col-budget" style="color:inherit">En Düşük Teklif</th>

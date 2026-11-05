@@ -6,7 +6,7 @@ const Message = require('../models/Message');
 const Request = require('../models/Request');
 const User = require('../models/User');
 const Bid = require('../models/Bid');
-const { isLoggedIn } = require('../middleware/auth');
+const { isLoggedIn, requireVerifiedEmail } = require('../middleware/auth');
 const { str } = require('../lib/input');
 const { formatDateTime } = require('../lib/helpers');
 const { notify } = require('../lib/notify');
@@ -197,7 +197,7 @@ router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
 });
 
 // Mesaj gönder
-router.post('/:requestId/:userId', isLoggedIn, sendLimiter, async (req, res, next) => {
+router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter, async (req, res, next) => {
   try {
     const thread = await loadThread(req);
     if (!thread) return denyThread(req, res);
@@ -221,7 +221,7 @@ router.post('/:requestId/:userId', isLoggedIn, sendLimiter, async (req, res, nex
     const threadForReceiver = `/messages/${requestId}/${req.session.user.id}`;
     if (!(await Notification.exists({ user: userId, url: threadForReceiver, read: false }))) {
       const sender = req.session.user.companyName || req.session.user.name;
-      await notify(userId, `${sender} size mesaj gönderdi: "${thread.request.title}"`, threadForReceiver);
+      await notify(userId, `${sender} size mesaj gönderdi: "${thread.request.title}"`, threadForReceiver, { mail: 'messages' });
     }
 
     res.redirect(backToThread);

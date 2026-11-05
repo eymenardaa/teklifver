@@ -9,7 +9,7 @@
 
       <% if (threads.length === 0) { %>
         <div class="empty">
-          <h3>Henüz mesajınız yok</h3>
+          <h2>Henüz mesajınız yok</h2>
           <p>
             <% if (currentUser.role === 'company') { %>
               Talep sayfalarındaki "Talep Sahibine Mesaj Gönder" bağlantısıyla yazışma başlatabilirsiniz.
@@ -22,7 +22,7 @@
         <table class="listing-table inbox-table">
           <thead>
             <tr>
-              <th class="col-photo"></th>
+              <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
               <th>Kişi / Talep</th>
               <th>Son Mesaj</th>
               <th class="col-date">Tarih</th>

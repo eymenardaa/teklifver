@@ -12,7 +12,7 @@
           <% if (errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
           <div class="field <%= errors.name ? 'has-error' : '' %>">
             <label class="field-label" for="contactName">Ad soyad</label>
-            <input class="input" type="text" id="contactName" name="name" value="<%= values.name || '' %>" autocomplete="name" required>
+            <input class="input" type="text" id="contactName" name="name" maxlength="100" value="<%= values.name || '' %>" autocomplete="name" required>
             <% if (errors.name) { %><p class="field-error"><%= errors.name %></p><% } %>
           </div>
           <div class="field <%= errors.email ? 'has-error' : '' %>">

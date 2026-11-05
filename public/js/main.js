@@ -630,6 +630,43 @@
     });
   }
 
+  /* Firma sayfası: seçilen talebe davet */
+  function initInviteForm() {
+    const form = $('[data-invite]');
+    if (!form) return;
+    const setAction = () => { form.action = `/requests/${$('select', form).value}/invite/${form.dataset.invite}`; };
+    $('select', form).addEventListener('change', setAction);
+    setAction();
+  }
+
+  /* Giriş yapanlarda okunmamış sayıları sayfa yenilenmeden güncellenir */
+  function initUnreadBadges() {
+    if (!document.body.dataset.loggedIn) return;
+    const baseTitle = document.title;
+
+    const apply = counts => {
+      Object.entries(counts).forEach(([name, value]) => {
+        $$(`[data-count="${name}"]`).forEach(badge => {
+          badge.textContent = value;
+          badge.hidden = !value;
+        });
+      });
+      const total = counts.notifications + counts.messages;
+      document.title = total ? `(${total}) ${baseTitle}` : baseTitle;
+    };
+
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const response = await fetch('/notifications/count', { headers: { Accept: 'application/json' } });
+        if (response.ok && (response.headers.get('content-type') || '').includes('json')) apply(await response.json());
+      } catch {
+        // Bağlantı geçici olarak kesildiyse bir sonraki denemede alınır.
+      }
+    };
+    setInterval(poll, 60000);
+  }
+
   /* Sayfa başına dön */
   function initToTop() {
     const button = $('#toTop');
@@ -668,6 +705,8 @@
     initRecent();
     initCategoryTip();
     initDraft();
+    initInviteForm();
+    initUnreadBadges();
     initToTop();
     initSuggest();
     initSmallActions();

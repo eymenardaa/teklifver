@@ -21,10 +21,11 @@
               <label class="field-label" for="emailReadonly">E-posta adresi</label>
               <input class="input" type="email" id="emailReadonly" value="<%= profile.email %>" disabled>
             </div>
-            <div class="field">
+            <div class="field <%= errors.phone ? 'has-error' : '' %>">
               <label class="field-label" for="phone">Telefon <span class="optional">İsteğe bağlı</span></label>
-              <input class="input" type="tel" id="phone" name="phone" value="<%= profile.phone || '' %>" autocomplete="tel">
+              <input class="input" type="tel" id="phone" name="phone" maxlength="25" value="<%= profile.phone || '' %>" autocomplete="tel">
               <p class="field-hint">Yalnızca kabul edilen tekliflerde karşı tarafa gösterilir.</p>
+              <% if (errors.phone) { %><p class="field-error"><%= errors.phone %></p><% } %>
             </div>
             <% if (profile.role === 'company') { %>
               <div class="field <%= errors.companyName ? 'has-error' : '' %>">
@@ -53,9 +54,17 @@
                 <p class="field-hint">Bu kategorilerde yeni talep açılınca bildirim alırsınız.</p>
               </fieldset>
             <% } %>
-            <div class="field">
+            <div class="field <%= errors.address ? 'has-error' : '' %>">
               <label class="field-label" for="address"><%= profile.role === 'company' ? 'İl' : 'Adres' %> <span class="optional">İsteğe bağlı</span></label>
-              <input class="input" type="text" id="address" name="address" value="<%= profile.address || '' %>" autocomplete="street-address">
+              <% if (profile.role === 'company') { %>
+                <select class="select" id="address" name="address">
+                  <option value="">Seçiniz</option>
+                  <% allCities.forEach(city => { %><option value="<%= city %>" <%= profile.address === city ? 'selected' : '' %>><%= city %></option><% }) %>
+                </select>
+              <% } else { %>
+                <input class="input" type="text" id="address" name="address" maxlength="200" value="<%= profile.address || '' %>" autocomplete="street-address">
+              <% } %>
+              <% if (errors.address) { %><p class="field-error"><%= errors.address %></p><% } %>
             </div>
             <div class="form-actions"><button class="btn btn-primary" type="submit">Kaydet</button></div>
           </form>
@@ -77,6 +86,72 @@
           </div>
         </section>
       <% } %>
+
+      <% if (profile.role === 'company') { %>
+        <section class="box">
+          <div class="box-head">İş Örnekleri (<%= (profile.portfolio || []).length %> / 8)</div>
+          <div class="box-body">
+            <% if ((profile.portfolio || []).length) { %>
+              <div class="portfolio-grid portfolio-edit">
+                <% profile.portfolio.forEach(image => { %>
+                  <div>
+                    <img src="<%= thumb(image) %>" alt="İş örneği" loading="lazy" width="240" height="180">
+                    <form action="/profile/portfolio/delete" method="POST">
+                      <input type="hidden" name="image" value="<%= image %>">
+                      <button class="btn btn-sm btn-danger-quiet btn-block" type="submit">Kaldır</button>
+                    </form>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+            <form class="logo-form" action="/profile/portfolio" method="POST" enctype="multipart/form-data">
+              <input class="input" type="file" name="images" multiple accept="image/jpeg,image/png,image/gif,image/webp" aria-label="İş örneği görselleri" required>
+              <button class="btn" type="submit">Yükle</button>
+            </form>
+            <p class="field-hint" style="margin-top:6px">Yaptığınız işlerin fotoğrafları firma sayfanızda görünür. Fotoğraflardaki konum bilgisi otomatik silinir.</p>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box">
+        <div class="box-head">E-posta Adresi</div>
+        <div class="box-body" style="max-width:600px">
+          <p class="muted" style="margin-bottom:8px">
+            Mevcut adres: <strong><%= profile.email %></strong>
+            <% if (profile.emailVerified === false) { %><span class="small">· Doğrulanmadı</span><% } %>
+            <% if (profile.pendingEmail) { %><br><span class="small">Onay bekleyen yeni adres: <%= profile.pendingEmail %></span><% } %>
+          </p>
+          <form class="form" action="/profile/email" method="POST">
+            <div class="field <%= errors.newEmail ? 'has-error' : '' %>">
+              <label class="field-label" for="newEmail">Yeni e-posta adresi</label>
+              <input class="input" type="email" id="newEmail" name="newEmail" maxlength="254" value="<%= locals.newEmail || '' %>" autocomplete="email" required>
+              <% if (errors.newEmail) { %><p class="field-error"><%= errors.newEmail %></p><% } %>
+            </div>
+            <% if (profile.password) { %>
+              <%- include('../partials/password-field', {
+                fieldId: 'emailPassword', fieldLabel: 'Onay için şifreniz', autocomplete: 'current-password',
+                fieldError: errors.emailPassword
+              }) %>
+            <% } %>
+            <div class="form-actions"><button class="btn" type="submit">Doğrulama Bağlantısı Gönder</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">E-posta Bildirimleri</div>
+        <div class="box-body">
+          <form class="form" action="/profile/notifications" method="POST">
+            <% Object.entries(mailLabels).forEach(([key, label]) => { %>
+              <label class="check-line">
+                <input type="checkbox" name="<%= key %>" <%= !profile.emailPrefs || profile.emailPrefs[key] !== false ? 'checked' : '' %>>
+                <%= label.charAt(0).toLocaleUpperCase('tr-TR') + label.slice(1) %>
+              </label>
+            <% }) %>
+            <div class="form-actions"><button class="btn" type="submit">Tercihleri Kaydet</button></div>
+          </form>
+        </div>
+      </section>
 
       <% if (socialProviders.length) { %>
         <section class="box">
@@ -117,6 +192,14 @@
             }) %>
             <div class="form-actions"><button class="btn" type="submit"><%= profile.password ? 'Şifreyi Değiştir' : 'Şifreyi Kaydet' %></button></div>
           </form>
+        </div>
+      </section>
+
+      <section class="box">
+        <div class="box-head">Oturumlar</div>
+        <div class="box-body">
+          <p class="muted" style="margin-bottom:8px">Telefonunuzu kaybettiyseniz veya ortak bir bilgisayarda açık bıraktıysanız diğer cihazlardaki oturumları kapatın.</p>
+          <form action="/profile/sessions" method="POST"><button class="btn" type="submit">Diğer Cihazlardan Çıkış Yap</button></form>
         </div>
       </section>
 

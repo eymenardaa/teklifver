@@ -6,15 +6,19 @@
 
     <section class="box">
       <div class="result-bar">
-        <span class="result-count"><strong><%= requests.length %></strong> talep</span>
+        <span class="result-count"><strong><%= pager.total %></strong> talep</span>
         <form class="admin-search" action="/admin/requests" method="GET">
+          <select class="select" name="status" aria-label="Durum" style="width:auto">
+            <option value="">Tüm durumlar</option>
+            <% Object.entries(requestStatus).forEach(([key, item]) => { %><option value="<%= key %>" <%= status === key ? 'selected' : '' %>><%= item.label %></option><% }) %>
+          </select>
           <input class="input" type="search" name="search" value="<%= search %>" placeholder="Başlık veya talep no" aria-label="Talep ara">
           <button class="btn btn-sm" type="submit">Ara</button>
         </form>
       </div>
       <table class="listing-table bid-table">
         <thead>
-          <tr><th>Talep</th><th>Sahibi</th><th class="col-bids">Teklif</th><th class="col-date">Tarih</th><th class="col-status">Durum</th><th></th></tr>
+          <tr><th>Talep</th><th>Sahibi</th><th class="col-bids">Teklif</th><th class="col-date">Tarih</th><th class="col-status">Durum</th><th><span class="visually-hidden">İşlem</span></th></tr>
         </thead>
         <tbody>
           <% requests.forEach(item => { %>
@@ -41,6 +45,7 @@
           <% }) %>
         </tbody>
       </table>
+      <%- include('../partials/admin-pager') %>
     </section>
   </div>
 </div>

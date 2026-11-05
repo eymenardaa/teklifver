@@ -21,7 +21,7 @@
 
 <div class="field <%= errors.description ? 'has-error' : '' %>">
   <label class="field-label" for="description">Açıklama</label>
-  <textarea class="textarea" id="description" name="description" rows="7" required><%= form.description %></textarea>
+  <textarea class="textarea" id="description" name="description" rows="7" maxlength="5000" required><%= form.description %></textarea>
   <p class="field-hint">Ölçü, adres, malzeme gibi detayları yazarsanız daha doğru teklif alırsınız. Telefon numarası yazmayın.</p>
   <% if (errors.description) { %><p class="field-error"><%= errors.description %></p><% } %>
 </div>
@@ -39,7 +39,7 @@
   </div>
   <div class="field">
     <label class="field-label" for="location">İlçe / Semt <span class="optional">İsteğe bağlı</span></label>
-    <input class="input" type="text" id="location" name="location" value="<%= form.location %>">
+    <input class="input" type="text" id="location" name="location" maxlength="100" value="<%= form.location %>">
   </div>
 </div>
 
@@ -65,7 +65,7 @@
 
 <div class="field <%= errors.deadline ? 'has-error' : '' %>" style="max-width:220px">
   <label class="field-label" for="deadline">Son tarih <span class="optional">İsteğe bağlı</span></label>
-  <input class="input" type="date" id="deadline" name="deadline" value="<%= form.deadline %>">
+  <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
   <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
 </div>
 

@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/admin-menu') %></aside>
+
+    <section class="box">
+      <div class="box-head">Yorumlar (<%= pager.total %>)</div>
+      <% if (reviews.length === 0) { %>
+        <div class="empty">Henüz yorum yok.</div>
+      <% } else { %>
+        <table class="listing-table bid-table">
+          <thead><tr><th>Firma</th><th>Yorum</th><th>Müşteri</th><th class="col-date">Tarih</th><th><span class="visually-hidden">İşlem</span></th></tr></thead>
+          <tbody>
+            <% reviews.forEach(review => { %>
+              <tr class="<%= review.hidden ? 'is-rejected' : '' %>">
+                <td>
+                  <% if (review.company) { %><a class="listing-title" href="/companies/<%= review.company._id %>"><%= review.company.companyName || review.company.name %></a><% } else { %>-<% } %>
+                  <div class="listing-sub"><%= review.rating %> / 5<% if (review.hidden) { %> · Gizli<% } %></div>
+                </td>
+                <td>
+                  <div class="bid-text"><%= review.comment || '-' %></div>
+                  <% if (review.request) { %><a class="small" href="/requests/<%= review.request._id %>"><%= review.request.title %></a><% } %>
+                </td>
+                <td><%= review.customer ? review.customer.name : '-' %></td>
+                <td class="col-date"><%= formatDate(review.createdAt) %></td>
+                <td>
+                  <form action="/admin/reviews/<%= review._id %>/toggle" method="POST">
+                    <button class="btn btn-sm <%= review.hidden ? '' : 'btn-danger-quiet' %>" type="submit"><%= review.hidden ? 'Yayınla' : 'Gizle' %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <%- include('../partials/admin-pager') %>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

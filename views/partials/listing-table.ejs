@@ -5,13 +5,13 @@
 <table class="listing-table <%= locals.compact ? 'is-compact' : '' %>">
   <thead>
     <tr>
-      <th class="col-photo"></th>
+      <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
       <th>Talep Başlığı</th>
       <th class="col-budget" style="color:inherit">Bütçe</th>
       <th class="col-bids">Teklif</th>
       <% if (!locals.compact) { %><th class="col-date">Talep Tarihi</th><% } %>
       <th class="col-place">İl / İlçe</th>
-      <th class="col-fav"></th>
+      <th class="col-fav"><span class="visually-hidden">Favori</span></th>
     </tr>
   </thead>
   <tbody>
@@ -23,7 +23,7 @@
         <td class="col-photo">
           <a class="thumb" href="/requests/<%= item._id %>" tabindex="-1" aria-hidden="true">
             <% if (item.images && item.images.length) { %>
-              <img src="<%= item.images[0] %>" alt="" loading="lazy">
+              <img src="<%= thumb(item.images[0]) %>" alt="" loading="lazy" width="120" height="90">
               <% if (item.images.length > 1) { %><span class="photo-count"><%- icon('camera', { size: 10 }) %><%= item.images.length %></span><% } %>
             <% } else { %>
               <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>

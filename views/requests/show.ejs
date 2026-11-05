@@ -57,7 +57,7 @@
           <div class="gallery-thumbs">
             <% request.images.forEach((image, index) => { %>
               <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
-                <img src="<%= image %>" alt="" loading="lazy">
+                <img src="<%= thumb(image) %>" alt="" loading="lazy" width="96" height="72">
               </button>
             <% }) %>
           </div>
@@ -97,7 +97,7 @@
       <div class="side-card">
         <div class="side-card-head">Talep Sahibi</div>
         <div class="side-card-body">
-          <strong><%= request.customer.name %></strong>
+          <strong><%= isOwner || (currentUser && currentUser.isAdmin) ? request.customer.name : shortName(request.customer.name) %></strong>
           <div class="muted small">Üyelik: <%= memberSince(request.customer.createdAt) %></div>
           <div class="small"><%= ownerOpenCount %> açık talep</div>
         </div>
@@ -157,9 +157,34 @@
               </div>
               <button class="btn btn-primary btn-block" type="submit">Tamamlandı</button>
             </form>
+            <% if (request.acceptedBid) { %>
+              <form action="/bids/<%= request.acceptedBid %>/cancel" method="POST"
+                data-confirm="Anlaşma iptal edilecek. Talep yeniden yayına girer, diğer teklifler tekrar değerlendirmeye alınır." data-confirm-label="Anlaşmayı İptal Et" data-confirm-tone="danger">
+                <button class="btn btn-sm btn-danger-quiet btn-block" type="submit">Anlaşmayı İptal Et</button>
+              </form>
+            <% } %>
           </div>
         </div>
       <% } else if (isOwner && ['completed', 'cancelled'].includes(request.status)) { %>
+        <% if (request.status === 'completed' && !review && request.acceptedBid) { %>
+          <div class="side-card">
+            <div class="side-card-head">Firmayı Değerlendirin</div>
+            <div class="side-card-body">
+              <form class="form" action="/bids/review/<%= request._id %>" method="POST">
+                <fieldset class="rating-stars">
+                  <legend class="visually-hidden">Puan</legend>
+                  <% for (let i = 5; i >= 1; i--) { %>
+                    <input type="radio" name="rating" value="<%= i %>" id="star<%= i %>" required>
+                    <label for="star<%= i %>"><span class="visually-hidden"><%= i %> yıldız</span><%- icon('star', { size: 20 }) %></label>
+                  <% } %>
+                </fieldset>
+                <label class="field-label" for="reviewComment">Yorumunuz <span class="optional">İsteğe bağlı</span></label>
+                <textarea class="textarea" id="reviewComment" name="comment" rows="3" maxlength="1000"></textarea>
+                <button class="btn btn-primary btn-block" type="submit">Gönder</button>
+              </form>
+            </div>
+          </div>
+        <% } %>
         <div class="side-card">
           <div class="side-card-head">Yeniden Yayınla</div>
           <div class="side-card-body">
@@ -182,6 +207,11 @@
                 data-confirm="Teklifiniz geri çekilecek." data-confirm-label="Geri Çek" data-confirm-tone="danger">
                 <button class="btn btn-sm btn-danger-quiet btn-block" type="submit">Teklifi Geri Çek</button>
               </form>
+            <% } else if (userBid.status === 'accepted' && request.status === 'in_progress') { %>
+              <form action="/bids/<%= userBid._id %>/cancel" method="POST"
+                data-confirm="İşi bırakırsanız talep yeniden yayına girer ve bu talebe tekrar teklif veremezsiniz." data-confirm-label="İşi Bırak" data-confirm-tone="danger">
+                <button class="btn btn-sm btn-danger-quiet btn-block" type="submit">İşi Bırak</button>
+              </form>
             <% } %>
           </div>
         </div>
@@ -195,7 +225,7 @@
       <div class="side-card side-card-warn">
         <div class="side-card-head"><%- icon('shield-alert', { size: 14 }) %> Güvenlik Uyarısı</div>
         <div class="side-card-body small">
-          Tüm ödemeyi iş bitmeden yapmayın. İşi ve fiyatı yazılı netleştirin. <a href="/yardim">Ayrıntılar</a>
+          Tüm ödemeyi iş bitmeden yapmayın. İşi ve fiyatı yazılı netleştirin. <a href="/guvenli-hizmet">Ayrıntılar</a>
         </div>
       </div>
 
@@ -253,7 +283,7 @@
           </div>
           <div class="field">
             <label class="field-label" for="editDescription">Açıklama</label>
-            <textarea class="textarea" id="editDescription" name="description" rows="3" required><%= userBid.description %></textarea>
+            <textarea class="textarea" id="editDescription" name="description" rows="3" maxlength="3000" required><%= userBid.description %></textarea>
           </div>
           <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Güncelle</button></div>
         </form>
@@ -285,7 +315,7 @@
           </div>
           <div class="field">
             <label class="field-label" for="bidDescription">Açıklama</label>
-            <textarea class="textarea" id="bidDescription" name="description" rows="4" required></textarea>
+            <textarea class="textarea" id="bidDescription" name="description" rows="4" maxlength="3000" required></textarea>
           </div>
           <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Gönder</button></div>
         </form>
@@ -296,7 +326,7 @@
   <section class="box">
     <div class="box-head">
       Gelen Teklifler (<%= bids.length %>)
-      <% if (bids.length > 1) { %>
+      <% if (bids.length > 1 && canSeeBids) { %>
         <span class="sort-links">
           Sırala:
           <a class="<%= bidSort === 'amount' ? 'is-active' : '' %>" href="?bidSort=amount#teklifler">Fiyat</a>
@@ -306,6 +336,7 @@
       <% } %>
     </div>
     <span id="teklifler"></span>
+    <% if (bids.length && !canSeeBids) { %><p class="box-note">Rekabet adil kalsın diye teklif tutarları ve açıklamalar yalnızca talep sahibine görünür.</p><% } %>
     <% if (bids.length === 0) { %>
       <div class="empty">Bu talebe henüz teklif verilmedi.</div>
     <% } else { %>
@@ -318,7 +349,7 @@
             <th class="col-date">Süre</th>
             <th class="col-date">Tarih</th>
             <th class="col-status">Durum</th>
-            <% if (isOwner && isOpen) { %><th></th><% } %>
+            <% if (isOwner && isOpen) { %><th><span class="visually-hidden">İşlem</span></th><% } %>
           </tr>
         </thead>
         <tbody>
@@ -336,6 +367,11 @@
                   <a class="small" href="/messages/<%= request._id %>/<%= bid.company._id %>">Mesaj Gönder</a>
                 <% } %>
               </td>
+              <% if (bid.hidden) { %>
+              <td><span class="muted small">Gizli</span></td>
+              <td class="col-budget"><span class="muted small">Gizli</span></td>
+              <td class="col-date">-</td>
+              <% } else { %>
               <td><div class="bid-text"><%= bid.description %></div></td>
               <td class="col-budget">
                 <%= money(bid.amount) %>
@@ -344,6 +380,7 @@
                 <% } %>
               </td>
               <td class="col-date"><%= bid.deliveryTime %> gün</td>
+              <% } %>
               <td class="col-date"><%= formatDate(bid.createdAt) %></td>
               <td class="col-status"><%- include('../partials/status', { status: bidStatus[bid.status] }) %></td>
               <% if (isOwner && isOpen) { %>
@@ -375,6 +412,7 @@
       <div class="box-body">
         <div><%- icon('star', { size: 13, class: 'star' }) %> <strong><%= review.rating %></strong> / 5</div>
         <% if (review.comment) { %><p class="prose" style="margin-top:4px"><%= review.comment %></p><% } %>
+        <% if (review.reply && review.reply.text) { %><p class="review-reply"><strong>Firmanın cevabı:</strong> <%= review.reply.text %></p><% } %>
       </div>
     </section>
   <% } %>

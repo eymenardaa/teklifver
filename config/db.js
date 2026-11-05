@@ -55,7 +55,9 @@ async function connectDatabase() {
 
   if (configuredUri) {
     try {
-      await mongoose.connect(configuredUri, { serverSelectionTimeoutMS: 2500 });
+      // Canlıda bulut veritabanının ilk bağlantısı birkaç saniye sürebilir.
+      const timeout = process.env.NODE_ENV === 'production' ? 20000 : 2500;
+      await mongoose.connect(configuredUri, { serverSelectionTimeoutMS: timeout });
       console.log('  MongoDB bağlantısı kuruldu.');
       return configuredUri;
     } catch (err) {

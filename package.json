@@ -11,7 +11,9 @@
     "dev": "nodemon server.js",
     "demo:sil": "node scripts/remove-demo.js",
     "pages:build": "node scripts/build-pages.js",
-    "pages:deploy": "node scripts/deploy-pages.js"
+    "pages:deploy": "node scripts/deploy-pages.js",
+    "test": "node test/run.js",
+    "gorseller": "node scripts/make-thumbs.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,7 +21,7 @@
     "connect-flash": "^0.1.1",
     "connect-mongo": "^5.1.0",
     "dotenv": "^16.3.1",
-    "ejs": "^3.1.9",
+    "ejs": "^7.0.2",
     "express": "^4.18.2",
     "express-rate-limit": "^8.7.3",
     "express-session": "^1.17.3",
@@ -27,8 +29,9 @@
     "lucide-static": "^1.68.0",
     "method-override": "^3.0.0",
     "mongoose": "^8.0.3",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^10.3.1"
+    "multer": "^2.5.0",
+    "nodemailer": "^10.3.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",

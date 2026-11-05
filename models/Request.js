@@ -20,7 +20,8 @@ const requestSchema = new mongoose.Schema({
   description: {
     type: String,
     required: [true, 'Açıklama gereklidir'],
-    trim: true
+    trim: true,
+    maxlength: 5000
   },
   category: {
     type: String,
@@ -41,7 +42,8 @@ const requestSchema = new mongoose.Schema({
   // İlçe veya semt
   location: {
     type: String,
-    trim: true
+    trim: true,
+    maxlength: 100
   },
   images: [{
     type: String
@@ -56,6 +58,13 @@ const requestSchema = new mongoose.Schema({
     enum: ['open', 'in_progress', 'completed', 'cancelled', 'removed'],
     default: 'open'
   },
+  // Yönetici kaldırınca geri alındığında dönülecek durum
+  previousStatus: String,
+  // Firma sayfasından teklif vermeye davet edilen firmalar
+  invitedCompanies: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   acceptedBid: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Bid'
@@ -72,8 +81,11 @@ const requestSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Arama indexi
-requestSchema.index({ title: 'text', description: 'text' });
+// Liste, kategori, il ve panel sorguları için
+requestSchema.index({ status: 1, createdAt: -1 });
+requestSchema.index({ status: 1, category: 1, createdAt: -1 });
+requestSchema.index({ status: 1, city: 1 });
+requestSchema.index({ customer: 1, createdAt: -1 });
 
 // Bu alan eklenmeden önce oluşturulmuş taleplere numara verir.
 requestSchema.statics.assignMissingNumbers = async function () {

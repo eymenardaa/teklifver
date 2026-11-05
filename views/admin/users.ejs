@@ -6,7 +6,7 @@
 
     <section class="box">
       <div class="result-bar">
-        <span class="result-count"><strong><%= users.length %></strong> kullanıcı</span>
+        <span class="result-count"><strong><%= pager.total %></strong> kullanıcı</span>
         <form class="admin-search" action="/admin/users" method="GET">
           <input class="input" type="search" name="search" value="<%= search %>" placeholder="Ad, e-posta veya firma" aria-label="Kullanıcı ara">
           <button class="btn btn-sm" type="submit">Ara</button>
@@ -14,7 +14,7 @@
       </div>
       <table class="listing-table bid-table">
         <thead>
-          <tr><th>Kullanıcı</th><th class="col-date">Tür</th><th class="col-date">Üyelik</th><th class="col-status">Durum</th><th></th></tr>
+          <tr><th>Kullanıcı</th><th class="col-date">Tür</th><th class="col-date">Üyelik</th><th class="col-status">Durum</th><th><span class="visually-hidden">İşlem</span></th></tr>
         </thead>
         <tbody>
           <% users.forEach(user => { %>
@@ -47,6 +47,7 @@
           <% }) %>
         </tbody>
       </table>
+      <%- include('../partials/admin-pager') %>
     </section>
   </div>
 </div>

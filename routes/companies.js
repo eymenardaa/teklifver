@@ -3,15 +3,25 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const User = require('../models/User');
 const Bid = require('../models/Bid');
+const Request = require('../models/Request');
 const Review = require('../models/Review');
+const CompanyReport = require('../models/CompanyReport');
 const categories = require('../config/categories');
 const cities = require('../config/cities');
+const { isLoggedIn, isCompany } = require('../middleware/auth');
 const { str, searchPattern } = require('../lib/input');
 const { companyStats } = require('../lib/stats');
+const { liveFilter } = require('../lib/listing');
+const { limits } = require('../lib/limits');
+const { notify } = require('../lib/notify');
+
+const { COMPANY_REPORT_REASONS } = CompanyReport;
+const PAGE_SIZE = 30;
+const MAX_REPLY = 1000;
 
 // İletişim bilgileri burada gösterilmez; yalnızca kabul edilen tekliflerde paylaşılır.
 const PUBLIC_FIELDS =
-  'name companyName companyDescription address specialties categories rating ratingCount createdAt avatar verified';
+  'name companyName companyDescription address specialties categories rating ratingCount createdAt avatar verified portfolio';
 
 const SORTS = {
   rating: { rating: -1, ratingCount: -1 },
@@ -29,16 +39,33 @@ router.get('/', async (req, res, next) => {
     const sort = Object.hasOwn(SORTS, req.query.sort) ? req.query.sort : 'rating';
 
     const filter = { role: 'company', suspended: { $ne: true } };
-    if (search) filter.companyName = { $regex: searchPattern(search), $options: 'i' };
+    if (search) {
+      const pattern = { $regex: searchPattern(search), $options: 'i' };
+      filter.$or = [{ companyName: pattern }, { specialties: pattern }];
+    }
     if (city) filter.address = city;
     if (category) filter.categories = category;
     if (minRating) filter.rating = { $gte: Number(minRating) };
     if (verified) filter.verified = true;
 
-    const companies = await User.find(filter).select(PUBLIC_FIELDS).sort(SORTS[sort]).limit(100).lean();
+    const total = await User.countDocuments(filter);
+    const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+    const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), totalPages);
+
+    const companies = await User.find(filter)
+      .select(PUBLIC_FIELDS)
+      .sort(SORTS[sort])
+      .skip((page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .lean();
+
+    const params = new URLSearchParams();
+    Object.entries({ search, city, category, minRating, verified: verified ? 'on' : '', sort: sort === 'rating' ? '' : sort })
+      .forEach(([key, value]) => { if (value) params.set(key, value); });
 
     res.render('companies/index', {
       title: 'Firma Rehberi',
+      metaDescription: 'Puan, kategori ve ile göre hizmet firmaları. Yorumları okuyun, firmaları karşılaştırın.',
       companies,
       categories,
       search,
@@ -46,7 +73,11 @@ router.get('/', async (req, res, next) => {
       category,
       minRating,
       verified,
-      sort
+      sort,
+      total,
+      page,
+      totalPages,
+      pageQuery: params.toString()
     });
   } catch (err) {
     next(err);
@@ -60,33 +91,130 @@ router.get('/:id', async (req, res, next) => {
       : null;
 
     if (!company) {
-      req.flash('error', 'Firma bulunamadı.');
-      return res.redirect('/companies');
+      return res.status(404).render('error', {
+        title: 'Firma bulunamadı',
+        code: 404,
+        message: 'Bu firma artık sitede olmayabilir.'
+      });
     }
 
-    const [wonBids, stats, reviews] = await Promise.all([
+    const viewer = req.session.user;
+    const [wonBids, stats, reviews, ownRequests, alreadyReported] = await Promise.all([
       Bid.find({ company: company._id, status: 'accepted' })
         .populate('request', 'no title category status city location images createdAt')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
       companyStats(company._id),
-      Review.find({ company: company._id })
+      Review.find({ company: company._id, hidden: { $ne: true } })
         .populate('customer', 'name')
         .populate('request', 'title')
         .sort({ createdAt: -1 })
         .limit(20)
-        .lean()
+        .lean(),
+      // Müşteri, açık taleplerinden birine bu firmayı davet edebilir.
+      viewer && viewer.role === 'customer'
+        ? Request.find({ ...liveFilter(), customer: viewer.id }).select('title invitedCompanies').sort({ createdAt: -1 }).limit(20).lean()
+        : [],
+      viewer ? CompanyReport.exists({ company: company._id, reporter: viewer.id }) : null
     ]);
 
+    const companyId = String(company._id);
+    const title = company.companyName || company.name;
+    const logo = company.avatar || (company.portfolio && company.portfolio[0]) || '';
     res.render('companies/show', {
-      title: company.companyName || company.name,
+      title,
       metaDescription: (company.companyDescription || '').slice(0, 155),
+      ogImage: logo,
+      ownHeading: true,
+      jsonLdData: {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: title,
+        url: `${res.locals.siteBase}/companies/${companyId}`,
+        ...(company.companyDescription ? { description: company.companyDescription.slice(0, 300) } : {}),
+        ...(logo ? { image: `${res.locals.siteBase}${logo}` } : {}),
+        ...(company.address ? { address: { '@type': 'PostalAddress', addressRegion: company.address, addressCountry: 'TR' } } : {}),
+        ...(company.ratingCount > 0
+          ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: company.rating, reviewCount: company.ratingCount, bestRating: 5 } }
+          : {})
+      },
       company,
       stats,
       reviews: reviews.filter(review => review.customer),
-      jobs: wonBids.filter(bid => bid.request).map(bid => ({ ...bid.request, wonAmount: bid.amount }))
+      jobs: wonBids.filter(bid => bid.request).map(bid => ({ ...bid.request, wonAmount: bid.amount })),
+      inviteOptions: ownRequests.filter(item => !(item.invitedCompanies || []).some(id => String(id) === companyId)),
+      isOwnPage: Boolean(viewer && viewer.id === companyId),
+      reportReasons: COMPANY_REPORT_REASONS,
+      alreadyReported: Boolean(alreadyReported)
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Firmayı şikayet et
+router.post('/:id/report', isLoggedIn, limits.report, async (req, res, next) => {
+  const back = mongoose.isValidObjectId(req.params.id) ? `/companies/${req.params.id}` : '/companies';
+  try {
+    const company = mongoose.isValidObjectId(req.params.id)
+      ? await User.findOne({ _id: req.params.id, role: 'company' }).select('_id').lean()
+      : null;
+    if (!company) return res.redirect('/companies');
+
+    if (String(company._id) === req.session.user.id) {
+      req.flash('error', 'Kendi firmanızı şikayet edemezsiniz.');
+      return res.redirect(back);
+    }
+    if (!COMPANY_REPORT_REASONS.includes(req.body.reason)) {
+      req.flash('error', 'Bir şikayet nedeni seçin.');
+      return res.redirect(back);
+    }
+
+    await CompanyReport.create({
+      company: company._id,
+      reporter: req.session.user.id,
+      reason: req.body.reason,
+      note: str(req.body.note).slice(0, 500)
+    });
+    req.flash('success', 'Şikayetiniz alındı, teşekkürler.');
+    res.redirect(back);
+  } catch (err) {
+    if (err.code === 11000) {
+      req.flash('error', 'Bu firmayı daha önce şikayet ettiniz.');
+      return res.redirect(back);
+    }
+    next(err);
+  }
+});
+
+// Firma, kendisine yazılan yoruma cevap verir; boş gönderirse cevap kalkar.
+router.post('/reviews/:id/reply', isCompany, async (req, res, next) => {
+  try {
+    const me = req.session.user.id;
+    const review = mongoose.isValidObjectId(req.params.id)
+      ? await Review.findOne({ _id: req.params.id, company: me })
+      : null;
+    if (!review) {
+      req.flash('error', 'Yorum bulunamadı.');
+      return res.redirect(`/companies/${me}`);
+    }
+
+    const text = str(req.body.reply);
+    if (text.length > MAX_REPLY) {
+      req.flash('error', `Cevap en fazla ${MAX_REPLY} karakter olabilir.`);
+      return res.redirect(`/companies/${me}`);
+    }
+
+    const isNew = !review.reply || !review.reply.text;
+    review.reply = text ? { text, at: new Date() } : undefined;
+    await review.save();
+    if (text && isNew) {
+      await notify(review.customer, `${req.session.user.companyName || req.session.user.name}, yorumunuza cevap verdi.`, `/companies/${me}`);
+    }
+
+    req.flash('success', text ? 'Cevabınız yayınlandı.' : 'Cevabınız kaldırıldı.');
+    res.redirect(`/companies/${me}`);
   } catch (err) {
     next(err);
   }

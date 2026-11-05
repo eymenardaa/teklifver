@@ -6,13 +6,13 @@ const oauth = require('../lib/oauth');
 const { startSession } = require('../lib/session');
 const { str, safeNext } = require('../lib/input');
 const { isLoggedIn } = require('../middleware/auth');
+const { siteUrl } = require('../lib/url');
 
 const PENDING_MS = 15 * 60 * 1000;
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-7', legacyHeaders: false });
 
-const callbackUrl = (req, key) =>
-  `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/auth/${key}/callback`;
+const callbackUrl = (req, key) => `${siteUrl(req)}/auth/${key}/callback`;
 
 const saveSession = req => new Promise((resolve, reject) => {
   req.session.save(err => (err ? reject(err) : resolve()));
@@ -89,6 +89,8 @@ router.post('/auth/complete', limiter, async (req, res, next) => {
       role: values.role,
       companyName: values.role === 'company' ? values.companyName : undefined,
       termsAcceptedAt: new Date(),
+      // Sağlayıcı adresi doğruladığı için tekrar bağlantı gönderilmez.
+      emailVerified: true,
       socialAccounts: [{ provider: pending.provider, providerId: pending.providerId }]
     });
     const redirectTo = pending.next;
@@ -180,10 +182,31 @@ router.get('/auth/:provider/callback', limiter, async (req, res, next) => {
       return fail(`${label} hesabınızdan doğrulanmış bir e-posta alınamadı. E-posta ile kayıt olabilirsiniz.`);
     }
 
-    // E-postası eşleşen hesaba otomatik bağlanmaz: bu sitede e-posta doğrulaması olmadığı için
-    // başkası o adresle önceden kayıt açmış olabilir. Hesabın sahibi şifresiyle girip kendisi bağlar.
-    if (await User.exists({ email: profile.email })) {
-      return fail(`Bu e-postayla zaten bir hesabınız var. E-posta ve şifrenizle girip Hesap Bilgilerim sayfasından ${label} hesabınızı bağlayabilirsiniz.`);
+    const existing = await User.findOne({ email: profile.email });
+    if (existing) {
+      // Google adresin sahibi olduğunu kanıtlar, hesaba doğrudan bağlanabilir. Hesabın e-postası hiç
+      // doğrulanmamışsa başkası o adresle önceden kayıt açmış olabilir: şifresi ve oturumları geçersiz olur.
+      if (key !== 'google') {
+        return fail(`Bu e-postayla zaten bir hesabınız var. E-posta ve şifrenizle girip Hesap Bilgilerim sayfasından ${label} hesabınızı bağlayabilirsiniz.`);
+      }
+      if (existing.suspended) return fail('Hesabınız askıya alınmıştır.');
+
+      const wasVerified = existing.emailVerified;
+      existing.socialAccounts.push({ provider: key, providerId: profile.id });
+      existing.emailVerified = true;
+      if (!wasVerified) {
+        existing.password = undefined;
+        existing.sessionVersion = (existing.sessionVersion || 0) + 1;
+      }
+      await existing.save();
+      await startSession(req, existing, true);
+      req.flash(
+        'success',
+        wasVerified
+          ? `${label} hesabınız bağlandı.`
+          : `${label} ile adresiniz doğrulandı. Güvenliğiniz için eski şifreniz iptal edildi, isterseniz Hesap Bilgilerim sayfasından yenisini belirleyin.`
+      );
+      return res.redirect(flow.next || '/dashboard');
     }
 
     req.session.pendingSocial = {

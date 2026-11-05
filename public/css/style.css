@@ -3,8 +3,8 @@
 :root {
   --navy: #1f3b57;
   --navy-dark: #172d43;
-  --orange: #d9480f;
-  --orange-dark: #bf3f0c;
+  --orange: #c2410c;
+  --orange-dark: #a8360a;
   --link: #0b5cad;
   --text: #222;
   --muted: #666;
@@ -137,7 +137,7 @@ details:not([open]) > summary.box-head { border-bottom: 0; }
 .side-list a:hover { background: var(--head); text-decoration: none; color: var(--link); }
 .side-list a.is-active { background: #e4eefb; color: var(--link); font-weight: bold; }
 .side-list .icon { color: #7b8691; }
-.side-list .count { margin-left: auto; color: #8a8f94; font-size: 12px; }
+.side-list .count { margin-left: auto; color: #5f6569; font-size: 12px; }
 
 /* Vitrin */
 
@@ -170,7 +170,7 @@ details:not([open]) > summary.box-head { border-bottom: 0; }
 
 .thumb { display: block; width: 96px; height: 72px; background: var(--head); overflow: hidden; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
-.no-photo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 100%; height: 100%; color: #9aa1a8; font-size: 10px; }
+.no-photo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 100%; height: 100%; color: #5f6569; font-size: 10px; }
 
 .fav-form { display: inline; margin: 0; }
 .fav { padding: 3px; background: none; border: 0; color: #a0a7ae; cursor: pointer; display: inline-flex; }
@@ -189,7 +189,7 @@ details:not([open]) > summary.box-head { border-bottom: 0; }
 .view-switch a:hover { text-decoration: none; }
 
 .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
-.empty h3 { color: #222; font-size: 14px; margin-bottom: 4px; }
+.empty h2 { color: #222; font-size: 14px; margin-bottom: 4px; }
 .empty .btn { margin-top: 10px; }
 
 .pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; padding: 10px; border-top: 1px solid var(--line); }
@@ -322,7 +322,7 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
 .bid-rating { display: block; color: var(--muted); font-size: 12px; }
 .star { color: #e0a100; fill: #e0a100; }
 .bid-text { margin-top: 3px; color: #444; white-space: pre-line; overflow-wrap: anywhere; }
-.bid-row.is-rejected td { color: #888; }
+.bid-row.is-rejected td { color: #666; }
 .bid-row.is-accepted td { background: #edf8f0 !important; }
 .bid-actions { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .tag-lowest { display: inline-block; margin-top: 2px; color: var(--green); font-size: 11px; font-weight: bold; }
@@ -412,7 +412,7 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
 
 .link-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px 10px; padding: 8px 10px; }
 .link-grid a { padding: 2px 0; }
-.link-grid .count { color: #8a8f94; font-size: 12px; }
+.link-grid .count { color: #5f6569; font-size: 12px; }
 
 .how-table { display: grid; grid-template-columns: repeat(3, 1fr); }
 .how-table > div { padding: 10px; border-left: 1px solid var(--line-soft); }
@@ -563,7 +563,7 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
 
 .site-footer { background: #fff; border-top: 1px solid var(--line); font-size: 12px; }
 .footer-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding-block: 14px; }
-.footer-grid h3 { margin-bottom: 5px; font-size: 12px; }
+.footer-grid h2 { margin-bottom: 5px; font-size: 12px; }
 .footer-grid ul { margin: 0; padding: 0; list-style: none; }
 .footer-grid li { padding: 1px 0; }
 .footer-grid a { color: #555; }
@@ -677,7 +677,7 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
 .data-table th, .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; white-space: nowrap; }
 .data-table th { background: var(--zebra); font-size: 12px; }
 .data-table .num { text-align: right; }
-.link-grid a.is-empty { color: #8a8f94; }
+.link-grid a.is-empty { color: #5f6569; }
 
 /* Müşteri yorumları */
 .review-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
@@ -703,3 +703,39 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
   .category-grid, .review-grid { grid-template-columns: 1fr; }
   .review-card { border-left: 0; }
 }
+
+/* Hesap, e-posta ve yeni bölümler */
+.verify-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 6px 12px; background: #fff3cd; border-bottom: 1px solid #e6d28f; color: #5c4a00; font-size: 12px; }
+.unread-count[hidden] { display: none; }
+.review-reply { margin-top: 6px; padding: 6px 8px; background: var(--zebra); border-left: 3px solid var(--line); font-size: 12px; }
+.reply-box { margin-top: 6px; }
+.reply-box summary { cursor: pointer; color: var(--link); }
+.reply-box form { margin-top: 6px; }
+.portfolio-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px; }
+.portfolio-grid img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+.portfolio-edit { padding: 0 0 10px; }
+.portfolio-edit form { margin-top: 4px; }
+.invite-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.invite-form .select { flex: 1 1 240px; width: auto; }
+.invite-form .field-label { margin: 0; }
+.bottom-nav { display: none; }
+
+@media (max-width: 760px) {
+  .portfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Küçük ekranda alt menü */
+  .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); background: #fff; border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .bottom-nav a { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 48px; justify-content: center; padding: 4px 0; color: #444; font-size: 11px; }
+  .bottom-nav a:hover { text-decoration: none; }
+  .bottom-nav a.is-active { color: var(--orange-dark); font-weight: bold; }
+  .bottom-nav .unread-count { position: absolute; top: 2px; left: calc(50% + 6px); }
+  body { padding-bottom: 56px; }
+  .to-top { bottom: 64px; }
+  .cookie-banner { bottom: 0; z-index: 60; }
+}
+
+@media print {
+  .bottom-nav, .verify-bar { display: none !important; }
+}
+
+/* Metin içi bağlantılar yalnızca renkle ayrılmasın */
+main p a, .legal li a, .place-line a, .auth-foot a, .field-hint a, .terms-line a, .cookie-text a, .side-card-body a, .tag-line a, .faq a, .site-footer p a { text-decoration: underline; }
