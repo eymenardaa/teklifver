@@ -1,35 +1,48 @@
 <%- include('../partials/header') %>
 
-<div class="wrap page" style="max-width:760px">
+<div class="wrap page">
   <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Talep Ver</span></div>
 
-  <section class="box">
-    <div class="box-head">Ücretsiz Talep Ver</div>
-    <div class="box-body">
-      <div class="tip-box" id="draftNote" hidden>
-        <span>Yarım kalan taslağınız geri yüklendi.</span>
-        <button class="btn btn-sm" type="button" id="draftClear">Taslağı Sil</button>
-      </div>
-      <form class="form" action="/requests" method="POST" enctype="multipart/form-data" data-draft="request-draft">
-        <%- include('_form', {
-          form: {
-            title: values.title || '',
-            description: values.description || '',
-            category: values.category || '',
-            budgetMin: values.budgetMin || '',
-            budgetMax: values.budgetMax || '',
-            deadline: values.deadline || '',
-            city: values.city || '',
-            location: values.location || ''
-          }
-        }) %>
-        <div class="form-actions">
-          <button class="btn btn-primary" type="submit">Talebi Yayınla</button>
-          <a class="btn" href="/requests">Vazgeç</a>
+  <div class="request-form-layout">
+    <section class="box">
+      <div class="box-head">Talep Ver</div>
+      <div class="box-body">
+        <div class="tip-box" id="draftNote" hidden>
+          <span>Yarım kalan taslağınız geri yüklendi.</span>
+          <button class="btn btn-sm" type="button" id="draftClear">Taslağı Sil</button>
         </div>
-      </form>
-    </div>
-  </section>
+        <form class="form" action="/requests" method="POST" enctype="multipart/form-data" data-draft="request-draft">
+          <%- include('_form', {
+            form: {
+              title: values.title || '',
+              description: values.description || '',
+              category: values.category || '',
+              budgetMin: values.budgetMin || '',
+              budgetMax: values.budgetMax || '',
+              deadline: values.deadline || '',
+              city: values.city || '',
+              location: values.location || ''
+            }
+          }) %>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Talebi Yayınla</button>
+            <a class="btn" href="/requests">Vazgeç</a>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="box" aria-label="Örnek talep">
+      <div class="box-head">Örnek talep</div>
+      <div class="request-example">
+        <h3>Başlık</h3>
+        <blockquote>Mutfak dolabı kapakları değişecek, 14 kapak</blockquote>
+        <h3>Açıklama</h3>
+        <blockquote>Gövdeler sağlam, sadece kapak ve kulplar değişecek. Mat beyaz düşünüyorum. Kadıköy'de, 3. kat, asansör var. Bu ay içinde bitsin istiyorum.</blockquote>
+        <p class="small muted" style="margin-top:10px">Ölçü ve adres bilgisi olmayan taleplere firmalar fiyat vermekte zorlanıyor. Fotoğraf eklerseniz gelip bakmadan da fiyat yazabiliyorlar.</p>
+      </div>
+    </aside>
+  </div>
 </div>
 
 <%- include('../partials/footer') %>

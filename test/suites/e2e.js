@@ -169,7 +169,7 @@ function client() {
   await asCustomer(`/bids/complete/${requestId}`, { rating: '5' });
   await asCustomer(`/bids/complete/${requestId}`, { rating: '1' });
   html = await (await asCustomer(requestPath)).text();
-  check('puan yalnızca bir kez işlenir', html.includes('5 (1)'), (html.match(/star-filled[\s\S]{0,400}?\((\d+)\)/) || [])[0] ? '' : 'puan bulunamadı');
+  check('puan yalnızca bir kez işlenir', html.includes('5,0 (1)'), (html.match(/star-filled[\s\S]{0,400}?\((\d+)\)/) || [])[0] ? '' : 'puan bulunamadı');
 
   // Tamamlanan talep silinemez
   res = await fetch(`${BASE}/requests/${requestId}?_method=DELETE`, { method: 'POST', redirect: 'manual', headers: { cookie: customerCookie } });
@@ -192,7 +192,7 @@ function client() {
 
   // Paneller
   html = await (await asCompany('/dashboard')).text();
-  check('şirket paneli', html.includes('Acme Ltd') && html.includes('₺3.000'));
+  check('şirket paneli', html.includes('Acme Ltd') && html.includes('3.000 TL'));
   html = await (await asCustomer('/dashboard')).text();
   check('müşteri paneli', html.includes(`Ofis temizliği ${stamp}`));
 

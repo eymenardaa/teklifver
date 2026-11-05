@@ -9,27 +9,58 @@
     const root = document.documentElement;
     const meta = $('meta[name="theme-color"]');
     const paintBar = () => {
-      if (meta) meta.content = root.dataset.theme === 'dark' ? '#0b0b0b' : '#1f3b57';
-    };
-    const savedChoice = () => {
-      try { return localStorage.getItem('theme'); } catch { return null; }
+      if (meta) meta.content = root.dataset.theme === 'dark' ? '#0b0b0b' : '#16181b';
     };
 
     paintBar();
     $$('[data-theme-toggle]').forEach(button => {
       button.addEventListener('click', () => {
-        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        try { localStorage.setItem('theme', root.dataset.theme); } catch { /* depolama kapalı olabilir */ }
-        paintBar();
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        const apply = () => {
+          root.dataset.theme = next;
+          paintBar();
+        };
+        try { localStorage.setItem('theme', next); } catch { /* depolama kapalı olabilir */ }
+
+        // Destekleyen tarayıcıda iki görüntü arasında tek bir geçiş yapılır; yeniden çizim takılması olmaz.
+        const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (document.startViewTransition && !calm) document.startViewTransition(apply);
+        else apply();
       });
     });
 
-    // Seçim yapılmadıysa cihazın ayarını izler.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      if (savedChoice()) return;
-      root.dataset.theme = event.matches ? 'dark' : 'light';
-      paintBar();
+  }
+
+  /* Küçük hareketler: fotoğraflar yumuşakça belirir, sayfa geçişinde ince çubuk akar.
+     Yalnızca cihazda "hareketi azalt" kapalıysa çalışır; betik çalışmazsa her şey normal görünür. */
+  function initMotion() {
+    if (!window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+
+    // Henüz yüklenmemiş fotoğraflar hazır olunca belirir.
+    $$('.showcase-photo img, .thumb img, .portfolio-grid img').forEach(image => {
+      if (image.complete) return;
+      image.classList.add('is-arriving');
+      const show = () => image.classList.remove('is-arriving');
+      image.addEventListener('load', show, { once: true });
+      image.addEventListener('error', show, { once: true });
     });
+
+    // Sayfa geçişi çubuğu
+    const bar = document.createElement('div');
+    bar.className = 'nav-progress';
+    bar.setAttribute('aria-hidden', 'true');
+    document.body.append(bar);
+    const startBar = () => bar.classList.add('is-running');
+
+    document.addEventListener('click', event => {
+      const link = event.target.closest('a[href]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (link.target === '_blank' || link.hasAttribute('download') || link.origin !== location.origin) return;
+      if (link.pathname === location.pathname && link.search === location.search) return;
+      startBar();
+    });
+    window.addEventListener('pagehide', () => bar.classList.remove('is-running'));
+    window.addEventListener('pageshow', () => bar.classList.remove('is-running'));
   }
 
   /* Bildirimleri kapatma */
@@ -205,6 +236,12 @@
         if (label) label.textContent = favorite ? 'Favorilerden Çıkar' : 'Favorilerime Ekle';
       });
 
+      if (favorite) {
+        button.classList.remove('just-faved');
+        void button.offsetWidth; // animasyon yeniden başlasın
+        button.classList.add('just-faved');
+      }
+
       const counter = $('#favCount');
       if (counter) counter.textContent = Math.max(0, Number(counter.textContent) + (favorite ? 1 : -1));
     } catch {
@@ -304,6 +341,9 @@
       const src = thumbs[current].dataset.full;
       image.src = src;
       frame.href = src;
+      image.classList.remove('is-swapping');
+      void image.offsetWidth; // animasyon yeniden başlasın
+      image.classList.add('is-swapping');
       thumbs.forEach((thumb, i) => thumb.setAttribute('aria-current', String(i === current)));
       if (counter) counter.textContent = `${current + 1} / ${thumbs.length}`;
     };
@@ -701,7 +741,10 @@
     if (!button) return;
     const update = () => { button.hidden = window.scrollY < 500; };
     window.addEventListener('scroll', update, { passive: true });
-    button.addEventListener('click', () => window.scrollTo({ top: 0 }));
+    button.addEventListener('click', () => {
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+    });
     update();
   }
 
@@ -840,6 +883,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initMotion();
     initAlerts();
     initMenu();
     initCollapsedBoxes();

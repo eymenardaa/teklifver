@@ -238,11 +238,11 @@ async function social(c, provider, profile, startUrl) {
     const cats = (await v.get('/kategoriler')).text;
     check('kategoriler', cats.includes('İnşaat &amp; Tadilat') && cats.includes('Boya Badana'));
     const guide = (await v.get('/fiyat-rehberi')).text;
-    check('fiyat rehberi', guide.includes('Ortalama Teklif') && /₺[\d.]+/.test(guide));
+    check('fiyat rehberi', guide.includes('Ortalama Teklif') && /[\d.]+ TL/.test(guide));
     const iller = (await v.get('/iller')).text;
-    check('81 il', (iller.match(/href="\/requests\?city=/g) || []).length === 81);
+    check('81 il', (iller.split('class="link-grid"')[1].split('</section>')[0].match(/href="\/il\//g) || []).length === 81);
     const home = (await v.get('/')).text;
-    check('yorumlar ana sayfada', home.includes('Son Müşteri Yorumları') && (home.match(/class="review-card"/g) || []).length === 4);
+    check('yorumlar ana sayfada', home.includes('Son Yorumlar') && (home.match(/class="review-card"/g) || []).length === 4);
     check('atlama bağlantısı', home.includes('skip-link'));
     const contact = await v.post('/iletisim', { name: '', email: 'x', subject: 'Yok', message: '' });
     check('iletişim doğrulama', contact.status === 422 && contact.text.includes('Geçerli bir e-posta'));

@@ -124,7 +124,8 @@ router.get('/:id', async (req, res, next) => {
     const logo = company.avatar || (company.portfolio && company.portfolio[0]) || '';
     res.render('companies/show', {
       title,
-      metaDescription: (company.companyDescription || '').slice(0, 155),
+      fullTitle: `${title}${company.address ? ` - ${company.address}` : ''}: Yorumlar ve Puan | TeklifVer`,
+      metaDescription: (company.companyDescription || `${title} firmasının puanı, müşteri yorumları ve aldığı işler.`).slice(0, 155),
       ogImage: logo,
       ownHeading: true,
       jsonLdData: {

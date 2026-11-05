@@ -18,7 +18,7 @@
       <% if (myRequests.length === 0) { %>
         <div class="empty">
           <h2>Henüz talebiniz yok</h2>
-          <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+          <a class="btn btn-primary" href="/requests/new">Talep Ver</a>
         </div>
       <% } else { %>
         <div class="tabs" role="tablist" data-tabs="requestRows">
@@ -34,7 +34,7 @@
               <th class="col-photo"><span class="visually-hidden">Fotoğraf</span></th>
               <th>Talep Başlığı</th>
               <th class="col-bids">Teklif</th>
-              <th class="col-budget" style="color:inherit">En Düşük Teklif</th>
+              <th class="col-budget">En Düşük Teklif</th>
               <th class="col-date">Talep Tarihi</th>
               <th class="col-status">Durum</th>
             </tr>
@@ -49,7 +49,7 @@
                     <% if (item.images && item.images.length) { %>
                       <img src="<%= item.images[0] %>" alt="" loading="lazy">
                     <% } else { %>
-                      <span class="no-photo"><%- icon('camera-off', { size: 18 }) %>Fotoğraf yok</span>
+                      <span class="no-photo">Fotoğraf yok</span>
                     <% } %>
                   </a>
                 </td>

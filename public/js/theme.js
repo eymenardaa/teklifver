@@ -2,6 +2,5 @@
 (function () {
   var saved = null;
   try { saved = localStorage.getItem('theme'); } catch (err) { /* depolama kapalı olabilir */ }
-  var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';
 })();

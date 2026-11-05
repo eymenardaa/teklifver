@@ -38,6 +38,7 @@ Tüm ayarların örneği `.env.example` dosyasındadır.
 | `ADMIN_EMAIL` | Bu e-postayla kayıtlı hesap, sunucu açılışında yönetici yapılır |
 | `SMTP_*` | E-posta doğrulama, şifre sıfırlama ve bildirim e-postaları. Boşsa geliştirmede bağlantı sunucu günlüğüne yazılır |
 | `REQUIRE_EMAIL_VERIFICATION` | SMTP varken doğrulama zorunludur; `true` veya `false` ile değiştirilir |
+| `GOOGLE_SITE_VERIFICATION` | Google Search Console doğrulama kodu |
 | `RATE_LIMIT_PER_MINUTE` | Tek IP'den dakikada kabul edilen istek (varsayılan 600) |
 | `TRUST_PROXY_HOPS` | Canlıda önündeki vekil sunucu sayısı (varsayılan 1) |
 
@@ -62,6 +63,10 @@ Geliştirme ortamında veritabanında hiç talep yoksa sunucu açılışta örne
 ```bash
 npm run demo:sil
 ```
+
+## Tema
+
+Tüm renk ve ölçüler `public/css/theme.css` dosyasındadır; beyaz ve siyah tema oradan yönetilir. Yeni bileşenlerde sabit renk yerine bu değişkenler kullanılır. Animasyonlar yalnızca `transform` ve `opacity` ile yazılır, süreleri 0,3 saniyeyi geçmez.
 
 ## Testler
 
@@ -144,9 +149,9 @@ Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda
 - Açılışta çerez onayı: tümünü kabul et, reddet veya tek tek seç
 - Hakkımızda, firmalar için, güvenli hizmet rehberi, veri silme, yardım, iletişim formu, reklam, kullanım koşulları, KVKK ve çerez politikası sayfaları (`views/pages`)
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
-- Site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
+- Hizmet ve il sayfaları (`/hizmet/temizlik/izmir`), site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
 - Küçük ekranda alt menü
-- Siyah ve beyaz tema: ilk girişte cihazın ayarı izlenir, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
+- Siyah ve beyaz tema: site beyaz açılır, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
 - Güvenlik başlıkları (CSP), gzip sıkıştırma, başka sitelerden form gönderimine karşı koruma, istek sınırları
 - Yüklenen görseller doğrulanır, küçültülür, konum bilgisi silinir ve veritabanında (GridFS) saklanır; sunucu yeniden başlasa da kaybolmaz
 - Sağlık kontrolü (`/healthz`), Render kurulum dosyası (`render.yaml`)
@@ -169,4 +174,4 @@ public/       CSS, JavaScript, fotoğraflar, favicon
 
 ## İkonlar
 
-İkonlar [Lucide](https://lucide.dev) kaynaklıdır. Şablonda `<%- icon('search', { size: 16 }) %>` yazmak yeterlidir; ikon adları lucide.dev üzerindeki adlarla aynıdır.
+İkonlar sitenin kendi çizimidir (`lib/icons.js`). Şablonda `<%- icon('search', { size: 16 }) %>` yazmak yeterlidir; yeni ikon gerekirse aynı dosyaya eklenir.

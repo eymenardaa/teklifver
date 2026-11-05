@@ -12,6 +12,7 @@ const { sendInBackground, isEnabled: mailEnabled } = require('../lib/mailer');
 const ContactMessage = require('../models/ContactMessage');
 const Ad = require('../models/Ad');
 const { siteUrl } = require('../lib/url');
+const { categoryUrl, cityUrl, categoryCityUrl } = require('../lib/slug');
 
 const pages = {
   '/yardim': { view: 'help', title: 'Yardım' },
@@ -173,10 +174,17 @@ router.get('/robots.txt', (req, res) => {
 router.get('/sitemap.xml', async (req, res, next) => {
   try {
     const base = baseUrl(req);
-    const [requests, firms] = await Promise.all([
+    const [requests, firms, rows] = await Promise.all([
       Request.find(liveFilter()).select('updatedAt').sort({ createdAt: -1 }).limit(5000).lean(),
-      User.find({ role: 'company', suspended: { $ne: true } }).select('updatedAt').limit(5000).lean()
+      User.find({ role: 'company', suspended: { $ne: true } }).select('updatedAt').limit(5000).lean(),
+      Request.aggregate([
+        { $match: { ...liveFilter(), city: { $exists: true, $nin: [null, ''] } } },
+        { $group: { _id: { category: '$category', city: '$city' } } }
+      ])
     ]);
+    // Yalnızca içeriği olan il ve hizmet-il sayfaları listelenir.
+    const combos = rows;
+    const cityRows = [...new Set(rows.map(row => row._id.city))].map(city => ({ _id: { city } }));
 
     const entry = (path, date) =>
       `<url><loc>${base}${path}</loc>${date ? `<lastmod>${new Date(date).toISOString()}</lastmod>` : ''}</url>`;
@@ -193,7 +201,9 @@ router.get('/sitemap.xml', async (req, res, next) => {
       entry('/hakkimizda'),
       entry('/firmalar-icin'),
       entry('/guvenli-hizmet'),
-      ...categories.names.map(name => entry(`/requests?category=${encodeURIComponent(name)}`)),
+      ...categories.names.map(name => entry(categoryUrl(name))),
+      ...cityRows.map(row => entry(cityUrl(row._id.city))),
+      ...combos.map(row => entry(categoryCityUrl(row._id.category, row._id.city))),
       ...requests.map(item => entry(`/requests/${item._id}`, item.updatedAt)),
       ...firms.map(item => entry(`/companies/${item._id}`, item.updatedAt))
     ];

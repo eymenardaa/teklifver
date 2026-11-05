@@ -2,55 +2,55 @@
 // subs: [menüde görünen ad, arama kelimesi]
 const categories = [
   {
-    name: 'İnşaat & Tadilat', icon: 'hammer',
+    name: 'İnşaat & Tadilat',
     subs: [['Boya Badana', 'boya'], ['Mutfak', 'mutfak'], ['Banyo', 'banyo'], ['Elektrik', 'elektrik'], ['Tesisat', 'tesisat'], ['Parke', 'parke'], ['Mantolama', 'mantolama']]
   },
   {
-    name: 'Nakliye & Lojistik', icon: 'truck',
+    name: 'Nakliye & Lojistik',
     subs: [['Evden Eve', 'evden eve'], ['Ofis Taşıma', 'ofis'], ['Parça Eşya', 'parça'], ['Depo', 'depo']]
   },
   {
-    name: 'Temizlik', icon: 'spray-can',
+    name: 'Temizlik',
     subs: [['Ofis', 'ofis'], ['Apartman', 'apartman'], ['Koltuk', 'koltuk'], ['Ev', 'ev ']]
   },
   {
-    name: 'Web Tasarım', icon: 'layout-template',
+    name: 'Web Tasarım',
     subs: [['Kurumsal Site', 'kurumsal'], ['Tanıtım Sitesi', 'tanıtım'], ['Site Yenileme', 'yenileme']]
   },
   {
-    name: 'Yazılım Geliştirme', icon: 'code-xml',
+    name: 'Yazılım Geliştirme',
     subs: [['E-ticaret', 'e-ticaret'], ['Mobil Uygulama', 'mobil'], ['Otomasyon', 'otomasyon']]
   },
   {
-    name: 'Grafik Tasarım', icon: 'palette',
+    name: 'Grafik Tasarım',
     subs: [['Logo', 'logo'], ['Katalog', 'katalog'], ['Arayüz', 'arayüz']]
   },
   {
-    name: 'Dijital Pazarlama', icon: 'megaphone',
+    name: 'Dijital Pazarlama',
     subs: [['Sosyal Medya', 'instagram'], ['Google Ads', 'google'], ['SEO', 'seo']]
   },
   {
-    name: 'Video & Animasyon', icon: 'clapperboard',
+    name: 'Video & Animasyon',
     subs: [['Tanıtım Filmi', 'tanıtım'], ['Düğün Çekimi', 'düğün'], ['Ürün Videosu', 'ürün']]
   },
   {
-    name: 'Etkinlik & Organizasyon', icon: 'party-popper',
+    name: 'Etkinlik & Organizasyon',
     subs: [['Düğün & Kına', 'kına'], ['Kurumsal Etkinlik', 'şirket'], ['Doğum Günü', 'doğum']]
   },
   {
-    name: 'Çeviri & Metin', icon: 'languages',
+    name: 'Çeviri & Metin',
     subs: [['Yeminli Çeviri', 'yeminli'], ['Teknik Çeviri', 'teknik'], ['Metin Yazarlığı', 'metin']]
   },
   {
-    name: 'Eğitim', icon: 'graduation-cap',
+    name: 'Eğitim',
     subs: [['Özel Ders', 'özel ders'], ['Yabancı Dil', 'ingilizce'], ['Kurumsal Eğitim', 'ekib']]
   },
   {
-    name: 'Danışmanlık', icon: 'messages-square',
+    name: 'Danışmanlık',
     subs: [['Mali Müşavirlik', 'muhasebe'], ['Hukuk', 'hukuk'], ['İç Mimari', 'showroom']]
   },
   {
-    name: 'Diğer', icon: 'shapes',
+    name: 'Diğer',
     subs: [['Bahçe & Peyzaj', 'bahçe'], ['Güvenlik Sistemi', 'kamera'], ['Tedarik', 'tedarik']]
   }
 ];

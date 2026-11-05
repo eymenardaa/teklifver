@@ -1,7 +1,8 @@
 <%- include('../partials/header') %>
 
 <div class="wrap">
-  <div class="auth-box">
+  <div class="auth-box has-side">
+    <div>
     <% if (locals.step === 'verify') { %>
       <!-- 2. Adım: 6 Haneli Giriş Onay Kodu -->
       <div class="box">
@@ -94,6 +95,8 @@
         </div>
       </div>
     <% } %>
+    </div>
+    <%- include('../partials/auth-side') %>
   </div>
 </div>
 

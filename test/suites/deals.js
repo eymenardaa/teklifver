@@ -114,7 +114,7 @@ async function newRequest(c, fields) {
   const firmId = body((await firmA.get('/dashboard')).text, /\/companies\/([a-f0-9]{24})/);
   let firmPage = (await guest.get(`/companies/${firmId}`)).text;
   check('sonradan yorum yayında', firmPage.includes(`güzel iş ${stamp}`));
-  check('puan yorumdan hesaplanır', firmPage.includes('<strong>4</strong> (1 değerlendirme)'));
+  check('puan yorumdan hesaplanır', firmPage.includes('<strong>4,0</strong> (1 değerlendirme)'));
   check('yorumda soyadı kısalır', firmPage.includes('Ayşe K.') && !firmPage.includes('Ayşe Demir Kaya'));
   res = await owner.post(`/bids/review/${reviewId}`, { rating: '1' });
   check('ikinci yorum olmaz', (await owner.get(res.location)).text.includes('zaten değerlendirdiniz'));
@@ -300,7 +300,7 @@ async function newRequest(c, fields) {
   // Örnek verileri silme
   res = await admin.post('/admin/demo/remove');
   check('örnek veriler silinir', res.status === 302);
-  check('örnek firma gitti', !(await guest.get('/companies')).text.includes('Usta Eller'));
+  check('örnek firma gitti', !(await guest.get('/companies')).text.includes('Demir Tadilat'));
   check('gerçek firma kaldı', (await guest.get('/companies')).text.includes(`Alfa ${stamp}`));
   check('örnek veri notu kalkar', !(await guest.get('/')).text.includes('örnek veridir'));
 

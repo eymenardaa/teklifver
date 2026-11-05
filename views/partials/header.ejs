@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1f3b57">
+  <meta name="theme-color" content="#16181b">
   <% const pageDescription = metaDescription || 'Hizmet talebi verin, firmalardan teklif alın. Tadilat, nakliye, temizlik, yazılım ve daha fazlası.'; %>
   <meta name="description" content="<%= pageDescription %>">
   <meta property="og:site_name" content="TeklifVer">
-  <meta property="og:title" content="<%= title || 'TeklifVer' %>">
+  <meta property="og:title" content="<%= title || 'TeklifVer: Ücretsiz Teklif Alın, Firmaları Karşılaştırın' %>">
   <meta property="og:description" content="<%= pageDescription %>">
   <meta property="og:url" content="<%= pageUrl %>">
   <meta property="og:type" content="website">
   <meta property="og:image" content="<%= siteBase %><%= ogImage || '/img/paylasim.png' %>">
   <meta name="twitter:card" content="summary_large_image">
-  <title><%= title ? title + ' - ' : '' %>TeklifVer</title>
+  <title><%= locals.fullTitle || (title ? title + ' | TeklifVer' : 'TeklifVer: Ücretsiz Teklif Alın, Firmaları Karşılaştırın') %></title>
   <link rel="canonical" href="<%= canonicalUrl %>">
-  <% if (noIndex) { %><meta name="robots" content="noindex"><% } %>
+  <% if (noIndex || demoActive) { %><meta name="robots" content="noindex"><% } %>
+  <% if (siteVerification) { %><meta name="google-site-verification" content="<%= siteVerification %>"><% } %>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>
+  <link rel="preload" href="/fonts/source-sans-3-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link href="/css/theme.css?v=<%= assetVersion %>" rel="stylesheet">
   <link href="/css/style.css?v=<%= assetVersion %>" rel="stylesheet">
   <script src="/js/main.js?v=<%= assetVersion %>" defer></script>
   <% if (jsonLdData) { %><script type="application/ld+json"><%- jsonLd(jsonLdData) %></script><% } %>
@@ -42,8 +46,8 @@
         <a href="/reklam">Reklam Ver</a>
       </div>
       <button class="theme-toggle" type="button" data-theme-toggle>
-        <span class="when-light"><%- icon('moon', { size: 15 }) %>Siyah Tema</span>
-        <span class="when-dark"><%- icon('sun', { size: 15 }) %>Beyaz Tema</span>
+        <span class="when-light"><%- icon('moon', { size: 14 }) %>Siyah Tema</span>
+        <span class="when-dark"><%- icon('sun', { size: 14 }) %>Beyaz Tema</span>
       </button>
       <% if (currentUser) { %>
         <a href="/notifications">Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
@@ -74,19 +78,40 @@
 
   <header class="mainbar">
     <div class="wrap mainbar-inner">
-      <a class="logo" href="/">teklif<span>ver</span></a>
+      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<span class="logo-tag">ver</span></a>
       <form class="searchbar" action="/requests" method="GET" role="search">
-        <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Kelime veya talep no ile ara" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
+        <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Hangi işi arıyorsunuz?" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
+        <select name="city" aria-label="İl">
+          <option value="">Tüm iller</option>
+          <% allCities.forEach(city => { %><option value="<%= city %>" <%= locals.filters && filters.city === city ? 'selected' : '' %>><%= city %></option><% }) %>
+        </select>
         <button type="submit">Ara</button>
         <div class="suggest" id="searchSuggest" hidden></div>
       </form>
       <% if (currentUser && currentUser.role === 'company') { %>
         <a class="btn btn-primary post-button" href="/dashboard/matches">Size Uygun Talepler</a>
       <% } else { %>
-        <a class="btn btn-primary post-button" href="/requests/new">Ücretsiz Talep Ver</a>
+        <a class="btn btn-primary post-button" href="/requests/new">Talep Ver</a>
       <% } %>
     </div>
   </header>
+
+  <nav class="catnav" aria-label="Hizmet kategorileri">
+    <ul class="wrap catnav-inner">
+      <% allCategories.slice(0, 9).forEach(category => { const href = categoryUrl(category.name); %>
+        <li class="catnav-item">
+          <a class="catnav-link <%= currentPath === href ? 'is-active' : '' %>" href="<%= href %>"><%= category.name %></a>
+          <div class="catnav-sub">
+            <% category.subs.forEach(([label, term]) => { %>
+              <a href="/requests?category=<%= encodeURIComponent(category.name) %>&search=<%= encodeURIComponent(term.trim()) %>"><%= label %></a>
+            <% }) %>
+            <a class="catnav-all" href="<%= href %>">Tüm <%= category.name %></a>
+          </div>
+        </li>
+      <% }) %>
+      <li class="catnav-item"><a class="catnav-link <%= currentPath === '/kategoriler' ? 'is-active' : '' %>" href="/kategoriler">Tümü</a></li>
+    </ul>
+  </nav>
 
   <main id="main">
   <% if (!locals.ownHeading) { %><h1 class="visually-hidden"><%= title || 'Hizmet talebi verin, firmalardan teklif alın' %></h1><% } %>

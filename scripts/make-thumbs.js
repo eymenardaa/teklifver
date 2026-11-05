@@ -28,10 +28,11 @@ async function icons() {
 
   // Paylaşımlarda görünen varsayılan görsel
   const social = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
-    <rect width="1200" height="630" fill="#1f3b57"/>
-    <text x="90" y="300" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#ffffff">teklif<tspan fill="#f7a35c">ver</tspan></text>
-    <text x="94" y="385" font-family="Arial, sans-serif" font-size="42" fill="#d5dee7">Talebinizi yazın, firmalardan teklif alın.</text>
-    <rect x="90" y="440" width="150" height="10" fill="#d9480f"/>
+    <rect width="1200" height="630" fill="#1f2226"/>
+    <text x="90" y="300" font-family="Arial Narrow, Arial, sans-serif" font-size="130" font-weight="bold" fill="#ffffff">teklif</text>
+    <path d="M470 192h230v136H470l-50-68z" fill="#ffc61a"/><circle cx="462" cy="260" r="10" fill="#1f2226"/>
+    <text x="490" y="300" font-family="Arial Narrow, Arial, sans-serif" font-size="130" font-weight="bold" fill="#1c1e21">ver</text>
+    <text x="94" y="400" font-family="Arial, sans-serif" font-size="42" fill="#c6c9ce">Yaptıracağınız işi yazın, firmalardan fiyat alın.</text>
   </svg>`;
   await sharp(Buffer.from(social)).png({ compressionLevel: 9 }).toFile(path.join(PUBLIC, 'img', 'paylasim.png'));
   console.log('  Site simgeleri ve paylaşım görseli üretildi.');

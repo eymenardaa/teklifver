@@ -122,7 +122,8 @@ async function openBrowser(executable) {
       socket.close();
       proc.kill();
       await sleep(500);
-      fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 });
+      // Tarayıcı dosyaları hemen bırakmayabilir; geçici klasör kalsa da sonuç etkilenmez.
+      try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); } catch { /* yok sayılır */ }
     }
   };
   await send('Network.enable');
@@ -181,16 +182,16 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.evaluate(`localStorage.setItem('theme', 'light')`);
     await page.goto('/');
     const lightBackground = await background();
-    check('beyaz tema arka planı açık', lightBackground === 'rgb(242, 243, 245)', lightBackground);
+    check('beyaz tema arka planı açık', lightBackground === 'rgb(241, 242, 244)', lightBackground);
     check('düğme siyah temayı önerir', (await page.text()).includes('Siyah Tema'));
     await page.click('[data-theme-toggle]');
-    await sleep(100);
-    check('düğmeyle siyah tema açılır', (await themeOf()) === 'dark' && (await background()) === 'rgb(0, 0, 0)');
+    await sleep(500);
+    check('düğmeyle siyah tema açılır', (await themeOf()) === 'dark' && (await background()) === 'rgb(15, 16, 18)');
     check('düğme beyaz temayı önerir', (await page.text()).includes('Beyaz Tema'));
     check('tarayıcı çubuğu rengi değişir', (await page.evaluate(`document.querySelector('meta[name="theme-color"]').content`)) === '#0b0b0b');
     await page.goto('/requests');
-    check('siyah tema sayfalar arasında kalır', (await themeOf()) === 'dark' && (await background()) === 'rgb(0, 0, 0)');
-    check('kutular koyu', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(17, 17, 17)');
+    check('siyah tema sayfalar arasında kalır', (await themeOf()) === 'dark' && (await background()) === 'rgb(15, 16, 18)');
+    check('kutular koyu', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(23, 25, 28)');
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     check('yazdırırken beyaz kalır', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(255, 255, 255)');
     await page.send('Emulation.setEmulatedMedia', { media: '' });
@@ -200,16 +201,112 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.evaluate(`localStorage.removeItem('theme')`);
     await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
     await page.goto('/');
-    check('seçim yoksa cihaz ayarı izlenir', (await themeOf()) === 'dark');
-    await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
-    await sleep(100);
-    check('cihaz ayarı değişince tema değişir', (await themeOf()) === 'light');
+    check('seçim yoksa site beyaz açılır', (await themeOf()) === 'light');
     await page.send('Emulation.setEmulatedMedia', { features: [] });
+
+    // Hareket
+    await page.goto('/');
+    const style = (selector, prop) => page.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(selector)})).${prop}`);
+    check('düğme yalnızca transform ile hareket eder', (await style('.btn', 'transitionProperty')) === 'transform');
+    check('kartlar üzerine gelince zıplamaz', (await style('.showcase-item', 'transitionDuration')) === '0s');
+    check('tablo satırı yeniden çizim geçişi kullanmaz', (await style('.listing-table td', 'transitionDuration')) === '0s');
+    check('bağlantılarda renk geçişi yok', (await style('.side-list a', 'transitionDuration')) === '0s');
+    const longest = await page.evaluate(`Math.max(...[...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } }).flatMap(function walk(rule) { return rule.cssRules ? [...rule.cssRules].flatMap(walk) : [rule]; }).filter(rule => rule.style).map(rule => parseFloat(rule.style.transitionDuration) || 0))`);
+    check('geçişler 0,3 saniyeden kısa', longest <= 0.3, String(longest));
+    check('bölümler kaydırırken oynamaz', (await style('main .box', 'animationName')) === 'none');
+    check('ekrandaki içerik görünür', (await page.evaluate(`[...document.querySelectorAll('main .box')].filter(el => { const b = el.getBoundingClientRect(); return b.top < innerHeight - 80 && b.bottom > 0; }).every(el => getComputedStyle(el).opacity === '1')`)));
+    const height = await page.evaluate('document.documentElement.scrollHeight');
+    await page.evaluate(`window.scrollTo(0, ${height})`);
+    await sleep(300);
+    check('sayfa sonundaki içerik görünür', await page.evaluate(`[...document.querySelectorAll('main .box')].filter(el => { const b = el.getBoundingClientRect(); return b.top < innerHeight - 80 && b.bottom > 0; }).every(el => getComputedStyle(el).opacity === '1')`));
+    await page.evaluate('window.scrollTo(0, 0)');
+    await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await page.goto('/');
+    check('hareketi azalt açıksa geçiş yok', (await style('.btn', 'transitionDuration')) === '0s');
+    await page.send('Emulation.setEmulatedMedia', { features: [] });
+
+    // Hiçbir ekran genişliğinde sayfa yana taşmaz
+    for (const width of [1280, 1190, 1100, 1020, 900, 800, 761, 760, 600, 412, 360]) {
+      await page.send('Emulation.setDeviceMetricsOverride', { width, height: 800, deviceScaleFactor: 1, mobile: false });
+      for (const path of ['/', '/requests', '/hizmet/temizlik', '/companies', '/login', '/register', '/fiyat-rehberi']) {
+        await page.goto(path);
+        const overflow = await page.evaluate('document.documentElement.scrollWidth - innerWidth');
+        check(`${width} piksel ${path} taşmaz`, overflow <= 0, String(overflow));
+      }
+    }
+    await page.send('Emulation.clearDeviceMetricsOverride');
+
+    // Yazı kontrastı: gerçek sayfada, iki temada (WCAG AA: 4,5; büyük yazıda 3)
+    const contrastProblems = `(() => {
+      const parse = c => { const m = c.match(/[\\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m[3] === undefined ? 1 : m[3] }; };
+      const lum = ({ r, g, b }) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+      const found = [];
+      let checked = 0;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const seen = new Set();
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const el = node.parentElement;
+        if (!node.textContent.trim() || !el || seen.has(el) || ['SCRIPT', 'STYLE', 'OPTION'].includes(el.tagName) || el.closest('[hidden], .visually-hidden, .skip-link, dialog')) continue;
+        seen.add(el);
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        let bg = null;
+        let unknown = false;
+        for (let p = el; p; p = p.parentElement) {
+          const s = getComputedStyle(p);
+          const c = parse(s.backgroundColor);
+          if (s.backgroundImage !== 'none' || (c.a > 0 && c.a < 1)) { unknown = true; break; }
+          if (c.a === 1) { bg = c; break; }
+        }
+        if (unknown || !bg) continue;
+        checked += 1;
+        const value = ratio(parse(style.color), bg);
+        const size = parseFloat(style.fontSize);
+        const large = size >= 24 || (size >= 18.66 && Number(style.fontWeight) >= 700);
+        if (value < (large ? 3 : 4.5)) found.push((el.className || el.tagName) + ' ' + value.toFixed(2) + ' ' + node.textContent.trim().slice(0, 20));
+      }
+      return { checked, found: [...new Set(found)].slice(0, 12) };
+    })()`;
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(`localStorage.setItem('theme', '${theme}')`);
+      for (const path of ['/', '/requests', '/hizmet/temizlik', '/login', '/register', '/companies', '/fiyat-rehberi', '/kategoriler']) {
+        await page.goto(path);
+        const result = await page.evaluate(contrastProblems);
+        check(`kontrast ${theme} ${path}`, result.checked > 20 && result.found.length === 0, `${result.checked} metin; ${result.found.join(' | ')}`);
+      }
+    }
+    await page.evaluate(`localStorage.removeItem('theme')`);
+    await page.goto('/');
 
     // Arama önerisi
     await page.fill('#siteSearch', 'temiz');
     await sleep(800);
     check('arama önerisi gelir', await page.evaluate(`!document.getElementById('searchSuggest').hidden`));
+
+    // Üst bantta il seçerek arama
+    await page.goto('/');
+    await page.fill('#siteSearch', 'boya');
+    await page.fill('.searchbar select', 'Ankara');
+    await page.clickAndWait('.searchbar button[type="submit"]');
+    const searchUrl = decodeURIComponent(await page.url());
+    check('üst bantta ille arama', searchUrl.startsWith('/requests') && searchUrl.includes('search=boya') && searchUrl.includes('city=Ankara'), searchUrl);
+
+    // Kategori satırı klavyeyle de açılır (fareli ekranda)
+    await page.goto('/');
+    if (await page.evaluate("matchMedia('(hover: hover) and (min-width: 761px)').matches")) {
+      await page.send('Emulation.setFocusEmulationEnabled', { enabled: true });
+      await page.evaluate("document.querySelector('.catnav-link').focus()");
+      check('alt kategoriler klavyeyle açılır', (await page.evaluate("getComputedStyle(document.querySelector('.catnav-sub')).display")) === 'block');
+    }
+
+    // Ziyaretçi talep kutusunu doldurunca girişe yönlenir, yazdığı kaybolmaz
+    await page.goto('/');
+    await page.fill('.composer input[name="title"]', 'Balkon boyanacak');
+    await page.fill('.composer select[name="city"]', 'Ankara');
+    await page.clickAndWait('.composer button[type="submit"]');
+    const composerUrl = decodeURIComponent(await page.url());
+    check('talep kutusu girişe yönlendirir', composerUrl.startsWith('/login') && composerUrl.includes('title=Balkon'), composerUrl);
 
     // Örnek hesapla tek tıkla giriş
     await page.goto('/login');
@@ -229,6 +326,12 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     // Müşteri kaydı ve talep
     await register(page, { role: 'customer', name: 'Tarayıcı Müşteri', email: `tm${stamp}@test.local` });
     check('kayıt formu çalışır', (await page.url()) === '/dashboard', `${await page.url()} ${await page.title()}`);
+
+    await page.goto('/');
+    await page.fill('.composer input[name="title"]', 'Balkon boyanacak');
+    await page.fill('.composer select[name="city"]', 'Ankara');
+    await page.clickAndWait('.composer button[type="submit"]');
+    check('talep kutusu formu doldurur', (await page.evaluate("document.getElementById('title').value")) === 'Balkon boyanacak' && (await page.evaluate("document.getElementById('city').value")) === 'Ankara');
 
     await page.goto('/requests/new');
     await page.fill('#category', 'Temizlik');

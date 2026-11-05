@@ -61,8 +61,11 @@ const https = c => ({
     check('ana sayfa boş veritabanında açılır', home.status === 200);
     check('hsts', (home.headers.get('strict-transport-security') || '').includes('max-age'));
     check('örnek veri uyarısı yok', !home.text.includes('örnek veridir'));
-    check('örnek firma yok', !home.text.includes('Usta Eller'));
-    check('örnek reklam yok', !/Kodhane|Usta Eller Tadilat/.test(home.text));
+    check('örnek firma yok', !home.text.includes('Demir Tadilat'));
+    check('gerçek site aramalara açık', !home.text.includes('name="robots"'));
+    const emptyService = await a.get('/hizmet/temizlik');
+    check('içeriksiz hizmet sayfası aramalara kapalı', emptyService.status === 200 && emptyService.text.includes('name="robots" content="noindex"'));
+    check('örnek reklam yok', !/Öztürk Bilişim|Demir Tadilat/.test(home.text));
     check('css uzun önbellekli', ((await a.get('/css/style.css')).headers.get('cache-control') || '').includes('max-age=2592000'));
     for (const p of ['/requests', '/companies', '/kategoriler', '/fiyat-rehberi', '/iller', '/iletisim', '/yardim', '/gizlilik', '/kullanim-kosullari', '/cerez-politikasi', '/reklam', '/register', '/forgot', '/robots.txt', '/hakkimizda', '/firmalar-icin', '/guvenli-hizmet', '/veri-silme']) {
       check(`${p} açılır`, (await a.get(p)).status === 200);
@@ -104,6 +107,8 @@ const https = c => ({
     check('izinsiz uzantı 404', (await client(server.url).get('/uploads/x.html')).status === 404);
     check('dizin aşımı', (await client(server.url).get('/uploads/..%2F..%2Fserver.js')).status === 404);
 
+    check('bilgisi olan il sayfası', (await client(server.url).get('/il/istanbul')).status === 200);
+
     // Yeniden başlatma: görsel ve oturum kalır, yönetici atanır
     await server.stop();
     server = await start();
@@ -136,8 +141,9 @@ const https = c => ({
     const vitrin = await startSite({ uri: vitrinUri, port: PORT, cwd: copyDir, entry, env: env({ DEMO_DATA: 'showcase', ADMIN_EMAIL: 'patron@teklifver.example' }) });
     const v = client(vitrin.url);
     const vitrinHome = await v.get('/');
-    check('vitrin dolu', vitrinHome.text.includes('Usta Eller') || (await v.get('/companies')).text.includes('Usta Eller'));
+    check('vitrin dolu', vitrinHome.text.includes('Demir Tadilat') || (await v.get('/companies')).text.includes('Demir Tadilat'));
     check('vitrinde örnek veri uyarısı', vitrinHome.text.includes('örnek veridir'));
+    check('vitrin aramalara kapalı', vitrinHome.text.includes('name="robots" content="noindex"'));
     check('vitrinde tek tıkla giriş yok', !(await v.get('/login')).text.includes('data-demo-email'));
     for (const email of ['yonetici@teklifver.test', 'musteri@teklifver.test', 'sirket@teklifver.test']) {
       check(`vitrinde ${email} giremez`, (await client(vitrin.url).post('/login', { email, password: 'demo1234' })).status === 401);
@@ -145,14 +151,22 @@ const https = c => ({
     const boss = client(vitrin.url);
     await https(boss).post('/register', { role: 'customer', name: 'Patron', email: 'patron@teklifver.example', password: 'guclusifre123', terms: 'on' });
     await vitrin.stop();
+    // Örnek verilerin yeni sürümü gelince eskisi yenilenir, gerçek kullanıcıya dokunulmaz
+    const { MongoClient } = require('mongodb');
+    const vitrinDb = await MongoClient.connect(vitrinUri);
+    await vitrinDb.db().collection('site_state').updateOne({ _id: 'demo' }, { $set: { version: 1 } }, { upsert: true });
+    await vitrinDb.db().collection('users').updateOne({ companyName: 'Demir Tadilat' }, { $set: { companyName: 'Eski Örnek Firma' } });
+    await vitrinDb.close();
     const vitrin2 = await startSite({ uri: vitrinUri, port: PORT, cwd: copyDir, entry, env: env({ DEMO_DATA: 'showcase', ADMIN_EMAIL: 'patron@teklifver.example' }) });
+    const refreshed = (await client(vitrin2.url).get('/companies')).text;
+    check('eski örnek veri yenilenir', refreshed.includes('Demir Tadilat') && !refreshed.includes('Eski Örnek Firma'));
     check('panelde silme düğmesi', (await boss.get('/admin')).text.includes('Örnek Verileri Sil'));
     await boss.post('/admin/demo/remove');
-    check('vitrin silinir', !(await client(vitrin2.url).get('/companies')).text.includes('Usta Eller'));
+    check('vitrin silinir', !(await client(vitrin2.url).get('/companies')).text.includes('Demir Tadilat'));
     check('uyarı kalkar', !(await client(vitrin2.url).get('/')).text.includes('örnek veridir'));
     await vitrin2.stop();
     const vitrin3 = await startSite({ uri: vitrinUri, port: PORT, cwd: copyDir, entry, env: env({ DEMO_DATA: 'showcase' }) });
-    check('silinen vitrin geri gelmez', !(await client(vitrin3.url).get('/companies')).text.includes('Usta Eller'));
+    check('silinen vitrin geri gelmez', !(await client(vitrin3.url).get('/companies')).text.includes('Demir Tadilat'));
     await vitrin3.stop();
     await vitrinMongo.stop();
   } finally {

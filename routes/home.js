@@ -24,7 +24,7 @@ router.get('/', async (req, res, next) => {
         User.find({ role: 'company', ratingCount: { $gt: 0 }, suspended: { $ne: true } })
           .select('name companyName rating ratingCount verified')
           .sort({ rating: -1, ratingCount: -1 })
-          .limit(6)
+          .limit(30)
           .lean(),
         Request.aggregate([
           { $match: { ...open, city: { $exists: true, $ne: null } } },
@@ -46,22 +46,38 @@ router.get('/', async (req, res, next) => {
 
     res.render('home', {
       title: '',
-      jsonLdData: {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: 'TeklifVer',
-        url: `${res.locals.siteBase}/`,
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${res.locals.siteBase}/requests?search={search_term_string}`,
-          'query-input': 'required name=search_term_string'
+      ownHeading: true,
+      metaDescription: 'Tadilat, nakliye, temizlik, web tasarım ve daha fazlası için ücretsiz talep verin, firmalardan teklif alın. Fiyat, süre ve yorumları karşılaştırın.',
+      jsonLdData: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'TeklifVer',
+          url: `${res.locals.siteBase}/`,
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${res.locals.siteBase}/requests?search={search_term_string}`,
+            'query-input': 'required name=search_term_string'
+          }
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'TeklifVer',
+          url: `${res.locals.siteBase}/`,
+          logo: `${res.locals.siteBase}/icon-512.png`
         }
-      },
+      ],
       showcase: uniqueByPhoto(showcase, 20),
       latest,
       closing: uniqueByPhoto(closing, 8),
       counts,
-      topCompanies,
+      // Tek yorumla 5 puan alan firma, çok yorumlu 4,8'in önüne geçmesin.
+      topCompanies: topCompanies
+        .map(company => ({ company, score: (company.rating * company.ratingCount + 4 * 3) / (company.ratingCount + 3) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map(({ company }) => company),
       cityRows,
       total: Object.values(counts).reduce((sum, count) => sum + count, 0),
       stats: { todayCount, companyCount, bidCount, completedCount },

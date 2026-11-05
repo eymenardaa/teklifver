@@ -9,8 +9,8 @@
   <div class="crumbs">
     <a href="/">Ana Sayfa</a> &rsaquo;
     <a href="/requests">Talepler</a> &rsaquo;
-    <a href="/requests?category=<%= encodeURIComponent(request.category) %>"><%= request.category %></a>
-    <% if (request.city) { %>&rsaquo; <a href="/requests?category=<%= encodeURIComponent(request.category) %>&city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><% } %>
+    <a href="<%= categoryUrl(request.category) %>"><%= request.category %></a>
+    <% if (request.city) { %>&rsaquo; <a href="<%= categoryCityUrl(request.category, request.city) %>"><%= request.city %></a><% } %>
   </div>
 
   <div class="detail-title">
@@ -46,9 +46,10 @@
     <div class="alert alert-error">Bu talep sahibi tarafından kapatıldı.</div>
   <% } %>
 
-  <div class="detail-main">
+  <% const hasPhotos = request.images && request.images.length > 0; %>
+  <div class="detail-main <%= hasPhotos ? '' : 'no-photos' %>">
+    <% if (hasPhotos) { %>
     <div>
-      <% if (request.images && request.images.length) { %>
         <a class="gallery-main" href="<%= request.images[0] %>" target="_blank" rel="noopener">
           <img src="<%= request.images[0] %>" alt="<%= request.title %>">
           <% if (request.images.length > 1) { %>
@@ -61,30 +62,26 @@
           <div class="gallery-thumbs">
             <% request.images.forEach((image, index) => { %>
               <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
-                <img src="<%= thumb(image) %>" alt="" loading="lazy" width="96" height="72">
+                <img src="<%= thumb(image) %>" alt="" loading="lazy" decoding="async" width="96" height="72">
               </button>
             <% }) %>
           </div>
         <% } %>
-      <% } else { %>
-        <div class="gallery-main">
-          <div class="no-photo-large"><%- icon('camera-off', { size: 36 }) %>Bu talepte fotoğraf yok</div>
-        </div>
-      <% } %>
     </div>
+    <% } %>
 
     <div>
       <div class="price-big"><%= budgetLabel(request.budget) %></div>
       <div class="place-line">
         <% if (request.city) { %>
-          <a href="/requests?city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><%= request.location ? ' / ' + request.location : '' %>
+          <a href="<%= cityUrl(request.city) %>"><%= request.city %></a><%= request.location ? ' / ' + request.location : '' %>
         <% } else { %>
           <%= request.location || 'Konum belirtilmemiş' %>
         <% } %>
       </div>
 
       <table class="info-table">
-        <tr><td>Talep No</td><td><strong style="color:var(--price)"><%= request.no %></strong></td></tr>
+        <tr><td>Talep No</td><td><strong><%= request.no %></strong></td></tr>
         <tr><td>Talep Tarihi</td><td><%= formatDate(request.createdAt) %></td></tr>
         <tr><td>Kategori</td><td><%= request.category %></td></tr>
         <tr><td>Son Tarih</td><td>
@@ -302,8 +299,8 @@
           <div class="field-row">
             <div class="field">
               <label class="field-label" for="editAmount">Tutar</label>
-              <div class="input-wrap input-wrap-prefix">
-                <span class="input-prefix">₺</span>
+              <div class="input-wrap input-wrap-suffix">
+                <span class="input-suffix">TL</span>
                 <input class="input" type="number" id="editAmount" name="amount" min="1" step="1" value="<%= userBid.amount %>" required>
               </div>
             </div>
@@ -339,8 +336,8 @@
           <div class="field-row">
             <div class="field">
               <label class="field-label" for="amount">Tutar</label>
-              <div class="input-wrap input-wrap-prefix">
-                <span class="input-prefix">₺</span>
+              <div class="input-wrap input-wrap-suffix">
+                <span class="input-suffix">TL</span>
                 <input class="input" type="number" id="amount" name="amount" min="1" step="1" inputmode="numeric" required>
               </div>
             </div>
@@ -383,9 +380,13 @@
         <thead>
           <tr>
             <th>Firma</th>
-            <th>Açıklama</th>
-            <th class="col-budget" style="color:inherit">Tutar</th>
-            <th class="col-date">Süre</th>
+            <% if (canSeeBids) { %>
+              <th>Açıklama</th>
+              <th class="col-budget">Tutar</th>
+              <th class="col-date">Süre</th>
+            <% } else { %>
+              <th>Teklif</th>
+            <% } %>
             <th class="col-date">Tarih</th>
             <th class="col-status">Durum</th>
             <% if (isOwner && isOpen) { %><th><span class="visually-hidden">İşlem</span></th><% } %>
@@ -398,7 +399,7 @@
                 <a class="bid-company" href="/companies/<%= bid.company._id %>"><%= bid.company.companyName || bid.company.name %></a>
                 <% if (bid.company.verified) { %><%- include('../partials/verified') %><% } %>
                 <% if (bid.company.ratingCount > 0) { %>
-                  <span class="bid-rating"><%- icon('star', { size: 12, class: 'star' }) %> <%= bid.company.rating %> (<%= bid.company.ratingCount %>)</span>
+                  <span class="bid-rating"><%- icon('star', { size: 12, class: 'star' }) %> <%= ratingLabel(bid.company.rating) %> (<%= bid.company.ratingCount %>)</span>
                 <% } else { %>
                   <span class="bid-rating">Puan yok</span>
                 <% } %>
@@ -408,8 +409,6 @@
               </td>
               <% if (bid.hidden) { %>
               <td><span class="muted small">Gizli</span></td>
-              <td class="col-budget"><span class="muted small">Gizli</span></td>
-              <td class="col-date">-</td>
               <% } else { %>
               <td><div class="bid-text"><%= bid.description %></div></td>
               <td class="col-budget">
@@ -513,8 +512,8 @@
 
   <% if (similar.length) { %>
     <section class="box">
-      <div class="box-head">Benzer Talepler <a href="/requests?category=<%= encodeURIComponent(request.category) %>">Tümü</a></div>
-      <%- include('../partials/showcase-grid', { items: similar }) %>
+      <div class="box-head">Benzer Talepler <a href="<%= categoryUrl(request.category) %>">Tümü</a></div>
+      <%- include('../partials/listing-table', { items: similar.slice(0, 5) }) %>
     </section>
   <% } %>
 </div>
