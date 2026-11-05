@@ -35,7 +35,7 @@ module.exports = [
     demo: true
   },
   {
-    title: 'Tanıtım filminiz için profesyonel çekim',
+    title: 'Tanıtım filmi çekimi',
     text: 'Kadraj Medya: senaryo, drone çekimi ve kurgu.',
     cta: 'Firmayı İncele',
     url: '/companies?search=Kadraj',
@@ -44,15 +44,15 @@ module.exports = [
     demo: true
   },
   {
-    title: 'Firmanızı hizmet arayanlara tanıtın',
-    text: 'Firma hesabı açın, size uygun işlere hemen teklif verin.',
+    title: 'İş arıyorsanız talepler burada',
+    text: 'Firma hesabı açın, işinize uyan taleplere fiyat yazın.',
     cta: 'Firma Hesabı Aç',
     url: '/register?role=company',
     color: 'yellow'
   },
   {
-    title: 'Reklamınız burada yer alsın',
-    text: 'Hizmet arayan kişilere doğrudan ulaşın.',
+    title: 'Bu köşe boş duruyor',
+    text: 'İş yaptıracak kişilerin baktığı yerde görünün.',
     cta: 'Reklam Ver',
     url: '/reklam',
     color: 'navy'

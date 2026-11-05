@@ -46,6 +46,7 @@ router.get('/', async (req, res, next) => {
 
     res.render('home', {
       title: '',
+      ownHeading: true,
       metaDescription: 'Tadilat, nakliye, temizlik, web tasarım ve daha fazlası için ücretsiz talep verin, firmalardan teklif alın. Fiyat, süre ve yorumları karşılaştırın.',
       jsonLdData: [
         {

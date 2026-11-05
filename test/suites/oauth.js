@@ -242,7 +242,7 @@ async function social(c, provider, profile, startUrl) {
     const iller = (await v.get('/iller')).text;
     check('81 il', (iller.split('class="link-grid"')[1].split('</section>')[0].match(/href="\/il\//g) || []).length === 81);
     const home = (await v.get('/')).text;
-    check('yorumlar ana sayfada', home.includes('Son Müşteri Yorumları') && (home.match(/class="review-card"/g) || []).length === 4);
+    check('yorumlar ana sayfada', home.includes('Müşteriler Ne Yazmış') && (home.match(/class="review-card"/g) || []).length === 4);
     check('atlama bağlantısı', home.includes('skip-link'));
     const contact = await v.post('/iletisim', { name: '', email: 'x', subject: 'Yok', message: '' });
     check('iletişim doğrulama', contact.status === 422 && contact.text.includes('Geçerli bir e-posta'));

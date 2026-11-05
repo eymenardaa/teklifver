@@ -61,7 +61,7 @@ const jsonLdOf = html => [...html.matchAll(/<script type="application\/ld\+json"
   const home = await g.get('/');
   check('ana sayfa başlığı', between(home.text, /<title>([^<]+)/).startsWith('TeklifVer: Ücretsiz Teklif'));
   check('ana sayfa açıklaması', home.text.includes('name="description" content="Tadilat, nakliye'));
-  check('kategori kutucukları hizmet sayfasına gider', home.text.includes('class="cat-tile" href="/hizmet/'));
+  check('kategori satırı hizmet sayfasına gider', /<nav class="catnav"[\s\S]*?href="\/hizmet\//.test(home.text));
   check('alt bilgide hizmet bağlantıları', home.text.includes('Temizlik Teklifleri</a>'));
   check('kuruluş verisi', jsonLdOf(home.text).some(d => d['@type'] === 'Organization'));
   const detailPath = between(home.text, /(\/requests\/[a-f0-9]{24})/);

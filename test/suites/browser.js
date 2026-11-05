@@ -182,16 +182,16 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.evaluate(`localStorage.setItem('theme', 'light')`);
     await page.goto('/');
     const lightBackground = await background();
-    check('beyaz tema arka planı açık', lightBackground === 'rgb(242, 243, 245)', lightBackground);
+    check('beyaz tema arka planı açık', lightBackground === 'rgb(255, 255, 255)', lightBackground);
     check('düğme siyah temayı önerir', (await page.text()).includes('Siyah Tema'));
     await page.click('[data-theme-toggle]');
     await sleep(500);
-    check('düğmeyle siyah tema açılır', (await themeOf()) === 'dark' && (await background()) === 'rgb(0, 0, 0)');
+    check('düğmeyle siyah tema açılır', (await themeOf()) === 'dark' && (await background()) === 'rgb(11, 11, 11)');
     check('düğme beyaz temayı önerir', (await page.text()).includes('Beyaz Tema'));
     check('tarayıcı çubuğu rengi değişir', (await page.evaluate(`document.querySelector('meta[name="theme-color"]').content`)) === '#0b0b0b');
     await page.goto('/requests');
-    check('siyah tema sayfalar arasında kalır', (await themeOf()) === 'dark' && (await background()) === 'rgb(0, 0, 0)');
-    check('kutular koyu', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(17, 17, 17)');
+    check('siyah tema sayfalar arasında kalır', (await themeOf()) === 'dark' && (await background()) === 'rgb(11, 11, 11)');
+    check('kutular koyu', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(11, 11, 11)');
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     check('yazdırırken beyaz kalır', (await page.evaluate(`getComputedStyle(document.querySelector('.box')).backgroundColor`)) === 'rgb(255, 255, 255)');
     await page.send('Emulation.setEmulatedMedia', { media: '' });
@@ -211,12 +211,9 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.goto('/');
     const style = (selector, prop) => page.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(selector)})).${prop}`);
     check('düğme yalnızca transform ile hareket eder', (await style('.btn', 'transitionProperty')) === 'transform');
-    // Kart hareketi yalnızca fareli cihazlarda vardır; başsız Linux tarayıcısı fare bildirmez.
-    if (await page.evaluate("matchMedia('(hover: hover)').matches")) {
-      check('kart yalnızca transform ile hareket eder', (await style('.showcase-item', 'transitionProperty')) === 'transform');
-    }
+    check('kartlar üzerine gelince zıplamaz', (await style('.showcase-item', 'transitionDuration')) === '0s');
     check('tablo satırı yeniden çizim geçişi kullanmaz', (await style('.listing-table td', 'transitionDuration')) === '0s');
-    check('bağlantılarda renk geçişi yok', (await style('.side-list a', 'transitionDuration')) === '0s');
+    check('bağlantılarda renk geçişi yok', (await style('.ledger a', 'transitionDuration')) === '0s');
     const longest = await page.evaluate(`Math.max(...[...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } }).flatMap(function walk(rule) { return rule.cssRules ? [...rule.cssRules].flatMap(walk) : [rule]; }).filter(rule => rule.style).map(rule => parseFloat(rule.style.transitionDuration) || 0))`);
     check('geçişler 0,3 saniyeden kısa', longest <= 0.3, String(longest));
     check('kaydırma animasyonu kaydırmaya bağlı', (await style('main .box', 'animationName')) === 'tv-reveal');
@@ -235,6 +232,49 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
     check('yazdırırken animasyon yok', (await style('main .box', 'animationName')) === 'none');
     await page.send('Emulation.setEmulatedMedia', { media: '' });
+
+    // Yazı kontrastı: gerçek sayfada, iki temada (WCAG AA: 4,5; büyük yazıda 3)
+    const contrastProblems = `(() => {
+      const parse = c => { const m = c.match(/[\\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m[3] === undefined ? 1 : m[3] }; };
+      const lum = ({ r, g, b }) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+      const found = [];
+      let checked = 0;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const seen = new Set();
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const el = node.parentElement;
+        if (!node.textContent.trim() || !el || seen.has(el) || ['SCRIPT', 'STYLE', 'OPTION'].includes(el.tagName) || el.closest('[hidden], .visually-hidden, .skip-link, dialog')) continue;
+        seen.add(el);
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') continue;
+        let bg = null;
+        let unknown = false;
+        for (let p = el; p; p = p.parentElement) {
+          const s = getComputedStyle(p);
+          const c = parse(s.backgroundColor);
+          if (s.backgroundImage !== 'none' || (c.a > 0 && c.a < 1)) { unknown = true; break; }
+          if (c.a === 1) { bg = c; break; }
+        }
+        if (unknown || !bg) continue;
+        checked += 1;
+        const value = ratio(parse(style.color), bg);
+        const size = parseFloat(style.fontSize);
+        const large = size >= 24 || (size >= 18.66 && Number(style.fontWeight) >= 700);
+        if (value < (large ? 3 : 4.5)) found.push((el.className || el.tagName) + ' ' + value.toFixed(2) + ' ' + node.textContent.trim().slice(0, 20));
+      }
+      return { checked, found: [...new Set(found)].slice(0, 12) };
+    })()`;
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(`localStorage.setItem('theme', '${theme}')`);
+      for (const path of ['/', '/requests', '/hizmet/temizlik', '/login', '/register', '/companies', '/fiyat-rehberi', '/kategoriler']) {
+        await page.goto(path);
+        const result = await page.evaluate(contrastProblems);
+        check(`kontrast ${theme} ${path}`, result.checked > 20 && result.found.length === 0, `${result.checked} metin; ${result.found.join(' | ')}`);
+      }
+    }
+    await page.evaluate(`localStorage.removeItem('theme')`);
+    await page.goto('/');
 
     // Arama önerisi
     await page.fill('#siteSearch', 'temiz');

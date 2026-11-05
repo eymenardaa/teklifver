@@ -1,111 +1,145 @@
-/* TeklifVer teması: sitenin tüm renk ve ölçüleri burada tanımlanır.
-   Beyaz tema varsayılandır; siyah tema yalnızca renkleri değiştirir.
+/* TeklifVer teması: sitenin tüm renk, yazı ve ölçüleri burada tanımlanır.
+   Fikir bir ilan gazetesidir: beyaz kağıt, siyah mürekkep ve tek vurgu rengi.
+   Bölümleri kart ve gölge değil, çizgi ve yazı ayırır.
    Yeni bir bileşen yazarken sabit renk değil, buradaki değişkenler kullanılır. */
 
+/* Yazı tipleri siteyle birlikte sunulur (SIL Open Font License, public/fonts). */
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("../fonts/libre-franklin-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("../fonts/libre-franklin-latin-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/barlow-condensed-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-ext-700-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
 :root {
-  --navy: #1f3b57;
-  --navy-dark: #172d43;
-  --orange: #c2410c;
-  --orange-dark: #a8360a;
-  --link: #0b5cad;
-  --text: #222;
-  --muted: #666;
-  --line: #d9dde1;
-  --line-soft: #e8eaed;
-  --head: #eef0f2;
-  --zebra: #f8f9fa;
-  --hover: #fff8e6;
-  --bg: #f2f3f5;
-  --price: #b3261e;
-  --green: #1b7a3d;
-  --amber: #9a6700;
-  --blue: #0b5cad;
+  /* Mürekkep ve kağıt */
+  --bg: #fff;
+  --surface: #fff;
+  --text: #141414;
+  --text-soft: #3d3d3a;
+  --text-softer: #4d4d49;
+  --muted: #5f5f5a;
+  --count: #5f5f5a;
+  --line: #cfcfc9;
+  --line-soft: #e6e6e1;
+  --head: #f3f3ef;
+  --zebra: #f8f8f5;
+  --hover: #f6f4ee;
+
+  /* Tek vurgu rengi: düğme, logo ve acil etiketi dışında kullanılmaz */
+  --orange: #d63a0f;
+  --orange-dark: #b02d08;
+  --accent-text: #b02d08;
+  --orange-text: #b02d08;
+
+  --navy: #141414;
+  --navy-dark: #3d3d3a;
+  --link: #141414;
+  --price: #141414;
+
+  /* Durum renkleri */
+  --green: #14713a;
+  --amber: #8a5d00;
+  --blue: #1450a3;
   --red: #b3261e;
 
-  /* Tema ile değişen yüzey ve metin renkleri */
-  --surface: #fff;
+  /* Denetimler */
   --control-bg: #fff;
-  --control-border: #b9bfc6;
-  --btn-bg: linear-gradient(#fff, #f1f2f4);
-  --btn-hover: #e9ebee;
-  --btn-text: #222;
-  --text-soft: #444;
-  --text-softer: #555;
-  --count: #5f6569;
-  --accent-text: #a8360a;
-  --mainbar: #1f3b57;
+  --control-border: #8b8b85;
+  --btn-bg: transparent;
+  --btn-hover: #141414;
+  --btn-text: #141414;
+  --search-btn: #141414;
+  --search-btn-hover: #d63a0f;
+
+  /* Bant ve alt bilgi */
+  --mainbar: #fff;
+  --mainbar-2: #fff;
   --mainbar-line: transparent;
-  --selected: #e4eefb;
-  --selected-line: #bcd3ee;
-  --tint: #f0f6fd;
-  --tint-line: #cfe0f3;
-  --warn-bg: #fff8e6;
-  --warn-line: #ecd9a5;
-  --ok-bg: #edf8f0;
+  --footer-bg: #141414;
+  --footer-text: #d6d5cf;
+
+  /* Seçili ve bildirim yüzeyleri */
+  --selected: #efefe9;
+  --selected-line: #b9b9b2;
+  --tint: #f5f5f1;
+  --tint-line: #cfcfc9;
+  --warn-bg: #fdf6e3;
+  --warn-line: #e3d29c;
+  --ok-bg: #eef6f0;
   --ok-line: #a6d5b5;
   --ok-text: #14592c;
-  --err-bg: #fdf0ef;
-  --err-line: #ecb9b5;
+  --err-bg: #fdf0ed;
+  --err-line: #ecb9ad;
   --err-text: #8f1d17;
-  --notice-bg: #fff3cd;
-  --notice-line: #e6d28f;
+  --notice-bg: #fdf6e3;
+  --notice-line: #e3d29c;
   --notice-text: #5c4a00;
-  --checklist-bg: #fffdf5;
-  --drop-bg: #fafbfc;
-  --track: #e6e8ea;
-  --star-empty: #c5cad0;
-  --shadow: rgb(0 0 0 / 0.18);
-  --search-btn: #e9ecef;
-  --search-btn-hover: #dde1e5;
-  --mainbar-2: #2a5578;
-  --footer-bg: #172d43;
-  --footer-text: #cfdae5;
-  --orange-text: #a8360a;
+  --checklist-bg: #f8f8f5;
+  --drop-bg: #f8f8f5;
+  --track: #e6e6e1;
+  --star-empty: #c5c5be;
+  --shadow: rgb(0 0 0 / 0.16);
 
   /* Ölçüler ve yazı */
-  --font: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --radius-s: 5px;
-  --radius: 8px;
-  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.07);
-  --shadow-2: 0 6px 18px rgb(16 24 40 / 0.16);
+  --font: "Libre Franklin", "Segoe UI", Arial, sans-serif;
+  --font-head: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --radius-s: 0;
+  --radius: 0;
+  --shadow-1: none;
+  --shadow-2: 0 4px 14px rgb(0 0 0 / 0.14);
   color-scheme: light;
 }
 
 /* Siyah tema. Yalnızca ekranda geçerlidir, sayfa yazdırılırken beyaz kalır. */
 @media screen {
   :root[data-theme='dark'] {
-    --navy: #2b2b2b;
-    --navy-dark: #3a3a3a;
-    --link: #7fbcff;
-    --text: #ededed;
-    --muted: #a9a9a9;
-    --line: #363636;
-    --line-soft: #282828;
-    --head: #1d1d1d;
-    --zebra: #171717;
-    --hover: #272217;
-    --bg: #000;
-    --price: #ff9b8f;
+    --bg: #0b0b0b;
+    --surface: #0b0b0b;
+    --text: #f1f0ea;
+    --text-soft: #d3d2cc;
+    --text-softer: #c2c1bb;
+    --muted: #a5a49e;
+    --count: #a5a49e;
+    --line: #3a3a37;
+    --line-soft: #262624;
+    --head: #1b1b19;
+    --zebra: #131312;
+    --hover: #191917;
+
+    --orange: #d63a0f;
+    --orange-dark: #b02d08;
+    --accent-text: #ff8a63;
+    --orange-text: #ff8a63;
+
+    --navy: #f1f0ea;
+    --navy-dark: #c2c1bb;
+    --link: #f1f0ea;
+    --price: #f1f0ea;
+
     --green: #63d492;
     --amber: #e9bc52;
-    --blue: #7fbcff;
+    --blue: #8dbdf5;
     --red: #ff9b8f;
-    --surface: #111;
-    --control-bg: #1a1a1a;
-    --control-border: #565656;
-    --btn-bg: linear-gradient(#2c2c2c, #232323);
-    --btn-hover: #383838;
-    --btn-text: #ededed;
-    --text-soft: #cdcdcd;
-    --text-softer: #bdbdbd;
-    --count: #a9a9a9;
-    --accent-text: #ff9f66;
+
+    --control-bg: #151514;
+    --control-border: #6b6b66;
+    --btn-bg: transparent;
+    --btn-hover: #f1f0ea;
+    --btn-text: #f1f0ea;
+    --search-btn: #f1f0ea;
+    --search-btn-hover: #d63a0f;
+
     --mainbar: #0b0b0b;
-    --mainbar-line: #2e2e2e;
-    --selected: #1c2c40;
-    --selected-line: #33506f;
-    --tint: #16212e;
-    --tint-line: #2c4158;
+    --mainbar-2: #0b0b0b;
+    --mainbar-line: transparent;
+    --footer-bg: #000;
+    --footer-text: #c9c8c2;
+
+    --selected: #232321;
+    --selected-line: #4a4a46;
+    --tint: #171716;
+    --tint-line: #3a3a37;
     --warn-bg: #272012;
     --warn-line: #57471d;
     --ok-bg: #11261a;
@@ -117,19 +151,12 @@
     --notice-bg: #2a2310;
     --notice-line: #5a4a1a;
     --notice-text: #f1d98a;
-    --checklist-bg: #1b1810;
-    --drop-bg: #161616;
+    --checklist-bg: #131312;
+    --drop-bg: #131312;
     --track: #303030;
-    --star-empty: #565656;
+    --star-empty: #565651;
     --shadow: rgb(0 0 0 / 0.7);
-    --search-btn: #2c2c2c;
-    --search-btn-hover: #383838;
-    --mainbar-2: #1c1c1c;
-    --footer-bg: #0b0b0b;
-    --footer-text: #c4c4c4;
-    --orange-text: #ff9f66;
-    --shadow-1: 0 0 0 1px rgb(255 255 255 / 0.02);
-    --shadow-2: 0 6px 18px rgb(0 0 0 / 0.7);
+    --shadow-2: 0 4px 14px rgb(0 0 0 / 0.7);
     color-scheme: dark;
   }
 }

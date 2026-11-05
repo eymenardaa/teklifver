@@ -13,9 +13,9 @@
 
   <section class="landing-head">
     <div>
-      <h1><% if (category) { %><%- icon(category.icon, { size: 22 }) %> <% } %><%= heading %></h1>
+      <h1><%= heading %></h1>
       <p><%= intro %></p>
-      <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+      <a class="btn btn-primary" href="/requests/new">Talep Ver</a>
     </div>
     <dl class="landing-stats">
       <div><dt>Açık talep</dt><dd><%= total %></dd></div>
@@ -44,7 +44,7 @@
           <div class="empty">
             <h2>Şu anda açık talep yok</h2>
             <p>İlk talebi siz verin, firmalar size teklif getirsin.</p>
-            <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+            <a class="btn btn-primary" href="/requests/new">Talep Ver</a>
           </div>
         <% } %>
       </section>

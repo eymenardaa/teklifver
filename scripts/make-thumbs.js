@@ -28,10 +28,10 @@ async function icons() {
 
   // Paylaşımlarda görünen varsayılan görsel
   const social = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
-    <rect width="1200" height="630" fill="#1f3b57"/>
-    <text x="90" y="300" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#ffffff">teklif<tspan fill="#f7a35c">ver</tspan></text>
-    <text x="94" y="385" font-family="Arial, sans-serif" font-size="42" fill="#d5dee7">Talebinizi yazın, firmalardan teklif alın.</text>
-    <rect x="90" y="440" width="150" height="10" fill="#d9480f"/>
+    <rect width="1200" height="630" fill="#ffffff"/>
+    <rect x="90" y="90" width="1020" height="10" fill="#141414"/>
+    <text x="90" y="300" font-family="Arial Narrow, Arial, sans-serif" font-size="130" font-weight="bold" fill="#141414">teklif<tspan fill="#d63a0f">ver</tspan></text>
+    <text x="94" y="390" font-family="Arial, sans-serif" font-size="42" fill="#3d3d3a">İşi yazın, firmalar fiyat versin.</text>
   </svg>`;
   await sharp(Buffer.from(social)).png({ compressionLevel: 9 }).toFile(path.join(PUBLIC, 'img', 'paylasim.png'));
   console.log('  Site simgeleri ve paylaşım görseli üretildi.');

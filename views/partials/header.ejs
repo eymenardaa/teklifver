@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1f3b57">
+  <meta name="theme-color" content="#ffffff">
   <% const pageDescription = metaDescription || 'Hizmet talebi verin, firmalardan teklif alın. Tadilat, nakliye, temizlik, yazılım ve daha fazlası.'; %>
   <meta name="description" content="<%= pageDescription %>">
   <meta property="og:site_name" content="TeklifVer">
@@ -21,6 +21,8 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>
+  <link rel="preload" href="/fonts/libre-franklin-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link href="/css/theme.css?v=<%= assetVersion %>" rel="stylesheet">
   <link href="/css/style.css?v=<%= assetVersion %>" rel="stylesheet">
   <script src="/js/main.js?v=<%= assetVersion %>" defer></script>
@@ -76,7 +78,7 @@
 
   <header class="mainbar">
     <div class="wrap mainbar-inner">
-      <a class="logo" href="/">teklif<span>ver</span></a>
+      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<span>ver</span></a>
       <form class="searchbar" action="/requests" method="GET" role="search">
         <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Kelime veya talep no ile ara" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
         <button type="submit">Ara</button>
@@ -85,10 +87,19 @@
       <% if (currentUser && currentUser.role === 'company') { %>
         <a class="btn btn-primary post-button" href="/dashboard/matches">Size Uygun Talepler</a>
       <% } else { %>
-        <a class="btn btn-primary post-button" href="/requests/new">Ücretsiz Talep Ver</a>
+        <a class="btn btn-primary post-button" href="/requests/new">Talep Ver</a>
       <% } %>
     </div>
   </header>
+
+  <nav class="catnav" aria-label="Hizmet kategorileri">
+    <div class="wrap catnav-inner">
+      <% allCategories.slice(0, 9).forEach(category => { const href = categoryUrl(category.name); %>
+        <a class="<%= currentPath === href ? 'is-active' : '' %>" href="<%= href %>"><%= category.name %></a>
+      <% }) %>
+      <a class="<%= currentPath === '/kategoriler' ? 'is-active' : '' %>" href="/kategoriler">Tümü</a>
+    </div>
+  </nav>
 
   <main id="main">
   <% if (!locals.ownHeading) { %><h1 class="visually-hidden"><%= title || 'Hizmet talebi verin, firmalardan teklif alın' %></h1><% } %>
