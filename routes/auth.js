@@ -117,15 +117,15 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       termsAcceptedAt: new Date()
     });
 
-    if (canDeliver()) await sendVerification(user);
-    await startSession(req, user, false);
-    req.flash(
-      'success',
-      verificationRequired()
-        ? `Hoş geldin, ${user.name}! E-postana gönderdiğimiz bağlantıyla hesabını doğrula.`
-        : `Hoş geldin, ${user.name}!`
-    );
-    res.redirect(redirectTo || '/dashboard');
+    try {
+      await sendVerificationCode(user);
+    } catch (e) {
+      console.error("Doğrulama kodu gönderilemedi:", e.message);
+    }
+    req.session.pendingVerifyUserId = user._id;
+    req.session.pendingVerifyRemember = false;
+    req.flash("success", `${values.email} adresinize 6 haneli güvenlik onay kodunuz gönderildi.`);
+    return res.redirect("/verify-code" + (redirectTo ? "?next=" + encodeURIComponent(redirectTo) : ""));
   } catch (err) {
     if (err.code === 11000) {
       errors.email = 'Bu e-posta zaten kayıtlı. Giriş yapmayı deneyin.';
@@ -163,8 +163,16 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
     if (!user || !(await user.comparePassword(password))) return fail('E-posta veya şifre hatalı.');
     if (user.suspended) return fail('Hesabınız askıya alınmıştır.');
 
-    await startSession(req, user, req.body.remember === 'on');
-    res.redirect(redirectTo || '/dashboard');
+    // Her girişte 2 Adımlı Doğrulama kodu gönder ve kodu girmeden içeri alma!
+    try {
+      await sendVerificationCode(user);
+    } catch (e) {
+      console.error("Giriş onay kodu gönderilemedi:", e.message);
+    }
+    req.session.pendingVerifyUserId = user._id;
+    req.session.pendingVerifyRemember = req.body.remember === "on";
+    req.flash("success", `${user.email} adresinize 6 haneli giriş onay kodunuz gönderildi.`);
+    return res.redirect("/verify-code" + (redirectTo ? "?next=" + encodeURIComponent(redirectTo) : ""));
   } catch (err) {
     next(err);
   }
