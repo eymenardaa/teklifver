@@ -743,12 +743,14 @@
         if (!res.ok) return;
         const data = await res.json();
         currentEstimate = data;
-        aiPriceText.innerHTML = '<strong>' + data.min.toLocaleString('tr-TR') + ' ₺ - ' + data.max.toLocaleString('tr-TR') + ' ₺</strong> (' + data.unit + ')';
+        aiPriceText.innerHTML = '<strong>' + data.min.toLocaleString('tr-TR') + ' ₺ - ' + data.max.toLocaleString('tr-TR') + ' ₺</strong> <span style="color:#555; font-size:12px">(' + data.category + ' • ' + data.unit + ')</span>';
         if (aiApplyBtn) aiApplyBtn.style.display = 'inline-block';
       } catch (e) {}
     }
 
     catSelect.addEventListener('change', updateAiEstimate);
+    descEl.addEventListener('blur', updateAiEstimate);
+    if (catSelect.value) updateAiEstimate();
 
     if (aiApplyBtn) {
       aiApplyBtn.addEventListener('click', () => {
