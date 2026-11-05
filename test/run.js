@@ -7,7 +7,7 @@ const { startMongo, startSite } = require('./helpers/harness');
 // BASE adresine bağlanan takımlar
 const siteSuites = ['e2e.js', 'upload.js', 'features.js', 'messages.js', 'content.js', 'new-features.js', 'fuzz.js', 'deals.js', 'seo.js'];
 // Kendi sitesini kendisi başlatan takımlar
-const selfContained = ['oauth.js', 'email.js', 'security.js', 'browser.js', 'production.js'];
+const selfContained = ['session.js', 'oauth.js', 'email.js', 'security.js', 'browser.js', 'production.js'];
 
 const only = process.argv.slice(2);
 const wanted = name => !only.length || only.some(item => name.includes(item));

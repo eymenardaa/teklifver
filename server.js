@@ -228,6 +228,21 @@ async function start() {
 
   app.use(flash());
 
+  // Tarayıcı yönlendirmeyi başlıkları alır almaz izler. Oturum o ana kadar veritabanına yazılmamışsa
+  // kullanıcı girişten hemen sonra çıkış yapmış görünür, uyarı mesajları kaybolur.
+  app.use((req, res, next) => {
+    const redirect = res.redirect.bind(res);
+    res.redirect = (...args) => {
+      const hasData = req.session && Object.keys(req.session).some(key => key !== 'cookie');
+      if (!hasData) return redirect(...args);
+      req.session.save(err => {
+        if (err) console.error('Oturum kaydedilemedi:', err.message);
+        redirect(...args);
+      });
+    };
+    next();
+  });
+
   // Hesap silinmiş veya askıya alınmışsa açık oturum da kapanır; yönetici yetkisi güncel tutulur.
   app.use(async (req, res, next) => {
     if (!req.session.user) return next();
