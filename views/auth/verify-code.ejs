@@ -1,0 +1,68 @@
+<%- include('../partials/header') %>
+
+<div class="wrap">
+  <div class="auth-box">
+    <div class="box">
+      <div class="box-head">E-posta Doğrulama Kodu</div>
+      <div class="box-body">
+        <% if (locals.error && error.length) { %>
+          <div class="form-error" role="alert" style="margin-bottom:16px"><%= error[0] %></div>
+        <% } %>
+        <% if (locals.success && success.length) { %>
+          <div class="alert alert-success" style="margin-bottom:16px; background:#e6fcf5; color:#0ca678; padding:10px; border-radius:4px; font-size:13.5px">
+            <%= success[0] %>
+          </div>
+        <% } %>
+
+        <div style="text-align:center; margin-bottom:20px">
+          <div style="font-size:36px; margin-bottom:6px">📩</div>
+          <p style="margin:0 0 6px; font-size:14.5px; color:#222">
+            <strong><%= email %></strong> adresinize 6 haneli onay kodu gönderdik.
+          </p>
+          <p class="small muted" style="margin:0">
+            Hesabınızı aktifleştirmek için lütfen e-postanızı kontrol edin ve kodu aşağıya girin.
+          </p>
+        </div>
+
+        <form class="form" action="/verify-code" method="POST" style="text-align:center">
+          <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+
+          <div class="field" style="margin-bottom:20px">
+            <label class="field-label visually-hidden" for="verificationCode">Doğrulama Kodu</label>
+            <input class="input" 
+                   type="text" 
+                   id="verificationCode" 
+                   name="code" 
+                   maxlength="6" 
+                   pattern="[0-9]{6}" 
+                   inputmode="numeric" 
+                   placeholder="123456" 
+                   autocomplete="one-time-code"
+                   autofocus 
+                   required 
+                   style="text-align:center; font-size:28px; font-family:monospace; letter-spacing:8px; font-weight:bold; height:54px; max-width:280px; margin:0 auto; display:block">
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit" style="height:44px; font-size:15px; font-weight:bold">
+            Doğrula ve Giriş Yap
+          </button>
+        </form>
+
+        <div style="margin-top:20px; text-align:center; padding-top:16px; border-top:1px solid var(--line)">
+          <form action="/verify-code/resend" method="POST" style="display:inline">
+            <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
+            <button class="btn btn-sm" type="submit" style="background:transparent; border:1px solid var(--line); color:var(--text)">
+              🔄 Kodu Tekrar Gönder
+            </button>
+          </form>
+          <div style="margin-top:10px">
+            <a href="/login" class="small muted">Farklı bir hesapla giriş yap</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

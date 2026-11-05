@@ -18,7 +18,7 @@ const { str, isEmail, safeNext } = require('../lib/input');
 const cities = require('../config/cities');
 const { sendInBackground, canDeliver, verificationRequired } = require('../lib/mailer');
 const { resetMail, emailChangeNotice, passwordChangedMail, CATEGORY_LABELS } = require('../lib/mail-templates');
-const { sendVerification } = require('../lib/email-verify');
+const { sendVerification, sendVerificationCode } = require('../lib/email-verify');
 const { siteUrl } = require('../lib/url');
 const { startSession } = require('../lib/session');
 const { limits } = require('../lib/limits');
@@ -586,4 +586,95 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
   }
 });
 
+
+// ---- 6 Haneli E-posta Kod Doğrulama ----
+
+router.get('/verify-code', async (req, res) => {
+  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
+  if (!userId) return res.redirect('/login');
+
+  const user = await User.findById(userId);
+  if (!user) {
+    delete req.session.pendingVerifyUserId;
+    return res.redirect('/login');
+  }
+
+  if (user.emailVerified) {
+    delete req.session.pendingVerifyUserId;
+    return res.redirect('/dashboard');
+  }
+
+  const parts = user.email.split('@');
+  const namePart = parts[0];
+  const maskedName = namePart.length <= 3 
+    ? namePart[0] + '***' 
+    : namePart.slice(0, 2) + '***' + namePart.slice(-1);
+  const maskedEmail = `${maskedName}@${parts[1]}`;
+
+  res.render('auth/verify-code', {
+    title: 'E-posta Doğrulama Kodu',
+    email: maskedEmail,
+    next: safeNext(req.query.next)
+  });
+});
+
+router.post('/verify-code', authLimiter('auth/verify-code'), async (req, res, next) => {
+  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
+  const redirectTo = safeNext(req.body.next);
+  if (!userId) return res.redirect('/login');
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      delete req.session.pendingVerifyUserId;
+      return res.redirect('/login');
+    }
+
+    const inputCode = (req.body.code || '').toString().trim().replace(/\s+/g, '');
+
+    if (!inputCode || inputCode.length !== 6 || inputCode !== user.emailCode) {
+      req.flash('error', 'Girdiğiniz 6 haneli kod hatalı. Lütfen e-postanızı kontrol edip tekrar deneyin.');
+      return res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
+    }
+
+    if (!user.emailCodeExpires || new Date() > user.emailCodeExpires) {
+      req.flash('error', 'Girdiğiniz kodun süresi dolmuş. Lütfen "Kodu Tekrar Gönder" butonuna basın.');
+      return res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
+    }
+
+    // Kod doğru! Hesabı onayla
+    user.emailVerified = true;
+    user.emailCode = undefined;
+    user.emailCodeExpires = undefined;
+    await user.save();
+
+    delete req.session.pendingVerifyUserId;
+
+    await startSession(req, user, true);
+    req.flash('success', `Tebrikler ${user.name}! Hesabınız doğrulandı ve oturumunuz açıldı.`);
+    res.redirect(redirectTo || '/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/verify-code/resend', authLimiter('auth/verify-code'), async (req, res, next) => {
+  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
+  const redirectTo = safeNext(req.body.next);
+  if (!userId) return res.redirect('/login');
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.redirect('/login');
+
+    await sendVerificationCode(user);
+    req.flash('success', 'Yeni 6 haneli doğrulama kodunuz e-posta adresinize gönderildi.');
+    res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
+  } catch (err) {
+    req.flash('error', 'Kod gönderilirken bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.');
+    res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
+  }
+});
+
 module.exports = router;
+
