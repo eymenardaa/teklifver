@@ -184,7 +184,7 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     check('beyaz tema arka planı açık', lightBackground === 'rgb(242, 243, 245)', lightBackground);
     check('düğme siyah temayı önerir', (await page.text()).includes('Siyah Tema'));
     await page.click('[data-theme-toggle]');
-    await sleep(100);
+    await sleep(500);
     check('düğmeyle siyah tema açılır', (await themeOf()) === 'dark' && (await background()) === 'rgb(0, 0, 0)');
     check('düğme beyaz temayı önerir', (await page.text()).includes('Beyaz Tema'));
     check('tarayıcı çubuğu rengi değişir', (await page.evaluate(`document.querySelector('meta[name="theme-color"]').content`)) === '#0b0b0b');
@@ -205,6 +205,34 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await sleep(100);
     check('cihaz ayarı değişince tema değişir', (await themeOf()) === 'light');
     await page.send('Emulation.setEmulatedMedia', { features: [] });
+
+    // Hareket
+    await page.goto('/');
+    const waiting = () => page.evaluate(`document.querySelectorAll('.is-waiting').length`);
+    check('alttaki içerik kaydırmayı bekler', (await waiting()) > 0);
+    check('bekleyen içerik gerçekten gizli', (await page.evaluate(`getComputedStyle(document.querySelector('.is-waiting')).opacity`)) === '0');
+    check('düğme geçişleri çalışır', (await page.evaluate(`getComputedStyle(document.querySelector('.btn')).transitionDuration`)) !== '0s');
+    check('kart geçişleri çalışır', (await page.evaluate(`getComputedStyle(document.querySelector('.showcase-item')).transitionProperty`)).includes('transform'));
+    check('görünen içerik beklemez', await page.evaluate(`[...document.querySelectorAll('.is-waiting')].every(el => el.getBoundingClientRect().top > innerHeight)`));
+    check('bekleyen içerik sayfa düzenini kaydırmaz', await page.evaluate(`document.documentElement.scrollHeight > innerHeight`));
+    const before = await page.evaluate(`document.documentElement.scrollHeight`);
+    for (let y = 0; y < before + 900; y += 500) {
+      await page.evaluate(`window.scrollTo(0, ${y})`);
+      await sleep(70);
+    }
+    await sleep(700);
+    check('kaydırınca tüm içerik belirir', (await waiting()) === 0, await page.evaluate(`[...document.querySelectorAll('.is-waiting')].slice(0,6).map(el => el.className + ' @' + Math.round(el.getBoundingClientRect().top) + ' h' + Math.round(el.getBoundingClientRect().height) + ' ' + el.textContent.trim().slice(0,30)).join(' || ') + ' sy=' + scrollY + ' H=' + document.documentElement.scrollHeight`));
+    check('belirince tamamen görünür', await page.evaluate(`[...document.querySelectorAll('main .box, .showcase-item')].every(el => getComputedStyle(el).opacity === '1')`));
+    await page.evaluate('window.scrollTo(0, 0)');
+    await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await page.goto('/');
+    check('hareketi azalt açıksa bekleyen içerik yok', (await waiting()) === 0);
+    check('hareketi azalt açıksa geçiş yok', (await page.evaluate(`getComputedStyle(document.querySelector('.btn')).transitionDuration`)) === '0s');
+    await page.send('Emulation.setEmulatedMedia', { features: [] });
+    await page.goto('/');
+    await page.send('Emulation.setEmulatedMedia', { media: 'print' });
+    check('yazdırırken bekleyen içerik görünür', (await page.evaluate(`getComputedStyle(document.querySelector('.is-waiting')).opacity`)) === '1');
+    await page.send('Emulation.setEmulatedMedia', { media: '' });
 
     // Arama önerisi
     await page.fill('#siteSearch', 'temiz');

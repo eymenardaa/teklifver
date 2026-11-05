@@ -18,6 +18,8 @@
     paintBar();
     $$('[data-theme-toggle]').forEach(button => {
       button.addEventListener('click', () => {
+        root.classList.add('theme-changing');
+        setTimeout(() => root.classList.remove('theme-changing'), 320);
         root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
         try { localStorage.setItem('theme', root.dataset.theme); } catch { /* depolama kapalı olabilir */ }
         paintBar();
@@ -30,6 +32,60 @@
       root.dataset.theme = event.matches ? 'dark' : 'light';
       paintBar();
     });
+  }
+
+  /* Küçük hareketler: içerik ve fotoğraflar yumuşakça belirir, sayfa geçişinde ince çubuk akar.
+     Yalnızca cihazda "hareketi azalt" kapalıysa çalışır; betik çalışmazsa her şey normal görünür. */
+  function initMotion() {
+    if (!window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+
+    // Henüz yüklenmemiş fotoğraflar hazır olunca belirir.
+    $$('.showcase-photo img, .thumb img, .portfolio-grid img').forEach(image => {
+      if (image.complete) return;
+      image.classList.add('is-arriving');
+      const show = () => image.classList.remove('is-arriving');
+      image.addEventListener('load', show, { once: true });
+      image.addEventListener('error', show, { once: true });
+    });
+
+    // Ekranın altında kalan içerik, kaydırınca belirir. Görünen kısım beklemez.
+    if ('IntersectionObserver' in window) {
+      const items = $$('main .box, main .ad, .showcase-item, .review-card, .category-card');
+      const below = items.filter(item => item.getBoundingClientRect().top > window.innerHeight);
+      const observer = new IntersectionObserver(entries => {
+        entries.filter(entry => entry.isIntersecting).forEach(entry => {
+          const item = entry.target;
+          observer.unobserve(item);
+          item.classList.add('is-revealed');
+          item.classList.remove('is-waiting');
+          item.addEventListener('transitionend', () => item.classList.remove('is-revealed'), { once: true });
+        });
+      });
+      below.forEach(item => {
+        // İç içe öğelerde yalnızca en dıştaki hareket eder.
+        if (below.some(other => other !== item && other.contains(item) && !other.classList.contains('box'))) return;
+        if (item.classList.contains('box') && $('.showcase-item, .review-card, .category-card', item)) return;
+        item.classList.add('is-waiting');
+        observer.observe(item);
+      });
+    }
+
+    // Sayfa geçişi çubuğu
+    const bar = document.createElement('div');
+    bar.className = 'nav-progress';
+    bar.setAttribute('aria-hidden', 'true');
+    document.body.append(bar);
+    const startBar = () => bar.classList.add('is-running');
+
+    document.addEventListener('click', event => {
+      const link = event.target.closest('a[href]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (link.target === '_blank' || link.hasAttribute('download') || link.origin !== location.origin) return;
+      if (link.pathname === location.pathname && link.search === location.search) return;
+      startBar();
+    });
+    window.addEventListener('pagehide', () => bar.classList.remove('is-running'));
+    window.addEventListener('pageshow', () => bar.classList.remove('is-running'));
   }
 
   /* Bildirimleri kapatma */
@@ -205,6 +261,12 @@
         if (label) label.textContent = favorite ? 'Favorilerden Çıkar' : 'Favorilerime Ekle';
       });
 
+      if (favorite) {
+        button.classList.remove('just-faved');
+        void button.offsetWidth; // animasyon yeniden başlasın
+        button.classList.add('just-faved');
+      }
+
       const counter = $('#favCount');
       if (counter) counter.textContent = Math.max(0, Number(counter.textContent) + (favorite ? 1 : -1));
     } catch {
@@ -304,6 +366,9 @@
       const src = thumbs[current].dataset.full;
       image.src = src;
       frame.href = src;
+      image.classList.remove('is-swapping');
+      void image.offsetWidth; // animasyon yeniden başlasın
+      image.classList.add('is-swapping');
       thumbs.forEach((thumb, i) => thumb.setAttribute('aria-current', String(i === current)));
       if (counter) counter.textContent = `${current + 1} / ${thumbs.length}`;
     };
@@ -718,6 +783,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initMotion();
     initAlerts();
     initMenu();
     initCollapsedBoxes();
