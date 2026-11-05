@@ -4,6 +4,34 @@
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const BASE = document.documentElement.dataset.base || ''; // statik önizleme alt klasörde yayınlanır
 
+  /* Siyah ve beyaz tema: seçim yalnızca düğmeye basılınca bu tarayıcıda saklanır */
+  function initTheme() {
+    const root = document.documentElement;
+    const meta = $('meta[name="theme-color"]');
+    const paintBar = () => {
+      if (meta) meta.content = root.dataset.theme === 'dark' ? '#0b0b0b' : '#1f3b57';
+    };
+    const savedChoice = () => {
+      try { return localStorage.getItem('theme'); } catch { return null; }
+    };
+
+    paintBar();
+    $$('[data-theme-toggle]').forEach(button => {
+      button.addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('theme', root.dataset.theme); } catch { /* depolama kapalı olabilir */ }
+        paintBar();
+      });
+    });
+
+    // Seçim yapılmadıysa cihazın ayarını izler.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      if (savedChoice()) return;
+      root.dataset.theme = event.matches ? 'dark' : 'light';
+      paintBar();
+    });
+  }
+
   /* Bildirimleri kapatma */
   function initAlerts() {
     $$('.alert-close').forEach(button => {
@@ -689,6 +717,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initAlerts();
     initMenu();
     initCollapsedBoxes();

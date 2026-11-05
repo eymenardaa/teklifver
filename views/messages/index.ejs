@@ -43,7 +43,7 @@
                   </a>
                 </td>
                 <td>
-                  <a class="listing-title" href="<%= threadUrl %>"><%= thread.other.companyName || thread.other.name %></a>
+                  <a class="listing-title" href="<%= threadUrl %>"><%= thread.other.companyName || shortName(thread.other.name) %></a>
                   <% if (thread.unread) { %><span class="unread-count"><%= thread.unread %></span><% } %>
                   <div class="listing-sub"><%= truncate(thread.request.title, 60) %></div>
                 </td>

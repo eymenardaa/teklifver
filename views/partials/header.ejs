@@ -19,6 +19,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
+  <script src="/js/theme.js?v=<%= assetVersion %>"></script>
   <link href="/css/style.css?v=<%= assetVersion %>" rel="stylesheet">
   <script src="/js/main.js?v=<%= assetVersion %>" defer></script>
   <% if (jsonLdData) { %><script type="application/ld+json"><%- jsonLd(jsonLdData) %></script><% } %>
@@ -40,6 +41,10 @@
         <a href="/yardim">Yardım</a>
         <a href="/reklam">Reklam Ver</a>
       </div>
+      <button class="theme-toggle" type="button" data-theme-toggle>
+        <span class="when-light"><%- icon('moon', { size: 13 }) %>Siyah Tema</span>
+        <span class="when-dark"><%- icon('sun', { size: 13 }) %>Beyaz Tema</span>
+      </button>
       <% if (currentUser) { %>
         <a href="/notifications">Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
         <a href="/messages">Mesajlarım <span class="unread-count" data-count="messages" <%= unreadMessages ? '' : 'hidden' %>><%= unreadMessages %></span></a>

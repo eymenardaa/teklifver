@@ -1,6 +1,6 @@
 <%- include('../partials/header') %>
 
-<% const otherName = other.companyName || other.name; %>
+<% const otherName = other.companyName || shortName(other.name); %>
 
 <div class="wrap page">
   <div class="layout">

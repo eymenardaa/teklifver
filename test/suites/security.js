@@ -22,8 +22,13 @@ const pw = 'guvenlik-test-sifre-1';
     check('cross-site reddedilir', res.status === 403);
     res = await c.post('/profile/sessions', {}, { origin: 'null' });
     check('boş Origin reddedilir', res.status === 403);
+    res = await c.post('/profile/sessions', {}, { origin: 'null', 'sec-fetch-site': 'cross-site' });
+    check('boş Origin ile cross-site reddedilir', res.status === 403);
     res = await c.post('/profile/sessions', {}, { origin: site.url, 'sec-fetch-site': 'same-origin' });
     check('kendi sitesinden geçer', res.status === 302);
+    res = await c.post('/profile/sessions', {}, { origin: 'null', 'sec-fetch-site': 'same-origin' });
+    check('tarayıcının boş Origin gönderdiği kendi formu geçer', res.status === 302);
+    check('Referrer-Policy kendi formlarını bozmaz', (await c.get('/')).headers.get('referrer-policy') === 'same-origin');
     res = await client(site.url).post('/login', { email: 'g@test.local', password: pw }, { 'sec-fetch-site': 'none' });
     check('doğrudan istek geçer', res.status === 302);
 

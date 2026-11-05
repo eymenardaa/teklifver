@@ -53,7 +53,7 @@
                 </td>
                 <td>
                   <a class="listing-title" href="/requests/<%= bid.request._id %>"><%= bid.request.title %></a>
-                  <div class="listing-sub"><%= bid.request.customer ? bid.request.customer.name : '' %> · <%= placeLabel(bid.request) %></div>
+                  <div class="listing-sub"><%= bid.request.customer ? (bid.status === 'accepted' ? bid.request.customer.name : shortName(bid.request.customer.name)) : '' %> · <%= placeLabel(bid.request) %></div>
                 </td>
                 <td class="col-budget"><%= money(bid.amount) %></td>
                 <td class="col-date"><%= bid.deliveryTime %> gün</td>

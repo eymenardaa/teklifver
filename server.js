@@ -34,7 +34,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // CSS ve JS adreslerine eklenir; dosya değişince tarayıcı eski sürümü kullanmaz.
 function assetVersion() {
   const hash = crypto.createHash('sha1');
-  for (const file of ['css/style.css', 'js/main.js']) hash.update(fs.readFileSync(path.join(__dirname, 'public', file)));
+  for (const file of ['css/style.css', 'js/main.js', 'js/theme.js']) hash.update(fs.readFileSync(path.join(__dirname, 'public', file)));
   return hash.digest('hex').slice(0, 10);
 }
 
@@ -101,6 +101,8 @@ async function start() {
         }
       },
       hsts: isProduction,
+      // "no-referrer" olursa tarayıcı kendi sitesindeki formlarda da Origin: null gönderir.
+      referrerPolicy: { policy: 'same-origin' },
       crossOriginEmbedderPolicy: false
     })
   );
@@ -177,12 +179,16 @@ async function start() {
   // Başka sitelerden gönderilen formları reddeder (CSRF). Tarayıcı, kaynağı bu başlıklarla bildirir.
   app.use((req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    // Sec-Fetch-Site tarayıcı tarafından yazılır, sayfa değiştiremez; varsa kesin bilgi odur.
+    // Eski tarayıcılarda Origin'e bakılır: "null" değerini saldırgan sayfa da üretebildiği için kabul edilmez.
     const fetchSite = req.get('sec-fetch-site');
     const origin = req.get('origin');
-    let crossSite = Boolean(fetchSite && !['same-origin', 'none'].includes(fetchSite));
-    if (origin) {
+    let crossSite = false;
+    if (fetchSite) {
+      crossSite = !['same-origin', 'none'].includes(fetchSite);
+    } else if (origin) {
       try {
-        crossSite = crossSite || new URL(origin).host !== req.get('host');
+        crossSite = new URL(origin).host !== req.get('host');
       } catch {
         crossSite = true;
       }

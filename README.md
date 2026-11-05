@@ -146,6 +146,7 @@ Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
 - Küçük ekranda alt menü
+- Siyah ve beyaz tema: ilk girişte cihazın ayarı izlenir, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
 - Güvenlik başlıkları (CSP), gzip sıkıştırma, başka sitelerden form gönderimine karşı koruma, istek sınırları
 - Yüklenen görseller doğrulanır, küçültülür, konum bilgisi silinir ve veritabanında (GridFS) saklanır; sunucu yeniden başlasa da kaybolmaz
 - Sağlık kontrolü (`/healthz`), Render kurulum dosyası (`render.yaml`)
