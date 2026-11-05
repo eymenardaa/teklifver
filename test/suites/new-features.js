@@ -45,6 +45,8 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
 
 (async () => {
   const owner = await signup({ role: 'customer', name: 'Sahip Test', email: `sahip${stamp}@test.local` });
+  const prefilled = (await get(owner, '/requests/new?title=' + encodeURIComponent('Balkon boyanacak') + '&city=' + encodeURIComponent('Ankara'))).text;
+  check('ana sayfadan gelen başlık ve il forma yazılır', prefilled.includes('value="Balkon boyanacak"') && prefilled.includes('value="Ankara" selected'));
   const firm = await signup({ role: 'company', name: 'Firma', companyName: `Test Firma ${stamp}`, email: `firma${stamp}@test.local` });
   const firm2 = await signup({ role: 'company', name: 'Firma2', companyName: `Ikinci Firma ${stamp}`, email: `firma2${stamp}@test.local` });
   const firmId = ((await get(firm, '/dashboard')).text.match(/href="\/companies\/([a-f0-9]{24})"/) || [])[1];
@@ -78,11 +80,11 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   check('firma düzenleme formu görür', Boolean(bidId) && firmView.includes('Teklifimi Düzenle'));
   let res = await post(firm, `/bids/${bidId}/edit`, { amount: '3500', deliveryTime: '4', description: 'Guncel teklif' });
   firmView = (await get(firm, requestPath)).text;
-  check('teklif düzenlenir', firmView.includes('₺3.500') && firmView.includes('Guncel teklif'));
+  check('teklif düzenlenir', firmView.includes('3.500 TL') && firmView.includes('Guncel teklif'));
   res = await post(firm2, `/bids/${bidId}/edit`, { amount: '1', deliveryTime: '1', description: 'hack' });
   check('başka firma teklifi düzenleyemez', !(await get(firm, requestPath)).text.includes('hack'));
   res = await post(firm2, `/bids/${bidId}/withdraw`);
-  check('başka firma geri çekemez', (await get(firm, requestPath)).text.includes('₺3.500'));
+  check('başka firma geri çekemez', (await get(firm, requestPath)).text.includes('3.500 TL'));
   res = await post(firm, `/bids/${bidId}/edit`, { amount: '-1', deliveryTime: '4', description: 'x' });
   check('geçersiz düzenleme reddedilir', (await get(firm, res.headers.get('location'))).text.includes('doğru girin'));
 
@@ -180,7 +182,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   await post(owner, `/bids/complete/${reviewId}`, { rating: '4', comment: 'Harika <script>x</script> is' });
   const companyPage = (await get(null, `/companies/${firmId}`)).text;
   check('yorum firma sayfasında görünür ve HTML çalışmaz', companyPage.includes('Harika &lt;script&gt;') && !companyPage.includes('<script>x'));
-  check('firma istatistikleri', companyPage.includes('Kabul oranı') && companyPage.includes('Ort. teslim süresi'));
+  check('firma istatistikleri', companyPage.includes('Tamamlanan iş') && companyPage.includes('Ort. teslim süresi'));
   check('firma sayfasında puan işlendi', companyPage.includes('(1 değerlendirme)'));
   await post(owner, `/bids/complete/${reviewId}`, { rating: '1', comment: 'ikinci' });
   check('ikinci yorum yazılamaz', !(await get(null, `/companies/${firmId}`)).text.includes('ikinci'));
@@ -204,10 +206,10 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
 
   // 20 Firma rehberi filtreleri
   const ratingFiltered = (await get(null, '/companies?minRating=4.5')).text;
-  const ratings = [...ratingFiltered.matchAll(/<strong>([\d.]+)<\/strong> \(\d+\)/g)].map(m => Number(m[1]));
+  const ratings = [...ratingFiltered.matchAll(/<strong>([\d,]+)<\/strong> \(\d+\)/g)].map(m => Number(m[1].replace(',', '.')));
   check('puan filtresi', ratings.length > 0 && ratings.every(r => r >= 4.5), ratings.join(','));
-  check('kategori filtresi', (await get(null, '/companies?category=' + encodeURIComponent('Nakliye & Lojistik'))).text.includes('Mavi Yol') && !(await get(null, '/companies?category=' + encodeURIComponent('Nakliye & Lojistik'))).text.replace(/<a class="ad [\s\S]*?<\/a>/g, '').includes('Kodhane'));
-  const byReviews = [...(await get(null, '/companies?sort=reviews')).text.matchAll(/<strong>[\d.]+<\/strong> \((\d+)\)/g)].map(m => Number(m[1]));
+  check('kategori filtresi', (await get(null, '/companies?category=' + encodeURIComponent('Nakliye & Lojistik'))).text.includes('Çelik Evden Eve') && !(await get(null, '/companies?category=' + encodeURIComponent('Nakliye & Lojistik'))).text.replace(/<a class="ad [\s\S]*?<\/a>/g, '').includes('Kodhane'));
+  const byReviews = [...(await get(null, '/companies?sort=reviews')).text.matchAll(/<strong>[\d,]+<\/strong> \((\d+)\)/g)].map(m => Number(m[1]));
   check('değerlendirme sayısına göre sıralama', byReviews.every((n, i) => i === 0 || byReviews[i - 1] >= n));
 
   // 21 Kayıtlı arama
@@ -319,7 +321,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   await post(leaving, '/profile/delete', { password: pw });
   const kept = await get(owner, keepPath);
   check('firma silinince talep sayfası çalışır', kept.status === 200 && kept.text.includes('Gelen Teklifler (0)'));
-  check('firma silinince teklif sayısı düşer', /class="col-bids">0</.test((await get(null, `/requests?search=Kalacak ${stamp}`)).text));
+  check('firma silinince teklif sayısı düşer', /class="listing-bids"><b>0</.test((await get(null, `/requests?search=Kalacak ${stamp}`)).text));
 
   console.log(failures ? `\n${failures} test BAŞARISIZ, ${passed} geçti` : `\nTüm testler geçti (${passed})`);
   process.exit(failures ? 1 : 0);

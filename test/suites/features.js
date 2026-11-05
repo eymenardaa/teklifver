@@ -19,7 +19,7 @@ const firstLink = html => (html.match(/class="listing-title" href="(\/requests\/
   check('2. sayfa çalışır', rows(page2.text) > 0 && firstLink(page2.text) !== firstLink(all.text));
 
   const ankara = await get('/requests?city=' + encodeURIComponent('Ankara'));
-  const ankaraPlaces = [...ankara.text.matchAll(/<td class="col-place">([^<]+)</g)].map(m => m[1]);
+  const ankaraPlaces = [...ankara.text.matchAll(/class="listing-place">([^<]+)</g)].map(m => m[1]);
   check('il filtresi', ankaraPlaces.length > 0 && ankaraPlaces.every(p => p.startsWith('Ankara')), `${ankaraPlaces.length} satır`);
 
   const photos = await get('/requests?photos=on');
@@ -31,7 +31,7 @@ const firstLink = html => (html.match(/class="listing-title" href="(\/requests\/
   void allPhotos;
 
   const noBids = await get('/requests?noBids=on');
-  const bidCells = [...noBids.text.matchAll(/class="col-bids">(\d+)</g)].map(m => Number(m[1]));
+  const bidCells = [...noBids.text.matchAll(/class="listing-bids"><b>(\d+)</g)].map(m => Number(m[1]));
   check('teklif almamış filtresi', bidCells.length > 0 && bidCells.every(n => n === 0), `${bidCells.length} satır`);
 
   const budget = await get('/requests?budgetMin=100000');
@@ -53,13 +53,15 @@ const firstLink = html => (html.match(/class="listing-title" href="(\/requests\/
 
   const detailPath = firstLink(all.text);
   const detail = await get(detailPath);
-  const no = (detail.text.match(/<strong style="color:var\(--price\)">(\d+)</) || [])[1];
+  const no = (detail.text.match(/Talep No<\/td><td><strong>(\d+)</) || [])[1];
   check('detayda talep no var', Boolean(no), no);
   const byNo = await get('/requests?search=' + no);
   check('talep no ile arama', resultCount(byNo.text) === 1 && byNo.text.includes(detailPath));
 
   const home = await get('/');
   check('ana sayfada vitrin ve tablo', home.text.includes('Vitrin') && home.text.includes('Son Eklenen Talepler'));
+  check('ana sayfada talep kutusu', home.text.includes('action="/requests/new" method="GET"'));
+  check('ilan satırında açıklama ve zaman', /class="listing-snippet"/.test(home.text) && /(saat|dakika|gün) önce|dün/.test(home.text));
 
   // Giriş yapan kullanıcı ana sayfayı görebilir, favori ekleyip çıkarabilir
   const login = await fetch(BASE + '/login', {
@@ -88,15 +90,18 @@ const firstLink = html => (html.match(/class="listing-title" href="(\/requests\/
   check('geçersiz favori hata vermez', badFav.status === 302);
 
   const dash = await get('/dashboard', cookie);
-  check('firma paneli dolu', dash.text.includes('Tekliflerim') && dash.text.includes('Usta Eller Tadilat'));
+  check('firma paneli dolu', dash.text.includes('Tekliflerim') && dash.text.includes('Demir Tadilat'));
 
   const companies = await get('/companies');
-  check('firma rehberi', companies.text.includes('Usta Eller Tadilat') && companies.text.includes('firma bulundu'));
+  check('firma rehberi', companies.text.includes('Demir Tadilat') && companies.text.includes('firma bulundu'));
   const izmir = await get('/companies?city=' + encodeURIComponent('İzmir'));
-  check('firma il filtresi', izmir.text.includes('Ege Dekorasyon') && !izmir.text.replace(/<a class="ad [\s\S]*?<\/a>/g, '').includes('Kodhane'));
+  check('firma il filtresi', izmir.text.includes('Er Dekorasyon') && !izmir.text.replace(/<a class="ad [\s\S]*?<\/a>/g, '').includes('Öztürk Bilişim'));
   const companyPath = (companies.text.match(/href="(\/companies\/[a-f0-9]{24})"/) || [])[1];
   const company = await get(companyPath);
   check('firma sayfası', company.status === 200 && company.text.includes('Firma Hakkında'));
+  const reviewTotal = (company.text.match(/\((\d+) değerlendirme\)/) || [])[1];
+  const reviewHead = (company.text.match(/Müşteri Yorumları \((\d+)\)/) || [])[1];
+  check('puan sayısı yorumlarla tutar', Boolean(reviewTotal) && reviewTotal === reviewHead, `${reviewTotal}/${reviewHead}`);
   check('firma sayfasında iletişim gizli', !company.text.includes('@teklifver.test'));
   check('geçersiz firma 404', (await get('/companies/abc')).status === 404);
 

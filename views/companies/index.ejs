@@ -35,7 +35,7 @@
             <select class="select" id="companyRating" name="minRating">
               <option value="">Tümü</option>
               <% ['3', '4', '4.5'].forEach(item => { %>
-                <option value="<%= item %>" <%= minRating === item ? 'selected' : '' %>><%= item %> ve üzeri</option>
+                <option value="<%= item %>" <%= minRating === item ? 'selected' : '' %>><%= item.replace('.', ',') %> ve üzeri</option>
               <% }) %>
             </select>
           </div>
@@ -92,7 +92,7 @@
                 </td>
                 <td class="col-date nowrap">
                   <% if (company.ratingCount > 0) { %>
-                    <%- icon('star', { size: 12, class: 'star' }) %> <strong><%= company.rating %></strong> (<%= company.ratingCount %>)
+                    <%- icon('star', { size: 12, class: 'star' }) %> <strong><%= ratingLabel(company.rating) %></strong> (<%= company.ratingCount %>)
                   <% } else { %>-<% } %>
                 </td>
                 <td class="col-date"><%= company.address || '-' %></td>

@@ -15,20 +15,22 @@
 
 <div class="field <%= errors.title ? 'has-error' : '' %>">
   <label class="field-label" for="title">Talep başlığı</label>
-  <input class="input" type="text" id="title" name="title" value="<%= form.title %>" maxlength="200" required>
+  <input class="input" type="text" id="title" name="title" value="<%= form.title %>" maxlength="200" placeholder="Örneğin: Mutfak dolabı kapakları değişecek" required>
   <% if (errors.title) { %><p class="field-error"><%= errors.title %></p><% } %>
 </div>
 
 <div class="field <%= errors.description ? 'has-error' : '' %>">
   <label class="field-label" for="description">Açıklama</label>
-  <textarea class="textarea" id="description" name="description" rows="7" maxlength="5000" required><%= form.description %></textarea>
-  <p class="field-hint">Ölçü, adres, malzeme gibi detayları yazarsanız daha doğru teklif alırsınız. Telefon numarası yazmayın.</p>
+  <textarea class="textarea" id="description" name="description" rows="7" maxlength="5000" placeholder="Ölçü, kat, malzeme, ne zaman başlanacağı gibi firmaların soracağı şeyleri yazın." required><%= form.description %></textarea>
+  <p class="field-hint">Telefon numaranızı buraya yazmayın. Teklifi kabul edince firma görecek.</p>
   <% if (errors.description) { %><p class="field-error"><%= errors.description %></p><% } %>
 </div>
 
+<fieldset class="form-optional">
+<legend>İsterseniz ekleyin</legend>
 <div class="field-row">
   <div class="field <%= errors.city ? 'has-error' : '' %>">
-    <label class="field-label" for="city">İl <span class="optional">İsteğe bağlı</span></label>
+    <label class="field-label" for="city">İl</label>
     <select class="select" id="city" name="city">
       <option value="">Seçiniz</option>
       <% allCities.forEach(city => { %>
@@ -38,7 +40,7 @@
     <% if (errors.city) { %><p class="field-error"><%= errors.city %></p><% } %>
   </div>
   <div class="field">
-    <label class="field-label" for="location">İlçe / Semt <span class="optional">İsteğe bağlı</span></label>
+    <label class="field-label" for="location">İlçe / semt</label>
     <input class="input" type="text" id="location" name="location" maxlength="100" value="<%= form.location %>">
   </div>
 </div>
@@ -46,16 +48,16 @@
 <div class="field <%= errors.budget ? 'has-error' : '' %>">
   <div class="field-row">
     <div class="field">
-      <label class="field-label" for="budgetMin">En az bütçe <span class="optional">İsteğe bağlı</span></label>
-      <div class="input-wrap input-wrap-prefix">
-        <span class="input-prefix">₺</span>
+      <label class="field-label" for="budgetMin">En az bütçe</label>
+      <div class="input-wrap input-wrap-suffix">
+        <span class="input-suffix">TL</span>
         <input class="input" type="number" id="budgetMin" name="budgetMin" min="0" step="1" inputmode="numeric" value="<%= form.budgetMin %>">
       </div>
     </div>
     <div class="field">
-      <label class="field-label" for="budgetMax">En fazla bütçe <span class="optional">İsteğe bağlı</span></label>
-      <div class="input-wrap input-wrap-prefix">
-        <span class="input-prefix">₺</span>
+      <label class="field-label" for="budgetMax">En fazla bütçe</label>
+      <div class="input-wrap input-wrap-suffix">
+        <span class="input-suffix">TL</span>
         <input class="input" type="number" id="budgetMax" name="budgetMax" min="0" step="1" inputmode="numeric" value="<%= form.budgetMax %>">
       </div>
     </div>
@@ -64,10 +66,11 @@
 </div>
 
 <div class="field <%= errors.deadline ? 'has-error' : '' %>" style="max-width:220px">
-  <label class="field-label" for="deadline">Son tarih <span class="optional">İsteğe bağlı</span></label>
+  <label class="field-label" for="deadline">Son tarih</label>
   <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
   <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
 </div>
+</fieldset>
 
 <% if (locals.existingImages && existingImages.length) { %>
   <div class="field">
@@ -86,11 +89,11 @@
 <% } %>
 
 <div class="field <%= errors.images ? 'has-error' : '' %>">
-  <span class="field-label">Fotoğraf <span class="optional">İsteğe bağlı</span></span>
+  <span class="field-label">Fotoğraf</span>
   <label class="dropzone">
     <input class="visually-hidden" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/gif,image/webp" data-max="<%= maxImages %>">
-    <span class="dropzone-title">Fotoğraf Seç</span>
-    <span class="muted small">veya buraya sürükleyin. En fazla <%= maxImages %> fotoğraf, her biri en çok 5 MB.</span>
+    <span class="dropzone-title">Fotoğraf seçin</span>
+    <span class="muted small">ya da buraya sürükleyin. En fazla <%= maxImages %> fotoğraf, her biri 5 MB olabilir.</span>
   </label>
   <div class="thumbs" id="imagePreviews"></div>
   <p class="field-error" id="imagesError" <%= errors.images ? '' : 'hidden' %>><%= errors.images || '' %></p>

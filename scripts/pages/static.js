@@ -184,6 +184,8 @@
 
     const search = $('#siteSearch');
     if (search) search.value = filters.search;
+    const headerCity = $('.searchbar select');
+    if (headerCity) headerCity.value = filters.city;
   }
 
   function renderRequests(data) {

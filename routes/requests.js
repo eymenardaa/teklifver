@@ -161,7 +161,14 @@ router.get('/suggest', suggestLimiter, async (req, res, next) => {
 
 // Yeni talep formu
 router.get('/new', isCustomer, requireVerifiedEmail, (req, res) => {
-  res.render('requests/new', { title: 'Talep Ver', categories, maxImages: MAX_IMAGES });
+  // Ana sayfadaki kutudan gelen başlık ve il form hazır gelsin.
+  const city = str(req.query.city);
+  res.render('requests/new', {
+    title: 'Talep Ver',
+    categories,
+    maxImages: MAX_IMAGES,
+    values: { title: str(req.query.title).slice(0, 200), city: cities.includes(city) ? city : '' }
+  });
 });
 
 // Yeni talep oluştur

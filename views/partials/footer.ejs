@@ -4,41 +4,35 @@
     <div class="wrap">
       <div class="footer-grid">
         <div>
-          <h2>Talepler</h2>
-          <ul>
-            <li><a href="/requests">Tüm Talepler</a></li>
-            <li><a href="/requests?period=1">Son 24 Saat</a></li>
-            <li><a href="/requests?noBids=on">Teklif Almamış Talepler</a></li>
-            <li><a href="/requests/new">Talep Ver</a></li>
-            <li><a href="/iller">İllere Göre Talepler</a></li>
-            <li><a href="/fiyat-rehberi">Fiyat Rehberi</a></li>
-          </ul>
-        </div>
-        <div>
-          <h2>Kategoriler</h2>
-          <ul>
-            <% allCategories.slice(0, 4).forEach(category => { %>
-              <li><a href="<%= categoryUrl(category.name) %>"><%= category.name %></a></li>
-            <% }) %>
-            <li><a href="/kategoriler">Tüm Kategoriler</a></li>
-          </ul>
-        </div>
-        <div>
-          <h2>Firmalar</h2>
-          <ul>
-            <li><a href="/companies">Firma Rehberi</a></li>
-            <li><a href="/register?role=company">Firma Hesabı Aç</a></li>
-            <li><a href="/firmalar-icin">Firmalar İçin</a></li>
-            <li><a href="/guvenli-hizmet">Güvenli Hizmet Rehberi</a></li>
-          </ul>
-        </div>
-        <div>
-          <h2>Kurumsal</h2>
+          <h2>TeklifVer</h2>
           <ul>
             <li><a href="/hakkimizda">Hakkımızda</a></li>
             <li><a href="/yardim">Yardım</a></li>
             <li><a href="/iletisim">İletişim</a></li>
             <li><a href="/reklam">Reklam Ver</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>İş yaptıracaklar</h2>
+          <ul>
+            <li><a href="/requests/new">Talep Ver</a></li>
+            <li><a href="/requests">Açık Talepler</a></li>
+            <li><a href="/fiyat-rehberi">Fiyat Rehberi</a></li>
+            <li><a href="/guvenli-hizmet">Güvenli Hizmet Rehberi</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Firmalar</h2>
+          <ul>
+            <li><a href="/register?role=company">Firma Hesabı Aç</a></li>
+            <li><a href="/firmalar-icin">Firmalar İçin</a></li>
+            <li><a href="/companies">Firma Rehberi</a></li>
+            <li><a href="/requests?noBids=on">Teklif Almamış Talepler</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Yasal</h2>
+          <ul>
             <li><a href="/kullanim-kosullari">Kullanım Koşulları</a></li>
             <li><a href="/gizlilik">Gizlilik ve KVKK</a></li>
             <li><a href="/cerez-politikasi">Çerez Politikası</a></li>
@@ -46,29 +40,13 @@
             <li><button class="footer-link" type="button" data-cookie-open>Çerez Tercihleri</button></li>
           </ul>
         </div>
-        <div>
-          <h2>Hesabım</h2>
-          <ul>
-            <% if (currentUser) { %>
-              <li><a href="/dashboard"><%= currentUser.role === 'company' ? 'Tekliflerim' : 'Taleplerim' %></a></li>
-              <li><a href="/dashboard/favorites">Favorilerim</a></li>
-              <li><a href="/profile">Hesap Bilgilerim</a></li>
-            <% } else { %>
-              <li><a href="/login">Giriş Yap</a></li>
-              <li><a href="/register">Hesap Aç</a></li>
-            <% } %>
-          </ul>
-        </div>
       </div>
       <div class="footer-seo">
-        <h2>Popüler Hizmetler</h2>
-        <p>
-          <% allCategories.forEach(category => { %><a href="<%= categoryUrl(category.name) %>"><%= category.name %> Teklifleri</a><% }) %>
+        <p><strong>Hizmetler:</strong>
+          <% allCategories.forEach((category, index) => { %><a href="<%= categoryUrl(category.name) %>"><%= category.name %> Teklifleri</a><%= index < allCategories.length - 1 ? ', ' : '' %><% }) %>
         </p>
-        <h2>Popüler İller</h2>
-        <p>
-          <% ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Kocaeli', 'Mersin'].forEach(city => { %><a href="<%= cityUrl(city) %>"><%= city %></a><% }) %>
-          <a href="/iller">Tüm İller</a>
+        <p><strong>İller:</strong>
+          <% ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Kocaeli', 'Mersin'].forEach(city => { %><a href="<%= cityUrl(city) %>"><%= city %></a>, <% }) %><a href="/iller">tüm iller</a>
         </p>
       </div>
       <div class="footer-bottom">
@@ -102,8 +80,8 @@
   <section class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Çerez tercihleri" hidden>
     <div class="wrap cookie-inner">
       <div class="cookie-text">
-        <strong>Çerez Kullanımı</strong>
-        <p>Sitenin çalışması için zorunlu çerezler kullanıyoruz. Size özel kolaylıklar, ölçümleme ve reklam için onayınızı istiyoruz. Ayrıntılar için <a href="/cerez-politikasi">Çerez Politikası</a>.</p>
+        <strong>Çerezler</strong>
+        <p>Sitenin çalışması için gereken çerezleri kullanıyoruz. Ölçüm ve reklam çerezleri isteğe bağlı, seçim sizin. Ayrıntılar <a href="/cerez-politikasi">Çerez Politikası</a> sayfasında.</p>
 
         <form class="cookie-options" id="cookieOptions" hidden>
           <label class="check-line"><input type="checkbox" checked disabled> <span><strong>Zorunlu</strong> · Oturum ve güvenlik için gereklidir, kapatılamaz.</span></label>

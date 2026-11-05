@@ -54,7 +54,7 @@
           <h2 class="box-head">Fiyatı Neler Etkiler?</h2>
           <div class="box-body">
             <ul class="check-list">
-              <% factors.forEach(item => { %><li><%- icon('check', { size: 14 }) %><%= item %></li><% }) %>
+              <% factors.forEach(item => { %><li><%= item %></li><% }) %>
             </ul>
           </div>
         </section>
@@ -82,7 +82,7 @@
               <li>
                 <a href="/companies/<%= company._id %>"><%= company.companyName || company.name %></a>
                 <span>
-                  <% if (company.ratingCount > 0) { %><%- icon('star', { size: 11, class: 'star' }) %> <%= company.rating %> (<%= company.ratingCount %>)<% } else { %>Yeni firma<% } %>
+                  <% if (company.ratingCount > 0) { %><%- icon('star', { size: 11, class: 'star' }) %> <%= ratingLabel(company.rating) %> (<%= company.ratingCount %>)<% } else { %>Yeni firma<% } %>
                   <% if (company.address) { %> · <%= company.address %><% } %>
                 </span>
               </li>

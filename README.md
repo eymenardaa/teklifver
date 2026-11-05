@@ -151,7 +151,7 @@ Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Hizmet ve il sayfaları (`/hizmet/temizlik/izmir`), site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
 - Küçük ekranda alt menü
-- Siyah ve beyaz tema: ilk girişte cihazın ayarı izlenir, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
+- Siyah ve beyaz tema: site beyaz açılır, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
 - Güvenlik başlıkları (CSP), gzip sıkıştırma, başka sitelerden form gönderimine karşı koruma, istek sınırları
 - Yüklenen görseller doğrulanır, küçültülür, konum bilgisi silinir ve veritabanında (GridFS) saklanır; sunucu yeniden başlasa da kaybolmaz
 - Sağlık kontrolü (`/healthz`), Render kurulum dosyası (`render.yaml`)
@@ -174,4 +174,4 @@ public/       CSS, JavaScript, fotoğraflar, favicon
 
 ## İkonlar
 
-İkonlar [Lucide](https://lucide.dev) kaynaklıdır. Şablonda `<%- icon('search', { size: 16 }) %>` yazmak yeterlidir; ikon adları lucide.dev üzerindeki adlarla aynıdır.
+İkonlar sitenin kendi çizimidir (`lib/icons.js`). Şablonda `<%- icon('search', { size: 16 }) %>` yazmak yeterlidir; yeni ikon gerekirse aynı dosyaya eklenir.

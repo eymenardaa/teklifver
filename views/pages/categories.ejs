@@ -9,7 +9,6 @@
       <% allCategories.forEach(category => { %>
         <div class="category-card">
           <a class="category-card-head" href="<%= categoryUrl(category.name) %>">
-            <%- icon(category.icon, { size: 16 }) %>
             <strong><%= category.name %></strong>
             <span class="count"><%= counts[category.name] || 0 %></span>
           </a>

@@ -1,145 +1,113 @@
-/* TeklifVer teması: sitenin tüm renk, yazı ve ölçüleri burada tanımlanır.
-   Fikir bir ilan gazetesidir: beyaz kağıt, siyah mürekkep ve tek vurgu rengi.
-   Bölümleri kart ve gölge değil, çizgi ve yazı ayırır.
-   Yeni bir bileşen yazarken sabit renk değil, buradaki değişkenler kullanılır. */
+/* TeklifVer teması: renkler, yazı tipleri ve ölçüler burada.
+   Marka bir fiyat etiketidir: koyu üst bant, sarı etiket, beyaz çalışma alanı.
+   Sarı yalnızca marka ve ana eylem içindir; bağlantılar mavi, fiyatlar koyu kalır. */
 
-/* Yazı tipleri siteyle birlikte sunulur (SIL Open Font License, public/fonts). */
-@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("../fonts/libre-franklin-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("../fonts/libre-franklin-latin-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 200 900; font-display: swap; src: url("../fonts/source-sans-3-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Source Sans 3"; font-style: normal; font-weight: 200 900; font-display: swap; src: url("../fonts/source-sans-3-latin-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/barlow-condensed-latin-ext-600-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-ext-700-normal.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 
 :root {
-  /* Mürekkep ve kağıt */
-  --bg: #fff;
+  --bg: #f1f2f4;
   --surface: #fff;
-  --text: #141414;
-  --text-soft: #3d3d3a;
-  --text-softer: #4d4d49;
-  --muted: #5f5f5a;
-  --count: #5f5f5a;
-  --line: #cfcfc9;
-  --line-soft: #e6e6e1;
-  --head: #f3f3ef;
-  --zebra: #f8f8f5;
-  --hover: #f6f4ee;
+  --text: #1c1e21;
+  --text-soft: #3b3f44;
+  --muted: #5f646b;
+  --line: #d9dce0;
+  --line-soft: #eceef1;
+  --head: #f6f7f8;
+  --hover: #fbf9f0;
 
-  /* Tek vurgu rengi: düğme, logo ve acil etiketi dışında kullanılmaz */
-  --orange: #d63a0f;
-  --orange-dark: #b02d08;
-  --accent-text: #b02d08;
-  --orange-text: #b02d08;
+  --accent: #ffc61a;
+  --accent-dark: #f2b600;
+  --accent-line: #e0a800;
+  --accent-ink: #1c1e21;
+  --link: #0f5bb5;
+  --ink: #1c1e21;
+  --ink-hover: #3b3f44;
+  --on-ink: #fff;
 
-  --navy: #141414;
-  --navy-dark: #3d3d3a;
-  --link: #141414;
-  --price: #141414;
-
-  /* Durum renkleri */
   --green: #14713a;
   --amber: #8a5d00;
-  --blue: #1450a3;
-  --red: #b3261e;
+  --blue: #0f5bb5;
+  --red: #c4231b;
+  --urgent: #c4231b;
 
-  /* Denetimler */
+  --topbar: #16181b;
+  --mainbar: #1f2226;
+  --on-dark: #fff;
+  --on-dark-soft: #c6c9ce;
+  --footer-bg: #1f2226;
+  --footer-line: #3a3e44;
+
+  --tag-bg: #fff1b8;
+  --tag-text: #1c1e21;
+
   --control-bg: #fff;
-  --control-border: #8b8b85;
-  --btn-bg: transparent;
-  --btn-hover: #141414;
-  --btn-text: #141414;
-  --search-btn: #141414;
-  --search-btn-hover: #d63a0f;
-
-  /* Bant ve alt bilgi */
-  --mainbar: #fff;
-  --mainbar-2: #fff;
-  --mainbar-line: transparent;
-  --footer-bg: #141414;
-  --footer-text: #d6d5cf;
-
-  /* Seçili ve bildirim yüzeyleri */
-  --selected: #efefe9;
-  --selected-line: #b9b9b2;
-  --tint: #f5f5f1;
-  --tint-line: #cfcfc9;
-  --warn-bg: #fdf6e3;
-  --warn-line: #e3d29c;
-  --ok-bg: #eef6f0;
+  --control-border: #a9aeb5;
+  --selected: #eef3fb;
+  --selected-line: #b6cdeb;
+  --warn-bg: #fff8e1;
+  --warn-line: #ecd9a5;
+  --ok-bg: #edf7f0;
   --ok-line: #a6d5b5;
   --ok-text: #14592c;
-  --err-bg: #fdf0ed;
-  --err-line: #ecb9ad;
+  --err-bg: #fdf0ef;
+  --err-line: #ecb9b5;
   --err-text: #8f1d17;
-  --notice-bg: #fdf6e3;
-  --notice-line: #e3d29c;
-  --notice-text: #5c4a00;
-  --checklist-bg: #f8f8f5;
-  --drop-bg: #f8f8f5;
-  --track: #e6e6e1;
-  --star-empty: #c5c5be;
-  --shadow: rgb(0 0 0 / 0.16);
+  --track: #e4e6e9;
+  --star: #e0a100;
+  --star-empty: #c5c8cc;
+  --shadow: 0 4px 16px rgb(16 20 26 / 0.16);
 
-  /* Ölçüler ve yazı */
-  --font: "Libre Franklin", "Segoe UI", Arial, sans-serif;
+  --font: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --font-head: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
-  --radius-s: 0;
-  --radius: 0;
-  --shadow-1: none;
-  --shadow-2: 0 4px 14px rgb(0 0 0 / 0.14);
+  --radius: 4px;
   color-scheme: light;
 }
 
 /* Siyah tema. Yalnızca ekranda geçerlidir, sayfa yazdırılırken beyaz kalır. */
 @media screen {
   :root[data-theme='dark'] {
-    --bg: #0b0b0b;
-    --surface: #0b0b0b;
-    --text: #f1f0ea;
-    --text-soft: #d3d2cc;
-    --text-softer: #c2c1bb;
-    --muted: #a5a49e;
-    --count: #a5a49e;
-    --line: #3a3a37;
-    --line-soft: #262624;
-    --head: #1b1b19;
-    --zebra: #131312;
-    --hover: #191917;
+    --bg: #0f1012;
+    --surface: #17191c;
+    --text: #e9eaec;
+    --text-soft: #cfd1d5;
+    --muted: #a3a7ad;
+    --line: #2f3237;
+    --line-soft: #25272b;
+    --head: #1d1f23;
+    --hover: #1e2024;
 
-    --orange: #d63a0f;
-    --orange-dark: #b02d08;
-    --accent-text: #ff8a63;
-    --orange-text: #ff8a63;
-
-    --navy: #f1f0ea;
-    --navy-dark: #c2c1bb;
-    --link: #f1f0ea;
-    --price: #f1f0ea;
+    --accent: #ffc61a;
+    --accent-dark: #f2b600;
+    --accent-line: #b98d00;
+    --accent-ink: #1c1e21;
+    --link: #8ab8f5;
+    --ink: #e9eaec;
+    --ink-hover: #cfd1d5;
+    --on-ink: #17191c;
 
     --green: #63d492;
     --amber: #e9bc52;
-    --blue: #8dbdf5;
+    --blue: #8ab8f5;
     --red: #ff9b8f;
+    --urgent: #d9342b;
 
-    --control-bg: #151514;
-    --control-border: #6b6b66;
-    --btn-bg: transparent;
-    --btn-hover: #f1f0ea;
-    --btn-text: #f1f0ea;
-    --search-btn: #f1f0ea;
-    --search-btn-hover: #d63a0f;
+    --topbar: #000;
+    --mainbar: #0b0b0c;
+    --footer-bg: #0b0b0c;
+    --footer-line: #2f3237;
 
-    --mainbar: #0b0b0b;
-    --mainbar-2: #0b0b0b;
-    --mainbar-line: transparent;
-    --footer-bg: #000;
-    --footer-text: #c9c8c2;
+    --tag-bg: #3a3213;
+    --tag-text: #ffe08a;
 
-    --selected: #232321;
-    --selected-line: #4a4a46;
-    --tint: #171716;
-    --tint-line: #3a3a37;
+    --control-bg: #101114;
+    --control-border: #5c6067;
+    --selected: #1c2a3d;
+    --selected-line: #33506f;
     --warn-bg: #272012;
     --warn-line: #57471d;
     --ok-bg: #11261a;
@@ -148,15 +116,9 @@
     --err-bg: #2a1413;
     --err-line: #6b2f2b;
     --err-text: #ffb4ab;
-    --notice-bg: #2a2310;
-    --notice-line: #5a4a1a;
-    --notice-text: #f1d98a;
-    --checklist-bg: #131312;
-    --drop-bg: #131312;
-    --track: #303030;
-    --star-empty: #565651;
-    --shadow: rgb(0 0 0 / 0.7);
-    --shadow-2: 0 4px 14px rgb(0 0 0 / 0.7);
+    --track: #303236;
+    --star-empty: #565a60;
+    --shadow: 0 4px 16px rgb(0 0 0 / 0.7);
     color-scheme: dark;
   }
 }

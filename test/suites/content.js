@@ -12,6 +12,13 @@ const resultCount = html => Number((html.match(/<strong>(\d+)<\/strong> talep bu
 const adTitles = html => [...html.matchAll(/class="ad-title">([^<]+)</g)].map(m => m[1]);
 
 (async () => {
+  // Türkiye'de alışılmış yazım
+  const helpers = require(path.join(__dirname, '..', '..', 'lib', 'helpers.js'));
+  check('fiyat TL ile yazılır', helpers.money(18000) === '18.000 TL' && helpers.budgetLabel({ min: 18000, max: 28000 }) === '18.000 - 28.000 TL', helpers.budgetLabel({ min: 18000, max: 28000 }));
+  check('puan virgülle yazılır', helpers.ratingLabel(4.5) === '4,5' && helpers.ratingLabel(5) === '5,0');
+  check('zaman göreli yazılır', helpers.timeAgo(new Date(Date.now() - 3 * 3600e3)) === '3 saat önce' && helpers.timeAgo(new Date(Date.now() - 30 * 3600e3)) === 'dün' && helpers.timeAgo(new Date(Date.now() - 5 * 86400e3)) === '5 gün önce');
+  check('kalan gün en az bir', helpers.daysLeft(new Date(Date.now() + 3600e3)) === 1 && helpers.daysLeft(new Date(Date.now() + 2.5 * 86400e3)) === 3);
+
   for (const page of ['/yardim', '/reklam', '/kullanim-kosullari', '/gizlilik', '/cerez-politikasi']) {
     check(`sayfa ${page}`, (await get(page)).status === 200);
   }
@@ -31,7 +38,7 @@ const adTitles = html => [...html.matchAll(/class="ad-title">([^<]+)</g)].map(m 
   check('ACİL ve YENİ etiketleri', list.text.includes('label-new') || home.text.includes('label-urgent'));
 
   // Reklam bağlantıları gerçek sonuç veriyor mu?
-  for (const term of ['Usta', 'Mavi', 'Kodhane', 'Kadraj']) {
+  for (const term of ['Demir', 'Çelik', 'Öztürk', 'Deniz']) {
     check(`reklam firması bulunur: ${term}`, (await get('/companies?search=' + term)).text.match(/<strong>1<\/strong> firma bulundu/) !== null);
   }
 

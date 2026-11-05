@@ -9,10 +9,7 @@
     const root = document.documentElement;
     const meta = $('meta[name="theme-color"]');
     const paintBar = () => {
-      if (meta) meta.content = root.dataset.theme === 'dark' ? '#0b0b0b' : '#ffffff';
-    };
-    const savedChoice = () => {
-      try { return localStorage.getItem('theme'); } catch { return null; }
+      if (meta) meta.content = root.dataset.theme === 'dark' ? '#0b0b0b' : '#16181b';
     };
 
     paintBar();
@@ -32,12 +29,6 @@
       });
     });
 
-    // Seçim yapılmadıysa cihazın ayarını izler.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      if (savedChoice()) return;
-      root.dataset.theme = event.matches ? 'dark' : 'light';
-      paintBar();
-    });
   }
 
   /* Küçük hareketler: fotoğraflar yumuşakça belirir, sayfa geçişinde ince çubuk akar.
