@@ -90,7 +90,7 @@
         <tr><td>Son Tarih</td><td>
           <%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %>
           <% if (request.deadline && new Date(request.deadline) > new Date()) { %>
-            <div id="countdown" style="margin-top:3px; font-weight:bold; color:var(--price); font-size:12px">
+            <div id="countdown" data-deadline="<%= request.deadline %>" style="margin-top:3px; font-weight:bold; color:var(--price); font-size:12px">
               ⏳ Kalan: <span id="countdownTimer">Hesaplanıyor...</span>
             </div>
             <script>

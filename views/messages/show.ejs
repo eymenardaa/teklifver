@@ -83,23 +83,6 @@
   </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const fileInput = document.getElementById('msgImageInput');
-  const noteEl = document.getElementById('imageSelectedNote');
-  const nameEl = document.getElementById('imageFileName');
 
-  if (fileInput) {
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files && fileInput.files[0]) {
-        nameEl.innerText = fileInput.files[0].name;
-        noteEl.style.display = 'block';
-      } else {
-        noteEl.style.display = 'none';
-      }
-    });
-  }
-});
-</script>
 
 <%- include('../partials/footer') %>
