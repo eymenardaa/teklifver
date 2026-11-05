@@ -1,7 +1,8 @@
 <%- include('../partials/header') %>
 
 <div class="wrap">
-  <div class="auth-box">
+  <div class="auth-box has-side">
+    <div>
     <% if (demoAccounts.length) { %>
       <div class="demo-note">
         <p>Örnek hesapla giriş yap:</p>
@@ -40,6 +41,8 @@
         Hesabınız yok mu? <a href="/register<%= next ? '?next=' + encodeURIComponent(next) : '' %>"><strong>Hesap Aç</strong></a>
       </div>
     </div>
+    </div>
+    <%- include('../partials/auth-side') %>
   </div>
 </div>
 

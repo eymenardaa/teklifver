@@ -28,6 +28,27 @@
     </aside>
 
     <div class="home-center">
+      <nav class="cat-tiles" aria-label="Hizmet kategorileri">
+        <% allCategories.slice(0, 11).forEach(category => { %>
+          <a class="cat-tile" href="<%= categoryUrl(category.name) %>">
+            <span class="cat-icon"><%- icon(category.icon, { size: 18 }) %></span>
+            <%= category.name %>
+            <span class="count"><%= counts[category.name] || 0 %> talep</span>
+          </a>
+        <% }) %>
+        <a class="cat-tile" href="/kategoriler">
+          <span class="cat-icon"><%- icon('layout-grid', { size: 18 }) %></span>
+          Tüm Kategoriler
+          <span class="count"><%= allCategories.length %> kategori</span>
+        </a>
+      </nav>
+
+      <div class="trust-strip">
+        <div><%- icon('badge-check', { size: 20 }) %><span><strong>Ücretsiz</strong>Talep vermek ve teklif almak ücretsiz</span></div>
+        <div><%- icon('shield-check', { size: 20 }) %><span><strong>Bilgileriniz güvende</strong>İletişim yalnızca teklifi kabul edince paylaşılır</span></div>
+        <div><%- icon('star', { size: 20 }) %><span><strong>Gerçek yorumlar</strong>Yorumu yalnızca işi tamamlayan müşteri yazar</span></div>
+      </div>
+
       <% if (showcase.length) { %>
         <section class="box">
           <div class="box-head">Vitrin <a href="/requests?photos=on&sort=views">Tümünü Gör</a></div>
@@ -61,7 +82,7 @@
           <div class="box-head">İllere Göre Talepler <a href="/iller">Tüm İller</a></div>
           <div class="link-grid">
             <% cityRows.forEach(row => { %>
-              <a href="/requests?city=<%= encodeURIComponent(row._id) %>"><%= row._id %> <span class="count">(<%= row.total %>)</span></a>
+              <a href="<%= cityUrl(row._id) %>"><%= row._id %> <span class="count">(<%= row.total %>)</span></a>
             <% }) %>
           </div>
         </section>

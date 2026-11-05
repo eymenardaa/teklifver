@@ -10,8 +10,9 @@ const categories = require('../config/categories');
 const cities = require('../config/cities');
 const { isCustomer, isLoggedIn, requireVerifiedEmail } = require('../middleware/auth');
 const { limits } = require('../lib/limits');
+const { categoryUrl } = require('../lib/slug');
 const { alertSavedSearches } = require('../lib/search-alerts');
-const { parseDateInput } = require('../lib/helpers');
+const { parseDateInput, isExpired } = require('../lib/helpers');
 const { rateLimit } = require('express-rate-limit');
 const { uploadImages, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
 const { str, safeNext, searchPattern } = require('../lib/input');
@@ -115,7 +116,9 @@ router.get('/', async (req, res, next) => {
         : `${filters.category} kategorisindeki açık hizmet talepleri. Firmalar ücretsiz teklif verebilir.`,
       requests,
       filters,
-      canonicalUrl: `${res.locals.siteBase}/requests${filters.category === 'all' ? '' : `?category=${encodeURIComponent(filters.category)}`}`,
+      canonicalUrl: `${res.locals.siteBase}${filters.category === 'all' ? '/requests' : categoryUrl(filters.category)}`,
+      // Filtreli sonuçlar aramalarda çıkmaz; asıl içerik hizmet ve il sayfalarındadır.
+      noIndex: Boolean(filtersToQuery(filters) && !(filters.category !== 'all' && filtersToQuery(filters).split('&').length === 1)) || filters.sort !== 'newest' || filters.view !== 'list' || page > 1,
       savedQuery: filtersToQuery(filters),
       counts,
       total,
@@ -355,16 +358,18 @@ router.get('/:id', async (req, res, next) => {
 
     res.render('requests/show', {
       title: request.title,
+      fullTitle: `${request.title} - ${request.category}${request.city ? `, ${request.city}` : ''} | TeklifVer`,
       metaDescription: request.description.slice(0, 155),
       ogImage: request.images && request.images[0],
-      noIndex: request.status === 'removed',
+      // Bitmiş veya kaldırılmış talepler aramalarda çıkmaz.
+      noIndex: request.status !== 'open' || isExpired(request),
       ownHeading: true,
       jsonLdData: {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Talepler', item: `${res.locals.siteBase}/requests` },
-          { '@type': 'ListItem', position: 2, name: request.category, item: `${res.locals.siteBase}/requests?category=${encodeURIComponent(request.category)}` },
+          { '@type': 'ListItem', position: 2, name: request.category, item: `${res.locals.siteBase}${categoryUrl(request.category)}` },
           { '@type': 'ListItem', position: 3, name: request.title }
         ]
       },

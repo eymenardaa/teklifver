@@ -5,7 +5,7 @@ const path = require('path');
 const { startMongo, startSite } = require('./helpers/harness');
 
 // BASE adresine bağlanan takımlar
-const siteSuites = ['e2e.js', 'upload.js', 'features.js', 'messages.js', 'content.js', 'new-features.js', 'fuzz.js', 'deals.js'];
+const siteSuites = ['e2e.js', 'upload.js', 'features.js', 'messages.js', 'content.js', 'new-features.js', 'fuzz.js', 'deals.js', 'seo.js'];
 // Kendi sitesini kendisi başlatan takımlar
 const selfContained = ['oauth.js', 'email.js', 'security.js', 'browser.js', 'production.js'];
 

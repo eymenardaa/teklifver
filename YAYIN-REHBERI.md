@@ -17,7 +17,7 @@ mongodb+srv://kullanici:sifre@cluster0.xxxxx.mongodb.net/teklifver?retryWrites=t
 ## 2. Sunucu: Render
 
 1. [render.com](https://render.com) adresinde GitHub hesabınızla oturum açın.
-2. **New → Blueprint** seçin, `sswird/teklifver` deposunu bağlayın. `render.yaml` otomatik okunur.
+2. [Bu bağlantıyı açın](https://render.com/deploy?repo=https://github.com/sswird/teklifver) veya **New → Blueprint** seçip `sswird/teklifver` deposunu bağlayın. `render.yaml` otomatik okunur.
 3. İstenen değerleri girin:
 
 | Ayar | Değer |
@@ -83,6 +83,16 @@ Herkese açmadan önce Google ve Facebook'ta uygulamayı yayın moduna almanız 
 ## 6. Kendi alan adınız (isteğe bağlı)
 
 Render'da **Settings → Custom Domains** bölümünden ekleyin, DNS kayıtlarını alan adı firmanızda girin. Sonra **Environment** sekmesine `SITE_URL` olarak yeni adresi yazın (sonda `/` olmadan) ve sağlayıcılardaki yönlendirme adreslerini güncelleyin.
+
+## Google'da görünmek
+
+Site, arama motorları için hazırlandı: hizmet sayfaları (`/hizmet/temizlik`), il sayfaları (`/il/izmir`), ikisinin birleşimi (`/hizmet/temizlik/izmir`), site haritası, yapısal veri ve özgün başlıklar. Google'da çıkmak için yine de şunlar gerekir:
+
+1. **Siteyi gerçek sunucuda yayınlayın.** GitHub Pages önizlemesi örnek veri taşıdığı için bilerek aramalara kapalıdır.
+2. **Kendi alan adınızı alın.** `onrender.com` adresi de çalışır, ama kendi alan adınız uzun vadede daha güçlüdür.
+3. **[Google Search Console](https://search.google.com/search-console)'a ekleyin.** Doğrulama kodunu `GOOGLE_SITE_VERIFICATION` ayarına yazın, sonra `SITE_URL/sitemap.xml` adresini gönderin.
+4. **Vitrin modunu kapatın.** `DEMO_DATA=showcase` açıkken site örnek veri içerdiği için aramalara kapalı kalır. Gerçek kullanıcılar gelince örnek verileri silin.
+5. **Gerçek içerik ve bağlantı biriktirin.** Sıralamayı asıl belirleyen, gerçek talepler, yorumlar ve başka sitelerden gelen bağlantılardır. Yeni bir sitenin yükselmesi aylar sürer, kimse belirli bir sıra garanti edemez.
 
 ## Gerçek kullanıcı almadan önce
 

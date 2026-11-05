@@ -46,17 +46,27 @@ router.get('/', async (req, res, next) => {
 
     res.render('home', {
       title: '',
-      jsonLdData: {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: 'TeklifVer',
-        url: `${res.locals.siteBase}/`,
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${res.locals.siteBase}/requests?search={search_term_string}`,
-          'query-input': 'required name=search_term_string'
+      metaDescription: 'Tadilat, nakliye, temizlik, web tasarım ve daha fazlası için ücretsiz talep verin, firmalardan teklif alın. Fiyat, süre ve yorumları karşılaştırın.',
+      jsonLdData: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'TeklifVer',
+          url: `${res.locals.siteBase}/`,
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: `${res.locals.siteBase}/requests?search={search_term_string}`,
+            'query-input': 'required name=search_term_string'
+          }
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'TeklifVer',
+          url: `${res.locals.siteBase}/`,
+          logo: `${res.locals.siteBase}/icon-512.png`
         }
-      },
+      ],
       showcase: uniqueByPhoto(showcase, 20),
       latest,
       closing: uniqueByPhoto(closing, 8),

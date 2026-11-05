@@ -18,11 +18,17 @@
     paintBar();
     $$('[data-theme-toggle]').forEach(button => {
       button.addEventListener('click', () => {
-        root.classList.add('theme-changing');
-        setTimeout(() => root.classList.remove('theme-changing'), 320);
-        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-        try { localStorage.setItem('theme', root.dataset.theme); } catch { /* depolama kapalı olabilir */ }
-        paintBar();
+        const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        const apply = () => {
+          root.dataset.theme = next;
+          paintBar();
+        };
+        try { localStorage.setItem('theme', next); } catch { /* depolama kapalı olabilir */ }
+
+        // Destekleyen tarayıcıda iki görüntü arasında tek bir geçiş yapılır; yeniden çizim takılması olmaz.
+        const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (document.startViewTransition && !calm) document.startViewTransition(apply);
+        else apply();
       });
     });
 
@@ -34,7 +40,7 @@
     });
   }
 
-  /* Küçük hareketler: içerik ve fotoğraflar yumuşakça belirir, sayfa geçişinde ince çubuk akar.
+  /* Küçük hareketler: fotoğraflar yumuşakça belirir, sayfa geçişinde ince çubuk akar.
      Yalnızca cihazda "hareketi azalt" kapalıysa çalışır; betik çalışmazsa her şey normal görünür. */
   function initMotion() {
     if (!window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
@@ -47,28 +53,6 @@
       image.addEventListener('load', show, { once: true });
       image.addEventListener('error', show, { once: true });
     });
-
-    // Ekranın altında kalan içerik, kaydırınca belirir. Görünen kısım beklemez.
-    if ('IntersectionObserver' in window) {
-      const items = $$('main .box, main .ad, .showcase-item, .review-card, .category-card');
-      const below = items.filter(item => item.getBoundingClientRect().top > window.innerHeight);
-      const observer = new IntersectionObserver(entries => {
-        entries.filter(entry => entry.isIntersecting).forEach(entry => {
-          const item = entry.target;
-          observer.unobserve(item);
-          item.classList.add('is-revealed');
-          item.classList.remove('is-waiting');
-          item.addEventListener('transitionend', () => item.classList.remove('is-revealed'), { once: true });
-        });
-      });
-      below.forEach(item => {
-        // İç içe öğelerde yalnızca en dıştaki hareket eder.
-        if (below.some(other => other !== item && other.contains(item) && !other.classList.contains('box'))) return;
-        if (item.classList.contains('box') && $('.showcase-item, .review-card, .category-card', item)) return;
-        item.classList.add('is-waiting');
-        observer.observe(item);
-      });
-    }
 
     // Sayfa geçişi çubuğu
     const bar = document.createElement('div');
@@ -766,7 +750,10 @@
     if (!button) return;
     const update = () => { button.hidden = window.scrollY < 500; };
     window.addEventListener('scroll', update, { passive: true });
-    button.addEventListener('click', () => window.scrollTo({ top: 0 }));
+    button.addEventListener('click', () => {
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+    });
     update();
   }
 

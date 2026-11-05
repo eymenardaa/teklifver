@@ -240,7 +240,7 @@ async function social(c, provider, profile, startUrl) {
     const guide = (await v.get('/fiyat-rehberi')).text;
     check('fiyat rehberi', guide.includes('Ortalama Teklif') && /₺[\d.]+/.test(guide));
     const iller = (await v.get('/iller')).text;
-    check('81 il', (iller.match(/href="\/requests\?city=/g) || []).length === 81);
+    check('81 il', (iller.split('class="link-grid"')[1].split('</section>')[0].match(/href="\/il\//g) || []).length === 81);
     const home = (await v.get('/')).text;
     check('yorumlar ana sayfada', home.includes('Son Müşteri Yorumları') && (home.match(/class="review-card"/g) || []).length === 4);
     check('atlama bağlantısı', home.includes('skip-link'));

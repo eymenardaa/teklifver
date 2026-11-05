@@ -9,8 +9,8 @@
   <div class="crumbs">
     <a href="/">Ana Sayfa</a> &rsaquo;
     <a href="/requests">Talepler</a> &rsaquo;
-    <a href="/requests?category=<%= encodeURIComponent(request.category) %>"><%= request.category %></a>
-    <% if (request.city) { %>&rsaquo; <a href="/requests?category=<%= encodeURIComponent(request.category) %>&city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><% } %>
+    <a href="<%= categoryUrl(request.category) %>"><%= request.category %></a>
+    <% if (request.city) { %>&rsaquo; <a href="<%= categoryCityUrl(request.category, request.city) %>"><%= request.city %></a><% } %>
   </div>
 
   <div class="detail-title">
@@ -57,7 +57,7 @@
           <div class="gallery-thumbs">
             <% request.images.forEach((image, index) => { %>
               <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
-                <img src="<%= thumb(image) %>" alt="" loading="lazy" width="96" height="72">
+                <img src="<%= thumb(image) %>" alt="" loading="lazy" decoding="async" width="96" height="72">
               </button>
             <% }) %>
           </div>
@@ -73,7 +73,7 @@
       <div class="price-big"><%= budgetLabel(request.budget) %></div>
       <div class="place-line">
         <% if (request.city) { %>
-          <a href="/requests?city=<%= encodeURIComponent(request.city) %>"><%= request.city %></a><%= request.location ? ' / ' + request.location : '' %>
+          <a href="<%= cityUrl(request.city) %>"><%= request.city %></a><%= request.location ? ' / ' + request.location : '' %>
         <% } else { %>
           <%= request.location || 'Konum belirtilmemiş' %>
         <% } %>
@@ -421,7 +421,7 @@
 
   <% if (similar.length) { %>
     <section class="box">
-      <div class="box-head">Benzer Talepler <a href="/requests?category=<%= encodeURIComponent(request.category) %>">Tümü</a></div>
+      <div class="box-head">Benzer Talepler <a href="<%= categoryUrl(request.category) %>">Tümü</a></div>
       <%- include('../partials/showcase-grid', { items: similar }) %>
     </section>
   <% } %>

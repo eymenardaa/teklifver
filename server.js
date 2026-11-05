@@ -34,7 +34,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // CSS ve JS adreslerine eklenir; dosya değişince tarayıcı eski sürümü kullanmaz.
 function assetVersion() {
   const hash = crypto.createHash('sha1');
-  for (const file of ['css/style.css', 'js/main.js', 'js/theme.js']) hash.update(fs.readFileSync(path.join(__dirname, 'public', file)));
+  for (const file of ['css/theme.css', 'css/style.css', 'js/main.js', 'js/theme.js']) hash.update(fs.readFileSync(path.join(__dirname, 'public', file)));
   return hash.digest('hex').slice(0, 10);
 }
 
@@ -80,6 +80,7 @@ async function start() {
     // Tek tıkla giriş düğmeleri yalnızca geliştirmede görünür.
     demoAccounts: hasDemoData && !isProduction ? demoAccounts : [],
     socialProviders: visibleProviders(),
+    siteVerification: process.env.GOOGLE_SITE_VERIFICATION || '',
     assetVersion: assetVersion()
   });
 
@@ -276,6 +277,7 @@ async function start() {
   app.get('/uploads/:name', serveImage);
   app.use('/', require('./routes/home'));
   app.use('/', require('./routes/pages'));
+  app.use('/', require('./routes/seo'));
   app.use('/', require('./routes/auth'));
   app.use('/', require('./routes/oauth'));
   app.use('/', require('./routes/email'));

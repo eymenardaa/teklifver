@@ -47,7 +47,7 @@
       <div class="box-head">İş Örnekleri (<%= company.portfolio.length %>)</div>
       <div class="portfolio-grid">
         <% company.portfolio.forEach(image => { %>
-          <a href="<%= image %>" target="_blank" rel="noopener"><img src="<%= thumb(image) %>" alt="<%= companyTitle %> iş örneği" loading="lazy" width="240" height="180"></a>
+          <a href="<%= image %>" target="_blank" rel="noopener"><img src="<%= thumb(image) %>" alt="<%= companyTitle %> iş örneği" loading="lazy" decoding="async" width="240" height="180"></a>
         <% }) %>
       </div>
     </section>

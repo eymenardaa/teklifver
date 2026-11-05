@@ -7,7 +7,7 @@
     <div class="box-head">İllere Göre Talepler</div>
     <div class="link-grid">
       <% allCities.forEach(city => { const total = cityCounts[city] || 0; %>
-        <a class="<%= total ? '' : 'is-empty' %>" href="/requests?city=<%= encodeURIComponent(city) %>"><%= city %> <span class="count">(<%= total %>)</span></a>
+        <a class="<%= total ? '' : 'is-empty' %>" href="<%= cityUrl(city) %>"><%= city %> <span class="count">(<%= total %>)</span></a>
       <% }) %>
     </div>
   </section>

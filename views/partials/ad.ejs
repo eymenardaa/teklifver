@@ -4,7 +4,7 @@
     <% if (ad.banner) { %>
       <img class="ad-banner" src="<%= ad.banner %>" alt="<%= ad.title %>" loading="lazy">
     <% } else { %>
-      <% if (ad.image) { %><img class="ad-image" src="<%= thumb(ad.image) %>" alt="" loading="lazy"><% } %>
+      <% if (ad.image) { %><img class="ad-image" src="<%= thumb(ad.image) %>" alt="" loading="lazy" decoding="async"><% } %>
       <span class="ad-copy">
         <strong class="ad-title"><%= ad.title %></strong>
         <span class="ad-text"><%= ad.text %></span>

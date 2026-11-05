@@ -350,6 +350,7 @@
 
   function closeAccountForms() {
     if (!['/login/', '/register/', '/forgot/'].includes(route)) return;
+    // Sunucu olmadan hesap açılamaz; ziyaretçiye açıkça söylenir.
     const form = $('main form');
     if (!form) return;
     $$('input, select, textarea, button', form).forEach(control => { control.disabled = true; });

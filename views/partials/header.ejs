@@ -7,19 +7,21 @@
   <% const pageDescription = metaDescription || 'Hizmet talebi verin, firmalardan teklif alın. Tadilat, nakliye, temizlik, yazılım ve daha fazlası.'; %>
   <meta name="description" content="<%= pageDescription %>">
   <meta property="og:site_name" content="TeklifVer">
-  <meta property="og:title" content="<%= title || 'TeklifVer' %>">
+  <meta property="og:title" content="<%= title || 'TeklifVer: Ücretsiz Teklif Alın, Firmaları Karşılaştırın' %>">
   <meta property="og:description" content="<%= pageDescription %>">
   <meta property="og:url" content="<%= pageUrl %>">
   <meta property="og:type" content="website">
   <meta property="og:image" content="<%= siteBase %><%= ogImage || '/img/paylasim.png' %>">
   <meta name="twitter:card" content="summary_large_image">
-  <title><%= title ? title + ' - ' : '' %>TeklifVer</title>
+  <title><%= locals.fullTitle || (title ? title + ' | TeklifVer' : 'TeklifVer: Ücretsiz Teklif Alın, Firmaları Karşılaştırın') %></title>
   <link rel="canonical" href="<%= canonicalUrl %>">
-  <% if (noIndex) { %><meta name="robots" content="noindex"><% } %>
+  <% if (noIndex || demoActive) { %><meta name="robots" content="noindex"><% } %>
+  <% if (siteVerification) { %><meta name="google-site-verification" content="<%= siteVerification %>"><% } %>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>
+  <link href="/css/theme.css?v=<%= assetVersion %>" rel="stylesheet">
   <link href="/css/style.css?v=<%= assetVersion %>" rel="stylesheet">
   <script src="/js/main.js?v=<%= assetVersion %>" defer></script>
   <% if (jsonLdData) { %><script type="application/ld+json"><%- jsonLd(jsonLdData) %></script><% } %>

@@ -122,7 +122,8 @@ async function openBrowser(executable) {
       socket.close();
       proc.kill();
       await sleep(500);
-      fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 });
+      // Tarayıcı dosyaları hemen bırakmayabilir; geçici klasör kalsa da sonuç etkilenmez.
+      try { fs.rmSync(profile, { recursive: true, force: true, maxRetries: 3 }); } catch { /* yok sayılır */ }
     }
   };
   await send('Network.enable');
@@ -208,30 +209,28 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
 
     // Hareket
     await page.goto('/');
-    const waiting = () => page.evaluate(`document.querySelectorAll('.is-waiting').length`);
-    check('alttaki içerik kaydırmayı bekler', (await waiting()) > 0);
-    check('bekleyen içerik gerçekten gizli', (await page.evaluate(`getComputedStyle(document.querySelector('.is-waiting')).opacity`)) === '0');
-    check('düğme geçişleri çalışır', (await page.evaluate(`getComputedStyle(document.querySelector('.btn')).transitionDuration`)) !== '0s');
-    check('kart geçişleri çalışır', (await page.evaluate(`getComputedStyle(document.querySelector('.showcase-item')).transitionProperty`)).includes('transform'));
-    check('görünen içerik beklemez', await page.evaluate(`[...document.querySelectorAll('.is-waiting')].every(el => el.getBoundingClientRect().top > innerHeight)`));
-    check('bekleyen içerik sayfa düzenini kaydırmaz', await page.evaluate(`document.documentElement.scrollHeight > innerHeight`));
-    const before = await page.evaluate(`document.documentElement.scrollHeight`);
-    for (let y = 0; y < before + 900; y += 500) {
-      await page.evaluate(`window.scrollTo(0, ${y})`);
-      await sleep(70);
-    }
-    await sleep(700);
-    check('kaydırınca tüm içerik belirir', (await waiting()) === 0, await page.evaluate(`[...document.querySelectorAll('.is-waiting')].slice(0,6).map(el => el.className + ' @' + Math.round(el.getBoundingClientRect().top) + ' h' + Math.round(el.getBoundingClientRect().height) + ' ' + el.textContent.trim().slice(0,30)).join(' || ') + ' sy=' + scrollY + ' H=' + document.documentElement.scrollHeight`));
-    check('belirince tamamen görünür', await page.evaluate(`[...document.querySelectorAll('main .box, .showcase-item')].every(el => getComputedStyle(el).opacity === '1')`));
+    const style = (selector, prop) => page.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(selector)})).${prop}`);
+    check('düğme yalnızca transform ile hareket eder', (await style('.btn', 'transitionProperty')) === 'transform');
+    check('kart yalnızca transform ile hareket eder', (await style('.showcase-item', 'transitionProperty')) === 'transform');
+    check('tablo satırı yeniden çizim geçişi kullanmaz', (await style('.listing-table td', 'transitionDuration')) === '0s');
+    check('bağlantılarda renk geçişi yok', (await style('.side-list a', 'transitionDuration')) === '0s');
+    const longest = await page.evaluate(`Math.max(...[...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } }).flatMap(function walk(rule) { return rule.cssRules ? [...rule.cssRules].flatMap(walk) : [rule]; }).filter(rule => rule.style).map(rule => parseFloat(rule.style.transitionDuration) || 0))`);
+    check('geçişler 0,3 saniyeden kısa', longest <= 0.3, String(longest));
+    check('kaydırma animasyonu kaydırmaya bağlı', (await style('main .box', 'animationName')) === 'tv-reveal');
+    check('ekrandaki içerik görünür', (await page.evaluate(`[...document.querySelectorAll('main .box')].filter(el => { const b = el.getBoundingClientRect(); return b.top < innerHeight - 80 && b.bottom > 0; }).every(el => getComputedStyle(el).opacity === '1')`)));
+    const height = await page.evaluate('document.documentElement.scrollHeight');
+    await page.evaluate(`window.scrollTo(0, ${height})`);
+    await sleep(300);
+    check('sayfa sonundaki içerik görünür', await page.evaluate(`[...document.querySelectorAll('main .box')].filter(el => { const b = el.getBoundingClientRect(); return b.top < innerHeight - 80 && b.bottom > 0; }).every(el => getComputedStyle(el).opacity === '1')`));
     await page.evaluate('window.scrollTo(0, 0)');
     await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     await page.goto('/');
-    check('hareketi azalt açıksa bekleyen içerik yok', (await waiting()) === 0);
-    check('hareketi azalt açıksa geçiş yok', (await page.evaluate(`getComputedStyle(document.querySelector('.btn')).transitionDuration`)) === '0s');
+    check('hareketi azalt açıksa geçiş yok', (await style('.btn', 'transitionDuration')) === '0s');
+    check('hareketi azalt açıksa kaydırma animasyonu yok', (await style('main .box', 'animationName')) === 'none');
     await page.send('Emulation.setEmulatedMedia', { features: [] });
     await page.goto('/');
     await page.send('Emulation.setEmulatedMedia', { media: 'print' });
-    check('yazdırırken bekleyen içerik görünür', (await page.evaluate(`getComputedStyle(document.querySelector('.is-waiting')).opacity`)) === '1');
+    check('yazdırırken animasyon yok', (await style('main .box', 'animationName')) === 'none');
     await page.send('Emulation.setEmulatedMedia', { media: '' });
 
     // Arama önerisi

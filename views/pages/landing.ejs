@@ -1,0 +1,116 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <nav class="crumbs" aria-label="Sayfa yolu">
+    <a href="/">Ana Sayfa</a> &rsaquo;
+    <% if (category) { %>
+      <a href="/kategoriler">Kategoriler</a> &rsaquo;
+      <% if (city) { %><a href="<%= categoryUrl(category.name) %>"><%= category.name %></a> &rsaquo; <span><%= city %></span><% } else { %><span><%= category.name %></span><% } %>
+    <% } else { %>
+      <a href="/iller">İller</a> &rsaquo; <span><%= city %></span>
+    <% } %>
+  </nav>
+
+  <section class="landing-head">
+    <div>
+      <h1><% if (category) { %><%- icon(category.icon, { size: 22 }) %> <% } %><%= heading %></h1>
+      <p><%= intro %></p>
+      <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+    </div>
+    <dl class="landing-stats">
+      <div><dt>Açık talep</dt><dd><%= total %></dd></div>
+      <% if (price) { %>
+        <div><dt>Ortalama teklif</dt><dd><%= money(price.average) %></dd></div>
+        <div><dt>Ortalama süre</dt><dd><%= price.days %> gün</dd></div>
+      <% } %>
+      <div><dt>Firma</dt><dd><%= companies.length %><%= companies.length === 6 ? '+' : '' %></dd></div>
+    </dl>
+  </section>
+
+  <div class="layout landing-layout">
+    <div>
+      <section class="box">
+        <h2 class="box-head">Açık Talepler (<%= total %>)</h2>
+        <% if (requests.length) { %>
+          <%- include('../partials/listing-table', { items: requests, adEvery: 0 }) %>
+          <% if (totalPages > 1) { %>
+            <nav class="pagination" aria-label="Sayfalar">
+              <% for (let n = Math.max(1, page - 3); n <= Math.min(totalPages, page + 3); n += 1) { %>
+                <% if (n === page) { %><span class="is-current"><%= n %></span><% } else { %><a href="<%= path %><%= n > 1 ? '?page=' + n : '' %>"><%= n %></a><% } %>
+              <% } %>
+            </nav>
+          <% } %>
+        <% } else { %>
+          <div class="empty">
+            <h2>Şu anda açık talep yok</h2>
+            <p>İlk talebi siz verin, firmalar size teklif getirsin.</p>
+            <a class="btn btn-primary" href="/requests/new">Ücretsiz Talep Ver</a>
+          </div>
+        <% } %>
+      </section>
+
+      <% if (factors.length) { %>
+        <section class="box">
+          <h2 class="box-head">Fiyatı Neler Etkiler?</h2>
+          <div class="box-body">
+            <ul class="check-list">
+              <% factors.forEach(item => { %><li><%- icon('check', { size: 14 }) %><%= item %></li><% }) %>
+            </ul>
+          </div>
+        </section>
+      <% } %>
+
+      <section class="box">
+        <h2 class="box-head">Sıkça Sorulan Sorular</h2>
+        <div class="faq">
+          <% faqs.forEach((faq, index) => { %>
+            <details <%= index === 0 ? 'open' : '' %>>
+              <summary><%= faq.q %></summary>
+              <p><%= faq.a %></p>
+            </details>
+          <% }) %>
+        </div>
+      </section>
+    </div>
+
+    <aside aria-label="İlgili bağlantılar">
+      <% if (companies.length) { %>
+        <div class="box">
+          <h2 class="box-head"><%= city && !category ? city + ' Firmaları' : 'Öne Çıkan Firmalar' %></h2>
+          <ul class="company-mini">
+            <% companies.forEach(company => { %>
+              <li>
+                <a href="/companies/<%= company._id %>"><%= company.companyName || company.name %></a>
+                <span>
+                  <% if (company.ratingCount > 0) { %><%- icon('star', { size: 11, class: 'star' }) %> <%= company.rating %> (<%= company.ratingCount %>)<% } else { %>Yeni firma<% } %>
+                  <% if (company.address) { %> · <%= company.address %><% } %>
+                </span>
+              </li>
+            <% }) %>
+          </ul>
+          <div class="box-foot"><a href="/companies">Firma Rehberi</a></div>
+        </div>
+      <% } %>
+
+      <% if (cityLinks.length) { %>
+        <div class="box">
+          <h2 class="box-head">İllere Göre</h2>
+          <ul class="side-list">
+            <% cityLinks.forEach(item => { %><li><a href="<%= item.url %>"><%= item.name %> <span class="count"><%= item.total %></span></a></li><% }) %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (categoryLinks.length) { %>
+        <div class="box">
+          <h2 class="box-head"><%= city ? city + ' Hizmetleri' : 'Diğer Hizmetler' %></h2>
+          <ul class="side-list">
+            <% categoryLinks.forEach(item => { %><li><a href="<%= item.url %>"><%= item.name %><% if (item.total) { %> <span class="count"><%= item.total %></span><% } %></a></li><% }) %>
+          </ul>
+        </div>
+      <% } %>
+    </aside>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -62,6 +62,9 @@ const https = c => ({
     check('hsts', (home.headers.get('strict-transport-security') || '').includes('max-age'));
     check('örnek veri uyarısı yok', !home.text.includes('örnek veridir'));
     check('örnek firma yok', !home.text.includes('Usta Eller'));
+    check('gerçek site aramalara açık', !home.text.includes('name="robots"'));
+    const emptyService = await a.get('/hizmet/temizlik');
+    check('içeriksiz hizmet sayfası aramalara kapalı', emptyService.status === 200 && emptyService.text.includes('name="robots" content="noindex"'));
     check('örnek reklam yok', !/Kodhane|Usta Eller Tadilat/.test(home.text));
     check('css uzun önbellekli', ((await a.get('/css/style.css')).headers.get('cache-control') || '').includes('max-age=2592000'));
     for (const p of ['/requests', '/companies', '/kategoriler', '/fiyat-rehberi', '/iller', '/iletisim', '/yardim', '/gizlilik', '/kullanim-kosullari', '/cerez-politikasi', '/reklam', '/register', '/forgot', '/robots.txt', '/hakkimizda', '/firmalar-icin', '/guvenli-hizmet', '/veri-silme']) {
@@ -104,6 +107,8 @@ const https = c => ({
     check('izinsiz uzantı 404', (await client(server.url).get('/uploads/x.html')).status === 404);
     check('dizin aşımı', (await client(server.url).get('/uploads/..%2F..%2Fserver.js')).status === 404);
 
+    check('bilgisi olan il sayfası', (await client(server.url).get('/il/istanbul')).status === 200);
+
     // Yeniden başlatma: görsel ve oturum kalır, yönetici atanır
     await server.stop();
     server = await start();
@@ -138,6 +143,7 @@ const https = c => ({
     const vitrinHome = await v.get('/');
     check('vitrin dolu', vitrinHome.text.includes('Usta Eller') || (await v.get('/companies')).text.includes('Usta Eller'));
     check('vitrinde örnek veri uyarısı', vitrinHome.text.includes('örnek veridir'));
+    check('vitrin aramalara kapalı', vitrinHome.text.includes('name="robots" content="noindex"'));
     check('vitrinde tek tıkla giriş yok', !(await v.get('/login')).text.includes('data-demo-email'));
     for (const email of ['yonetici@teklifver.test', 'musteri@teklifver.test', 'sirket@teklifver.test']) {
       check(`vitrinde ${email} giremez`, (await client(vitrin.url).post('/login', { email, password: 'demo1234' })).status === 401);

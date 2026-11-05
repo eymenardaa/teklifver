@@ -18,7 +18,7 @@
           <h2>Kategoriler</h2>
           <ul>
             <% allCategories.slice(0, 4).forEach(category => { %>
-              <li><a href="/requests?category=<%= encodeURIComponent(category.name) %>"><%= category.name %></a></li>
+              <li><a href="<%= categoryUrl(category.name) %>"><%= category.name %></a></li>
             <% }) %>
             <li><a href="/kategoriler">Tüm Kategoriler</a></li>
           </ul>
@@ -59,6 +59,17 @@
             <% } %>
           </ul>
         </div>
+      </div>
+      <div class="footer-seo">
+        <h2>Popüler Hizmetler</h2>
+        <p>
+          <% allCategories.forEach(category => { %><a href="<%= categoryUrl(category.name) %>"><%= category.name %> Teklifleri</a><% }) %>
+        </p>
+        <h2>Popüler İller</h2>
+        <p>
+          <% ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Kocaeli', 'Mersin'].forEach(city => { %><a href="<%= cityUrl(city) %>"><%= city %></a><% }) %>
+          <a href="/iller">Tüm İller</a>
+        </p>
       </div>
       <div class="footer-bottom">
         <span>© <%= new Date().getFullYear() %> TeklifVer</span>
