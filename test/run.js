@@ -31,7 +31,11 @@ function runSuite(file, env = {}) {
       const output = text.trim().split('\n');
       const problems = output.filter(line => /HATA|^FAIL|Error:|^\s+at /.test(line)).slice(0, 25);
       console.log(`${code === 0 ? 'GEÇTİ' : 'KALDI'}  ${file}  (${output[output.length - 1]})`);
-      problems.forEach(line => console.log(`   ${line}`));
+      problems.forEach(line => {
+        console.log(`   ${line}`);
+        // GitHub Actions'ta hata özetinde görünsün
+        if (process.env.GITHUB_ACTIONS && /HATA|^FAIL|Error:/.test(line)) console.log(`::error title=${file}::${line.trim().replace(/[\r\n]+/g, ' ')}`);
+      });
       resolve(code === 0);
     });
   });
