@@ -8,7 +8,7 @@
       <section class="box">
         <div class="box-head">
           Hesap Bilgilerim
-          <span class="small" style="font-weight:normal"><%= profile.role === 'company' ? 'Firma hesabı' : 'Bireysel hesap' %><% if (profile.role === 'company' && profile.ratingCount > 0) { %> · Puan: <%= profile.rating %> (<%= profile.ratingCount %>)<% } %></span>
+          <span class="small" style="font-weight:normal"><%= profile.role === 'company' ? 'Firma hesabı' : 'Bireysel hesap' %><% if (profile.role === 'company' && profile.ratingCount > 0) { %> · Puan: <%= ratingLabel(profile.rating) %> (<%= profile.ratingCount %>)<% } %></span>
         </div>
         <div class="box-body" style="max-width:600px">
           <form class="form" action="/profile" method="POST">
@@ -52,6 +52,22 @@
                   <% }) %>
                 </div>
                 <p class="field-hint">Bu kategorilerde yeni talep açılınca bildirim alırsınız.</p>
+              </fieldset>
+              <% const serviceCities = profile.serviceCities || []; %>
+              <fieldset class="field check-grid-field">
+                <legend class="field-label">Hizmet verdiğiniz iller</legend>
+                <details class="city-picker" <%= serviceCities.length ? 'open' : '' %>>
+                  <summary><%= serviceCities.length ? serviceCities.join(', ') : 'Tüm Türkiye' %></summary>
+                  <div class="check-grid city-grid">
+                    <% allCities.forEach(city => { %>
+                      <label class="check-line">
+                        <input type="checkbox" name="serviceCities" value="<%= city %>" <%= serviceCities.includes(city) ? 'checked' : '' %>>
+                        <%= city %>
+                      </label>
+                    <% }) %>
+                  </div>
+                </details>
+                <p class="field-hint">Hiçbirini seçmezseniz tüm Türkiye'deki talepler için bildirim alırsınız.</p>
               </fieldset>
             <% } %>
             <div class="field <%= errors.address ? 'has-error' : '' %>">

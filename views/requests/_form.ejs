@@ -1,11 +1,13 @@
+<% const priceHints = locals.priceHints || {}; %>
 <div class="field <%= errors.category ? 'has-error' : '' %>">
   <label class="field-label" for="category">Kategori</label>
-  <select class="select" id="category" name="category" required>
+  <select class="select" id="category" name="category" data-guessed="<%= locals.guessedCategory || '' %>" required>
     <option value="" disabled <%= form.category ? '' : 'selected' %>>Seçiniz</option>
     <% categories.forEach(category => { %>
-      <option value="<%= category.name %>" data-tip="<%= requestTips[category.name] || '' %>" <%= form.category === category.name ? 'selected' : '' %>><%= category.name %></option>
+      <option value="<%= category.name %>" data-tip="<%= requestTips[category.name] || '' %>" data-keywords="<%= category.keywords %>" data-example-title="<%= categoryContent[category.name] ? categoryContent[category.name].example.title : '' %>" data-example-text="<%= categoryContent[category.name] ? categoryContent[category.name].example.text : '' %>" data-price="<%= priceHints[category.name] && priceHints[category.name].total >= 3 ? budgetLabel({ min: priceHints[category.name].lowest, max: priceHints[category.name].highest }) : '' %>" <%= form.category === category.name ? 'selected' : '' %>><%= category.name %></option>
     <% }) %>
   </select>
+  <p class="field-hint" id="categoryGuess" <%= locals.guessedCategory ? '' : 'hidden' %>>Yazdığınıza göre seçtik, uymuyorsa değiştirin.</p>
   <% if (errors.category) { %><p class="field-error"><%= errors.category %></p><% } %>
   <div class="tip-box" id="categoryTip" hidden>
     <span>Firmalar en çok şunları sorar. Açıklamaya başlık olarak ekleyebilirsiniz.</span>
@@ -62,6 +64,7 @@
       </div>
     </div>
   </div>
+  <p class="field-hint" id="categoryPrice" hidden></p>
   <% if (errors.budget) { %><p class="field-error"><%= errors.budget %></p><% } %>
 </div>
 

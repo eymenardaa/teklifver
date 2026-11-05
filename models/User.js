@@ -91,6 +91,15 @@ const userSchema = new mongoose.Schema({
   categories: [{
     type: String
   }],
+  // Firmanın hizmet verdiği iller; boşsa tüm Türkiye
+  serviceCities: [{
+    type: String
+  }],
+  // Firma sayfasının kaç kez açıldığı
+  profileViews: {
+    type: Number,
+    default: 0
+  },
   verified: {
     type: Boolean,
     default: false

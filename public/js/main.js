@@ -328,13 +328,20 @@
 
   /* Talep galerisi */
   function initGallery() {
-    const frame = $('.gallery-main');
+    const frame = $('a.gallery-main');
     if (!frame) return;
     const thumbs = $$('.gallery-thumb');
     const image = $('img', frame);
     const counter = $('.gallery-count');
-    if (!thumbs.length) return;
     let current = 0;
+
+    frame.addEventListener('click', event => {
+      if (event.target.closest('.gallery-nav')) return;
+      event.preventDefault();
+      const urls = thumbs.length ? thumbs.map(thumb => thumb.dataset.full) : [frame.getAttribute('href')];
+      openLightbox(urls, current, image.alt);
+    });
+    if (!thumbs.length) return;
 
     const show = index => {
       current = (index + thumbs.length) % thumbs.length;
@@ -353,6 +360,51 @@
       button.addEventListener('click', event => {
         event.preventDefault();
         show(current + Number(button.dataset.step));
+      });
+    });
+  }
+
+  /* Fotoğraf görüntüleyici: ok tuşları, Esc ve dışına tıklama çalışır */
+  function openLightbox(urls, start, alt) {
+    let dialog = $('#lightbox');
+    if (!dialog) {
+      dialog = document.createElement('dialog');
+      dialog.id = 'lightbox';
+      dialog.className = 'lightbox';
+      dialog.innerHTML = '<img alt=""><button class="lightbox-close" type="button" aria-label="Kapat">×</button>' +
+        '<button class="lightbox-nav lightbox-prev" type="button" aria-label="Önceki fotoğraf">‹</button>' +
+        '<button class="lightbox-nav lightbox-next" type="button" aria-label="Sonraki fotoğraf">›</button>' +
+        '<span class="lightbox-count"></span>';
+      document.body.append(dialog);
+      dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+      $('.lightbox-close', dialog).addEventListener('click', () => dialog.close());
+    }
+    const picture = $('img', dialog);
+    const counter = $('.lightbox-count', dialog);
+    let index = start;
+    const show = next => {
+      index = (next + urls.length) % urls.length;
+      picture.src = urls[index];
+      picture.alt = alt || '';
+      counter.textContent = urls.length > 1 ? `${index + 1} / ${urls.length}` : '';
+    };
+    $$('.lightbox-nav', dialog).forEach(button => { button.hidden = urls.length < 2; });
+    $('.lightbox-prev', dialog).onclick = () => show(index - 1);
+    $('.lightbox-next', dialog).onclick = () => show(index + 1);
+    dialog.onkeydown = event => {
+      if (event.key === 'ArrowLeft') show(index - 1);
+      if (event.key === 'ArrowRight') show(index + 1);
+    };
+    show(start);
+    dialog.showModal();
+  }
+
+  function initPortfolio() {
+    const links = $$('.portfolio-grid a');
+    links.forEach((link, index) => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        openLightbox(links.map(item => item.getAttribute('href')), index, $('img', link).alt);
       });
     });
   }
@@ -629,6 +681,14 @@
       });
     });
     $$('[data-print]').forEach(button => button.addEventListener('click', () => window.print()));
+    $$('[data-fill-target]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        const field = document.getElementById(button.dataset.fillTarget);
+        field.value = button.dataset.fillText;
+        field.focus();
+      });
+    });
   }
 
   /* Talep formu: seçilen kategoriye göre yardımcı sorular */
@@ -649,6 +709,58 @@
       description.focus();
     });
     update();
+  }
+
+  /* Talep formu: başlıktan kategori tahmini ve kategorideki fiyat aralığı */
+  function initCategoryGuess() {
+    const select = $('#category');
+    const title = $('#title');
+    if (!select || !title) return;
+    const note = $('#categoryGuess');
+    const price = $('#categoryPrice');
+    let auto = select.dataset.guessed || '';
+
+    const exampleTitle = $('#exampleTitle');
+    const exampleText = $('#exampleText');
+    const showPrice = () => {
+      const chosen = select.selectedOptions[0];
+      const range = chosen ? chosen.dataset.price : '';
+      price.hidden = !range;
+      price.textContent = range ? `Bu kategoride verilen teklifler ${range} arasında.` : '';
+      // Sağdaki örnek seçilen işe uysun.
+      if (exampleTitle && chosen && chosen.dataset.exampleTitle) {
+        exampleTitle.textContent = chosen.dataset.exampleTitle;
+        exampleText.textContent = chosen.dataset.exampleText;
+      }
+    };
+    select.addEventListener('change', event => {
+      showPrice();
+      if (event.isTrusted) {
+        auto = '';
+        note.hidden = true;
+      }
+    });
+    title.addEventListener('input', () => {
+      if (select.value && select.value !== auto) return;
+      const text = title.value.toLocaleLowerCase('tr-TR');
+      let best = '';
+      let bestLength = 0;
+      Array.from(select.options).forEach(option => {
+        (option.dataset.keywords || '').split(',').forEach(word => {
+          if (word && word.length > bestLength && text.includes(word)) {
+            best = option.value;
+            bestLength = word.length;
+          }
+        });
+      });
+      if (best && best !== select.value) {
+        select.value = best;
+        auto = best;
+        note.hidden = false;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    showPrice();
   }
 
   /* Talep taslağı: yalnızca tercih çerezine onay verildiyse tarayıcıda saklanır */
@@ -771,6 +883,8 @@
     initForms();
     initTabs();
     initGallery();
+    initPortfolio();
+    initCategoryGuess();
     initCopyLink();
     initThread();
     initDemoLogin();

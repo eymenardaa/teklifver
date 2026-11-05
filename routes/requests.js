@@ -15,9 +15,10 @@ const { alertSavedSearches } = require('../lib/search-alerts');
 const { parseDateInput, isExpired } = require('../lib/helpers');
 const { rateLimit } = require('express-rate-limit');
 const { uploadImages, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
-const { str, safeNext, searchPattern } = require('../lib/input');
-const { openCountsByCategory, uniqueByPhoto, categoryAverages } = require('../lib/stats');
-const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery } = require('../lib/listing');
+const { str, safeNext } = require('../lib/input');
+const { searchPatterns, matchesText } = require('../public/js/search-terms');
+const { openCountsByCategory, uniqueByPhoto, categoryAverages, priceGuide } = require('../lib/stats');
+const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery, firmsServing } = require('../lib/listing');
 const { notify, notifyMany } = require('../lib/notify');
 const mongoose = require('mongoose');
 const { REPORT_REASONS } = Report;
@@ -136,17 +137,18 @@ router.get('/suggest', suggestLimiter, async (req, res, next) => {
     const q = str(req.query.q);
     if (q.length < 2) return res.json({ items: [] });
 
-    const pattern = searchPattern(q);
-    const matches = await Request.find({ ...liveFilter(), title: { $regex: pattern, $options: 'i' } })
+    const matches = await Request.find({
+      ...liveFilter(),
+      $and: searchPatterns(q).map(pattern => ({ title: { $regex: pattern, $options: 'i' } }))
+    })
       .select('title no')
       .sort({ viewCount: -1 })
       .limit(6)
       .lean();
-    const matcher = new RegExp(pattern, 'i');
 
     res.json({
       items: [
-        ...categories.names.filter(name => matcher.test(name)).slice(0, 3).map(name => ({
+        ...categories.names.filter(name => matchesText(q, [name])).slice(0, 3).map(name => ({
           label: name,
           hint: 'Kategori',
           url: `/requests?category=${encodeURIComponent(name)}`
@@ -160,15 +162,23 @@ router.get('/suggest', suggestLimiter, async (req, res, next) => {
 });
 
 // Yeni talep formu
-router.get('/new', isCustomer, requireVerifiedEmail, (req, res) => {
-  // Ana sayfadaki kutudan gelen başlık ve il form hazır gelsin.
+router.get('/new', isCustomer, requireVerifiedEmail, (req, res, next) => {
+  // Ana sayfadaki kutudan veya hizmet sayfasından gelen bilgiler form hazır gelsin.
+  const formTitle = str(req.query.title).slice(0, 200);
   const city = str(req.query.city);
-  res.render('requests/new', {
-    title: 'Talep Ver',
-    categories,
-    maxImages: MAX_IMAGES,
-    values: { title: str(req.query.title).slice(0, 200), city: cities.includes(city) ? city : '' }
-  });
+  const category = str(req.query.category);
+  const chosen = categories.names.includes(category);
+  const guessed = chosen ? '' : categories.guess(formTitle);
+  priceGuide()
+    .then(priceHints => res.render('requests/new', {
+      title: 'Talep Ver',
+      categories,
+      maxImages: MAX_IMAGES,
+      priceHints,
+      guessedCategory: guessed,
+      values: { title: formTitle, city: cities.includes(city) ? city : '', category: chosen ? category : guessed }
+    }))
+    .catch(next);
 });
 
 // Yeni talep oluştur
@@ -193,8 +203,8 @@ router.post('/', isCustomer, requireVerifiedEmail, limits.newRequest, uploadImag
       images: uploadedPaths(req)
     });
 
-    // Bu kategoride hizmet veren firmalara haber ver.
-    const firms = await User.find({ role: 'company', suspended: false, categories: created.category })
+    // Bu kategoride ve bu ilde hizmet veren firmalara haber ver.
+    const firms = await User.find({ role: 'company', suspended: false, categories: created.category, ...firmsServing(created.city) })
       .select('_id')
       .limit(200)
       .lean();
@@ -343,7 +353,23 @@ router.get('/:id', async (req, res, next) => {
       };
     }
 
-    const pendingAmounts = allBids.filter(bid => bid.status === 'pending').map(bid => bid.amount);
+    const pendingBids = allBids.filter(bid => bid.status === 'pending');
+    const pendingAmounts = pendingBids.map(bid => bid.amount);
+
+    // Talep sahibi teklifleri karşılaştırsın diye öne çıkanlar; herkes eşitse işaretlenmez.
+    let bidSummary = null;
+    if (canSeeBids && pendingBids.length > 1) {
+      const days = pendingBids.map(bid => bid.deliveryTime);
+      const rated = pendingBids.filter(bid => bid.company.ratingCount > 0).map(bid => bid.company.rating);
+      bidSummary = {
+        count: pendingBids.length,
+        lowest: Math.min(...pendingAmounts),
+        average: Math.round(pendingAmounts.reduce((sum, amount) => sum + amount, 0) / pendingAmounts.length / 10) * 10,
+        fastest: Math.min(...days),
+        fastestTag: Math.min(...days) < Math.max(...days) ? Math.min(...days) : null,
+        bestRating: rated.length > 1 && Math.max(...rated) > Math.min(...rated) ? Math.max(...rated) : null
+      };
+    }
 
     // Tutar ve açıklama yalnızca talep sahibine, yöneticiye ve teklifi verene görünür; rakip firmalar görmez.
     const bids = allBids.map(bid => {
@@ -352,7 +378,7 @@ router.get('/:id', async (req, res, next) => {
       return { _id: bid._id, status: bid.status, createdAt: bid.createdAt, company, hidden: true };
     });
 
-    const [similarAll, ownerOpenCount, averages, review, alreadyReported] = await Promise.all([
+    const [similarAll, ownerOpenCount, averages, review, alreadyReported, lastBid] = await Promise.all([
       Request.find({ ...liveFilter(), category: request.category, _id: { $ne: request._id } })
         .sort({ createdAt: -1 })
         .limit(20)
@@ -360,7 +386,11 @@ router.get('/:id', async (req, res, next) => {
       Request.countDocuments({ ...liveFilter(), customer: request.customer._id }),
       categoryAverages(request.category),
       Review.findOne({ request: request._id, hidden: { $ne: true } }).lean(),
-      viewer ? Report.exists({ request: request._id, reporter: viewer.id }) : null
+      viewer ? Report.exists({ request: request._id, reporter: viewer.id }) : null,
+      // Firma her seferinde aynı metni baştan yazmasın.
+      viewer && viewer.role === 'company' && !userBid
+        ? Bid.findOne({ company: viewer.id }).sort({ createdAt: -1 }).select('description').lean()
+        : null
     ]);
 
     res.render('requests/show', {
@@ -396,7 +426,9 @@ router.get('/:id', async (req, res, next) => {
       ),
       ownerOpenCount,
       canSeeBids,
-      lowestAmount: canSeeBids && pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null
+      lowestAmount: canSeeBids && pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null,
+      bidSummary,
+      lastBidText: lastBid ? lastBid.description : ''
     });
   } catch (err) {
     if (err.name === 'CastError') return notFoundPage(res);

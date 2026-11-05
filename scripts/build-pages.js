@@ -130,7 +130,7 @@ async function collectData(parts, rewrite) {
       .select('no title description category city budget images bidCount viewCount createdAt deadline')
       .lean(),
     User.find({ role: 'company', suspended: { $ne: true } })
-      .select('companyName name address categories rating ratingCount verified createdAt')
+      .select('companyName name address serviceCities specialties categories rating ratingCount verified createdAt')
       .lean()
   ]);
   const time = value => (value ? new Date(value).getTime() : 0);
@@ -163,6 +163,8 @@ async function collectData(parts, rewrite) {
       .map(item => ({
         name: item.companyName || item.name,
         city: item.address || '',
+        areas: item.serviceCities || [],
+        specialties: item.specialties || [],
         categories: item.categories || [],
         rating: item.rating || 0,
         reviews: item.ratingCount || 0,
@@ -201,7 +203,7 @@ function finishPage(html, rewrite) {
     .replace('<html lang="tr">', `<html lang="tr" data-base="${BASE}">`)
     .replace('<meta charset="UTF-8">', '<meta charset="UTF-8">\n  <meta name="robots" content="noindex">')
     .replace(/<script src="[^"]*\/js\/main\.js[^"]*" defer><\/script>/, match =>
-      `<link href="${BASE}/css/static.css" rel="stylesheet">\n  <script src="${BASE}/js/static.js" defer></script>\n  ${match}`)
+      `<link href="${BASE}/css/static.css" rel="stylesheet">\n  <script src="${BASE}/js/search-terms.js" defer></script>\n  <script src="${BASE}/js/static.js" defer></script>\n  ${match}`)
     .replace('<body>', `<body>\n  <div class="preview-bar">Önizleme sürümü: talepler, firmalar ve puanlar örnek veridir. Üyelik, talep verme, teklif ve mesajlaşma kapalıdır.</div>`);
 }
 

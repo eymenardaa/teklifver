@@ -290,6 +290,7 @@ router.post('/profile', isLoggedIn, async (req, res, next) => {
         .filter(Boolean)
         .slice(0, 12);
       update.categories = [].concat(req.body.categories || []).filter(name => categories.names.includes(name));
+      update.serviceCities = [...new Set([].concat(req.body.serviceCities || []))].filter(city => cities.includes(city));
     }
 
     const errors = {};

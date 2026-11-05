@@ -87,10 +87,8 @@
     if (filters.photos && !item.photos) return false;
     if (filters.noBids && item.bids > 0) return false;
     if (filters.search) {
-      const term = fold(filters.search);
-      const found = fold(item.title).includes(term) || fold(item.description).includes(term) ||
-        (/^\d{6,}$/.test(filters.search) && String(item.no) === filters.search);
-      if (!found) return false;
+      const byNumber = /^\d{6,}$/.test(filters.search) && String(item.no) === filters.search;
+      if (!byNumber && !window.TeklifverSearch.matchesText(filters.search, [item.title, item.description, item.category])) return false;
     }
     return true;
   }
@@ -188,6 +186,28 @@
     if (headerCity) headerCity.value = filters.city;
   }
 
+  function renderChips(filters) {
+    const box = $('#filterChips');
+    if (!box) return;
+    const chips = [];
+    const money = value => `${Number(value).toLocaleString('tr-TR')} TL`;
+    if (filters.search) chips.push([`"${filters.search}"`, { search: '' }]);
+    if (filters.category !== 'all') chips.push([filters.category, { category: 'all' }]);
+    if (filters.city) chips.push([filters.city, { city: '' }]);
+    if (filters.budgetMin) chips.push([`En az ${money(filters.budgetMin)}`, { budgetMin: 0 }]);
+    if (filters.budgetMax) chips.push([`En çok ${money(filters.budgetMax)}`, { budgetMax: 0 }]);
+    if (filters.period) chips.push([filters.period === '1' ? 'Son 24 saat' : `Son ${filters.period} gün`, { period: '' }]);
+    if (filters.photos) chips.push(['Fotoğraflı', { photos: false }]);
+    if (filters.noBids) chips.push(['Teklif almamış', { noBids: false }]);
+    box.hidden = chips.length === 0;
+    box.replaceChildren(...chips.map(([label, overrides]) => element('a', {
+      className: 'filter-chip',
+      href: requestUrl(filters, overrides),
+      textContent: `${label} ×`
+    })));
+    if (chips.length > 1) box.append(element('a', { className: 'filter-clear', href: `${BASE}/requests/`, textContent: 'Tümünü temizle' }));
+  }
+
   function renderRequests(data) {
     const filters = readRequestFilters(data);
     const matched = data.requests
@@ -207,8 +227,8 @@
     table.hidden = isGallery || visible.length === 0;
     if (!visible.length) {
       section.append(element('div', { className: 'empty' }, [
-        element('h3', { textContent: 'Aradığınız kriterlere uygun talep bulunamadı' }),
-        element('p', { textContent: 'Filtreleri değiştirerek tekrar deneyin.' }),
+        element('h2', { textContent: 'Bu aramada talep çıkmadı' }),
+        element('p', { textContent: 'İli veya bütçeyi kaldırıp yeniden deneyin.' }),
         element('a', { className: 'btn', href: `${BASE}/requests/`, textContent: 'Tüm Talepler' })
       ]));
     } else if (isGallery) {
@@ -230,6 +250,8 @@
       link.href = requestUrl(filters, { view, page });
       link.classList.toggle('is-active', view === filters.view);
     });
+
+    renderChips(filters);
 
     if (filters.category !== 'all') {
       document.title = `${filters.category} - TeklifVer`;
@@ -257,9 +279,9 @@
     const sort = Object.hasOwn(COMPANY_SORTS, query.get('sort')) ? query.get('sort') : 'rating';
 
     const matched = data.companies.filter(item =>
-      (!search || fold(item.name).includes(fold(search))) &&
+      (!search || window.TeklifverSearch.matchesText(search, [item.name, item.specialties.join(' '), item.categories.join(' ')])) &&
       (!category || item.categories.includes(category)) &&
-      (!city || item.city === city) &&
+      (!city || item.city === city || item.areas.includes(city)) &&
       (!minRating || item.rating >= Number(minRating)) &&
       (!verified || item.verified)
     ).sort(COMPANY_SORTS[sort]);
@@ -274,7 +296,7 @@
       $('tbody', table).innerHTML = matched.map(item => item.row).join('');
     } else {
       section.append(element('div', { className: 'empty' }, [
-        element('h3', { textContent: 'Firma bulunamadı' }),
+        element('h2', { textContent: 'Firma bulunamadı' }),
         element('a', { className: 'btn', href: `${BASE}/companies/`, textContent: 'Tüm Firmalar' })
       ]));
     }
@@ -299,10 +321,10 @@
   /* Arama önerileri: main.js sunucuya sorar, burada yerel veriden yanıtlanır */
   window.fetch = (url, options) => {
     if (typeof url !== 'string' || !url.startsWith('/requests/suggest')) return nativeFetch(url, options);
-    const term = fold(new URLSearchParams(url.split('?')[1]).get('q'));
+    const term = new URLSearchParams(url.split('?')[1]).get('q') || '';
     return loadData().then(data => {
       const categories = data.categories
-        .filter(item => fold(item.name).includes(term))
+        .filter(item => window.TeklifverSearch.matchesText(term, [item.name]))
         .slice(0, 3)
         .map(item => ({
           label: item.name,
@@ -310,7 +332,7 @@
           url: `${BASE}/requests/?category=${encodeURIComponent(item.name)}`
         }));
       const requests = data.requests
-        .filter(item => fold(item.title).includes(term))
+        .filter(item => window.TeklifverSearch.matchesText(term, [item.title]))
         .sort((a, b) => b.views - a.views)
         .slice(0, 6)
         .map(item => ({ label: item.title, hint: `No: ${item.no}`, url: `${BASE}/requests/${item.id}/` }));

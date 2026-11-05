@@ -16,7 +16,7 @@ const SavedSearch = require('../models/SavedSearch');
 const DEMO_DOMAIN = 'teklifver.test';
 const DEMO_PASSWORD = 'demo1234';
 // Örnek veriler değişince artır: eski örnek veriler kendiliğinden yenilenir, gerçek kullanıcılara dokunulmaz.
-const DEMO_VERSION = 2;
+const DEMO_VERSION = 3;
 
 // Giriş sayfasındaki tek tıkla giriş butonları
 const demoAccounts = [
@@ -106,36 +106,36 @@ const customers = {
 const companies = {
   usta: {
     name: 'Hakan Demir', companyName: 'Demir Tadilat', email: `sirket@${DEMO_DOMAIN}`, phone: '0555 000 00 02',
-    address: 'İstanbul', months: 52, specialties: ['Mutfak', 'Banyo', 'Boya badana', 'Anahtar teslim'],
+    address: 'İstanbul', serviceCities: ['İstanbul', 'Kocaeli'], months: 52, specialties: ['Mutfak', 'Banyo', 'Boya badana', 'Anahtar teslim'],
     companyDescription: "2012'den beri Anadolu Yakası'nda ev tadilatı yapıyorum. Gelip bakmadan fiyat vermem, keşif ücretsiz. Yaptığım işin 2 yıl arkasındayım."
   },
   yilmaz: {
-    name: 'İsmail Yılmaz', companyName: 'Yılmaz Mobilya Dekorasyon', address: 'İstanbul', months: 61,
+    name: 'İsmail Yılmaz', companyName: 'Yılmaz Mobilya Dekorasyon', address: 'İstanbul', serviceCities: ['İstanbul'], months: 61,
     specialties: ['Mutfak dolabı', 'Gardırop', 'TV ünitesi'],
     companyDescription: 'Kendi atölyemizde üretiyoruz. Ölçüye gelip çizim yapıyoruz, beğenirseniz başlıyoruz.'
   },
   temel: {
-    name: 'Serkan Polat', companyName: 'Polat İnşaat Ltd. Şti.', address: 'Ankara', months: 76,
+    name: 'Serkan Polat', companyName: 'Polat İnşaat Ltd. Şti.', address: 'Ankara', serviceCities: ['Ankara', 'Kırıkkale', 'Çankırı'], months: 76,
     specialties: ['Kaba inşaat', 'Tadilat', 'Su yalıtımı'],
     companyDescription: 'Konut ve dükkan tadilatı, su yalıtımı, kaba inşaat. Ankara ve çevre illere gidiyoruz. Faturalı çalışırız.'
   },
   ege: {
-    name: 'Tolga Er', companyName: 'Er Dekorasyon', address: 'İzmir', months: 39,
+    name: 'Tolga Er', companyName: 'Er Dekorasyon', address: 'İzmir', serviceCities: ['İzmir'], months: 39,
     specialties: ['Alçıpan', 'Asma tavan', 'Parke', 'Boya'],
     companyDescription: 'Alçıpan, asma tavan, parke, boya. Sadece İzmir içi çalışıyoruz.'
   },
   yildirim: {
-    name: 'Kemal Yıldırım', companyName: 'Yıldırım Elektrik', address: 'Bursa', months: 44,
+    name: 'Kemal Yıldırım', companyName: 'Yıldırım Elektrik', address: 'Bursa', serviceCities: ['Bursa'], months: 44,
     specialties: ['Elektrik', 'Pano', 'Aydınlatma'],
     companyDescription: 'Yetki belgeli elektrik ustasıyım. Pano, tesisat, aydınlatma.'
   },
   kara: {
-    name: 'Ramazan Kara', companyName: 'Kara Boya Badana', address: 'Antalya', months: 23,
+    name: 'Ramazan Kara', companyName: 'Kara Boya Badana', address: 'Antalya', serviceCities: ['Antalya'], months: 23,
     specialties: ['Boya badana'],
     companyDescription: '20 yıldır boya badana yapıyorum. Antalya içi her yere gelirim.'
   },
   aydin: {
-    name: 'Murat Aydın', companyName: 'Aydın Cam Balkon', address: 'Muğla', months: 18,
+    name: 'Murat Aydın', companyName: 'Aydın Cam Balkon', address: 'Muğla', serviceCities: ['Muğla', 'Aydın'], months: 18,
     specialties: ['Cam balkon', 'PVC doğrama']
   },
   kodhane: {
@@ -169,27 +169,27 @@ const companies = {
     companyDescription: "Parsiyel ve komple yük taşıyoruz. Depomuz Gebze'de."
   },
   gezgin: {
-    name: 'Okan Gezgin', companyName: 'Gezgin Nakliyat', address: 'İzmir', months: 15,
+    name: 'Okan Gezgin', companyName: 'Gezgin Nakliyat', address: 'İzmir', serviceCities: ['İzmir', 'Aydın', 'Manisa', 'Muğla'], months: 15,
     specialties: ['Evden eve', 'Parça eşya'],
     companyDescription: 'İzmir ve Ege geneli evden eve, parça eşya.'
   },
   isilti: {
-    name: 'Ayşe Koç', companyName: 'Koç Temizlik Hizmetleri', address: 'İstanbul', months: 33,
+    name: 'Ayşe Koç', companyName: 'Koç Temizlik Hizmetleri', address: 'İstanbul', serviceCities: ['İstanbul'], months: 33,
     specialties: ['Ofis temizliği', 'İnşaat sonrası', 'Koltuk yıkama'],
     companyDescription: 'Ev, ofis ve inşaat sonrası temizlik. Malzeme bizden, personelimiz sigortalı.'
   },
   piril: {
-    name: 'Nuray Şen', companyName: 'Şen Temizlik', address: 'Bursa', months: 12,
+    name: 'Nuray Şen', companyName: 'Şen Temizlik', address: 'Bursa', serviceCities: ['Bursa'], months: 12,
     specialties: ['Apartman', 'Ofis', 'Cam silme'],
     companyDescription: 'Bursa merkez ilçelerde apartman ve ofis temizliği.'
   },
   kadraj: {
-    name: 'Deniz Yıldız', companyName: 'Deniz Yıldız Fotoğraf', address: 'Bursa', months: 26,
+    name: 'Deniz Yıldız', companyName: 'Deniz Yıldız Fotoğraf', address: 'Bursa', serviceCities: ['Bursa', 'Balıkesir'], months: 26,
     specialties: ['Tanıtım filmi', 'Drone çekimi', 'Düğün çekimi'],
     companyDescription: 'Düğün, tanıtım filmi, ürün çekimi. Drone ehliyetim var.'
   },
   sahne: {
-    name: 'Merve Aslan', companyName: 'Aslan Organizasyon', address: 'İstanbul', months: 44,
+    name: 'Merve Aslan', companyName: 'Aslan Organizasyon', address: 'İstanbul', serviceCities: ['İstanbul', 'Kocaeli'], months: 44,
     specialties: ['Düğün', 'Kurumsal etkinlik', 'Ses ışık'],
     companyDescription: 'Düğün, kına, şirket etkinliği. Ses ve ışık sistemi kendimizin.'
   },

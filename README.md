@@ -151,6 +151,10 @@ Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Hizmet ve il sayfaları (`/hizmet/temizlik/izmir`), site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
 - Küçük ekranda alt menü
+- Akıllı arama: "boyacı" boyayı, "mutfağı" mutfağı bulur, kelime sırası önemli değildir (`public/js/search-terms.js`)
+- Firmalar hizmet verdikleri illeri seçer; bildirimler ve uygun talepler buna göre gelir
+- Talep formu başlıktan kategoriyi tahmin eder, kategorideki teklif aralığını ve örnek talebi gösterir
+- Talep sahibine en düşük, en hızlı ve en yüksek puanlı teklif işaretlenir; kabulden sonra arama ve WhatsApp düğmeleri çıkar
 - Siyah ve beyaz tema: site beyaz açılır, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
 - Güvenlik başlıkları (CSP), gzip sıkıştırma, başka sitelerden form gönderimine karşı koruma, istek sınırları
 - Yüklenen görseller doğrulanır, küçültülür, konum bilgisi silinir ve veritabanında (GridFS) saklanır; sunucu yeniden başlasa da kaybolmaz

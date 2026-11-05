@@ -7,7 +7,7 @@ const SavedSearch = require('../models/SavedSearch');
 const { isLoggedIn, isCompany } = require('../middleware/auth');
 const { str } = require('../lib/input');
 const { profileChecklist } = require('../lib/stats');
-const { liveFilter, readFilters, buildConditions, filtersToQuery, describeFilters } = require('../lib/listing');
+const { liveFilter, readFilters, buildConditions, filtersToQuery, describeFilters, requestsInArea } = require('../lib/listing');
 
 const MAX_SAVED_SEARCHES = 20;
 
@@ -49,10 +49,13 @@ router.get('/', isLoggedIn, async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const firm = await User.findById(user.id).select('profileViews').lean();
+
     res.render('dashboard/company', {
       title: 'Tekliflerim',
       section: 'bids',
       myBids,
+      profileViews: (firm && firm.profileViews) || 0,
       stats: {
         pendingBids: myBids.filter(b => b.status === 'pending').length,
         acceptedBids: myBids.filter(b => b.status === 'accepted').length,
@@ -68,14 +71,17 @@ router.get('/', isLoggedIn, async (req, res, next) => {
 // Firmanın hizmet kategorilerine uyan, henüz teklif vermediği talepler
 router.get('/matches', isCompany, async (req, res, next) => {
   try {
-    const me = await User.findById(req.session.user.id).select('categories').lean();
+    const me = await User.findById(req.session.user.id).select('categories serviceCities').lean();
     const categories = (me && me.categories) || [];
+    const serviceCities = (me && me.serviceCities) || [];
+    const showAll = req.query.all === '1';
     const myBids = await Bid.find({ company: req.session.user.id }).select('request').lean();
 
     const requests = categories.length
       ? await Request.find({
           ...liveFilter(),
           category: { $in: categories },
+          ...(showAll ? {} : requestsInArea({ serviceCities })),
           _id: { $nin: myBids.map(bid => bid.request) }
         })
           .sort({ createdAt: -1 })
@@ -87,6 +93,8 @@ router.get('/matches', isCompany, async (req, res, next) => {
       title: 'Size Uygun Talepler',
       section: 'matches',
       requests,
+      serviceCities,
+      showAll,
       hasCategories: categories.length > 0
     });
   } catch (err) {

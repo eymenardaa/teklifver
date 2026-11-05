@@ -270,7 +270,7 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     })()`;
     for (const theme of ['light', 'dark']) {
       await page.evaluate(`localStorage.setItem('theme', '${theme}')`);
-      for (const path of ['/', '/requests', '/hizmet/temizlik', '/login', '/register', '/companies', '/fiyat-rehberi', '/kategoriler']) {
+      for (const path of ['/', '/requests', '/requests?search=boya&photos=on', '/hizmet/temizlik', '/login', '/register', '/companies', '/fiyat-rehberi', '/kategoriler']) {
         await page.goto(path);
         const result = await page.evaluate(contrastProblems);
         check(`kontrast ${theme} ${path}`, result.checked > 20 && result.found.length === 0, `${result.checked} metin; ${result.found.join(' | ')}`);
@@ -333,6 +333,23 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.clickAndWait('.composer button[type="submit"]');
     check('talep kutusu formu doldurur', (await page.evaluate("document.getElementById('title').value")) === 'Balkon boyanacak' && (await page.evaluate("document.getElementById('city').value")) === 'Ankara');
 
+    const fieldValue = id => page.evaluate(`document.getElementById('${id}').value`);
+    const isVisible = id => page.evaluate(`!document.getElementById('${id}').hidden`);
+    check('talep kutusundan kategori tahmin edilir', (await fieldValue('category')) === 'İnşaat & Tadilat' && await isVisible('categoryGuess'));
+
+    await page.goto('/requests/new');
+    await page.fill('#title', 'Koltuk yıkama lazım');
+    check('yazarken kategori seçilir', (await fieldValue('category')) === 'Temizlik' && await isVisible('categoryGuess'));
+    check('kategoriye uygun örnek gösterilir', (await page.evaluate("document.getElementById('exampleTitle').textContent")).includes('ev temizliği'));
+    check('kategorinin teklif aralığı gösterilir', (await page.evaluate("document.getElementById('categoryPrice').textContent")).includes(' TL arasında'));
+    await page.fill('#title', 'Daire boyanacak');
+    check('yazı değişince tahmin de değişir', (await fieldValue('category')) === 'İnşaat & Tadilat');
+    await page.goto(`/requests/new?category=${encodeURIComponent('Eğitim')}`);
+    await page.fill('#title', 'Daire boyanacak');
+    check('seçilmiş kategori değiştirilmez', (await fieldValue('category')) === 'Eğitim');
+    await sleep(500);
+    await page.evaluate("localStorage.removeItem('request-draft')");
+
     await page.goto('/requests/new');
     await page.fill('#category', 'Temizlik');
     check('kategori soruları görünür', await page.evaluate(`!document.getElementById('categoryTip').hidden`));
@@ -348,6 +365,26 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     check('talep formu çalışır', /^\/requests\/[a-f0-9]{24}$/.test(requestUrl), requestUrl);
     await sleep(500);
     check('yüklenen görsel görünür', await page.evaluate(`document.querySelector('.gallery-main img').naturalWidth > 0`));
+
+    // Fotoğraf görüntüleyici
+    const openDemoRequest = async term => {
+      await page.goto(`/requests?search=${encodeURIComponent(term)}`);
+      await page.goto(await page.evaluate("document.querySelector('.listing-title').getAttribute('href')"));
+    };
+    await openDemoRequest('Seramik markam');
+    await page.click('a.gallery-main');
+    check('fotoğraf görüntüleyici açılır', await page.evaluate("document.getElementById('lightbox').open"));
+    check('tek fotoğrafta ok gizli', await page.evaluate("document.querySelector('.lightbox-next').hidden"));
+    await page.click('.lightbox-close');
+    check('görüntüleyici kapanır', !(await page.evaluate("document.getElementById('lightbox').open")));
+    await openDemoRequest('Mutfak dolapları tezgah');
+    await page.click('a.gallery-main');
+    check('çok fotoğrafta sayaç görünür', (await page.evaluate("document.querySelector('.lightbox-count').textContent")) === '1 / 2');
+    await page.click('.lightbox-next');
+    check('sonraki fotoğrafa geçilir', (await page.evaluate("document.querySelector('.lightbox-count').textContent")) === '2 / 2');
+    await page.evaluate("document.getElementById('lightbox').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }))");
+    check('ok tuşuyla geçilir', (await page.evaluate("document.querySelector('.lightbox-count').textContent")) === '1 / 2');
+    await page.click('.lightbox-close');
     await page.goto('/requests/new');
     check('gönderilen taslak silinir', (await page.evaluate(`document.getElementById('title').value`)) === '');
     await logout(page);
@@ -370,6 +407,12 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.fill('#messageContent', 'Tarayıcıdan mesaj');
     await page.clickAndWait('form.thread-form button[type="submit"]');
     check('mesaj formu çalışır', (await page.text()).includes('Tarayıcıdan mesaj'));
+
+    // Firma önceki teklif metnini tek tıkla kullanır
+    await page.goto(`/requests?search=${encodeURIComponent('Seramik markam')}`);
+    await page.goto(await page.evaluate("document.querySelector('.listing-title').getAttribute('href')"));
+    await page.click('[data-fill-target]');
+    check('son teklif metni kullanılır', (await page.evaluate("document.getElementById('bidDescription').value")) === 'Tarayıcıdan teklif');
 
     await page.goto('/profile');
     await page.fill('#phone', '0555 111 22 33');

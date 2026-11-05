@@ -123,10 +123,31 @@
         </span>
       </div>
 
+      <%
+        const chips = [];
+        if (filters.search) chips.push([`"${filters.search}"`, listUrl({ search: '' })]);
+        if (filters.category !== 'all') chips.push([filters.category, listUrl({ category: 'all' })]);
+        if (filters.city) chips.push([filters.city, listUrl({ city: '' })]);
+        if (filters.budgetMin) chips.push([`En az ${money(filters.budgetMin)}`, listUrl({ budgetMin: 0 })]);
+        if (filters.budgetMax) chips.push([`En çok ${money(filters.budgetMax)}`, listUrl({ budgetMax: 0 })]);
+        if (filters.period) chips.push([filters.period === '1' ? 'Son 24 saat' : `Son ${filters.period} gün`, listUrl({ period: '' })]);
+        if (filters.photos) chips.push(['Fotoğraflı', listUrl({ photos: false })]);
+        if (filters.noBids) chips.push(['Teklif almamış', listUrl({ noBids: false })]);
+      %>
+      <div class="filter-chips" id="filterChips" <%= chips.length ? '' : 'hidden' %>>
+        <% chips.forEach(([label, url]) => { %>
+          <a class="filter-chip" href="<%= url %>" aria-label="<%= label %> filtresini kaldır"><%= label %> <span aria-hidden="true">×</span></a>
+        <% }) %>
+        <% if (chips.length > 1) { %><a class="filter-clear" href="/requests">Tümünü temizle</a><% } %>
+      </div>
+
       <% if (requests.length === 0) { %>
         <div class="empty">
           <h2>Bu aramada talep çıkmadı</h2>
           <p>İli veya bütçeyi kaldırıp yeniden deneyin. Aramayı kaydederseniz yeni talep geldiğinde görebilirsiniz.</p>
+          <% if (filters.search && (!currentUser || currentUser.role === 'customer')) { %>
+            <a class="btn btn-primary" href="/requests/new?title=<%= encodeURIComponent(filters.search) %>&city=<%= encodeURIComponent(filters.city) %>">Bu İş İçin Talep Ver</a>
+          <% } %>
           <a class="btn" href="/requests">Tüm Talepler</a>
         </div>
       <% } else if (filters.view === 'gallery') { %>

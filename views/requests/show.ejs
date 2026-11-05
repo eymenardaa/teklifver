@@ -13,6 +13,19 @@
     <% if (request.city) { %>&rsaquo; <a href="<%= categoryCityUrl(request.category, request.city) %>"><%= request.city %></a><% } %>
   </div>
 
+  <% if (isOwner && ['open', 'in_progress', 'completed'].includes(request.status)) {
+    const chosenFirm = ['in_progress', 'completed'].includes(request.status);
+    const steps = [
+      ['Talep yayında', true],
+      [bids.length ? `${bids.length} teklif geldi` : 'Teklif bekleniyor', bids.length > 0],
+      ['Firma seçildi', chosenFirm],
+      ['İş tamamlandı', request.status === 'completed']
+    ];
+  %>
+    <ol class="request-steps" aria-label="Talebin durumu">
+      <% steps.forEach(([label, done]) => { %><li class="<%= done ? 'is-done' : '' %>"><%= label %></li><% }) %>
+    </ol>
+  <% } %>
   <div class="detail-title">
     <h1><%= request.title %></h1>
     <div class="detail-actions">
@@ -47,7 +60,7 @@
     <% if (hasPhotos) { %>
     <div>
         <a class="gallery-main" href="<%= request.images[0] %>" target="_blank" rel="noopener">
-          <img src="<%= request.images[0] %>" alt="<%= request.title %>">
+          <img src="<%= request.images[0] %>" alt="<%= request.title %>" fetchpriority="high" decoding="async">
           <% if (request.images.length > 1) { %>
             <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki fotoğraf">&lsaquo;</button>
             <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki fotoğraf">&rsaquo;</button>
@@ -75,12 +88,13 @@
           <%= request.location || 'Konum belirtilmemiş' %>
         <% } %>
       </div>
+      <p class="prose detail-desc"><%= request.description %></p>
 
       <table class="info-table">
         <tr><td>Talep No</td><td><strong><%= request.no %></strong></td></tr>
         <tr><td>Talep Tarihi</td><td><%= formatDate(request.createdAt) %></td></tr>
         <tr><td>Kategori</td><td><%= request.category %></td></tr>
-        <tr><td>Son Tarih</td><td><%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %></td></tr>
+        <tr><td>Son Tarih</td><td><%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %><% if (request.deadline && isOpen && !isExpired(request)) { %> <span class="muted small">(<%= daysLeft(request.deadline) %> gün kaldı)</span><% } %></td></tr>
         <tr><td>Durum</td><td><%- include('../partials/status', { status: requestStatus[request.status] }) %></td></tr>
         <tr><td>Teklif Sayısı</td><td><%= bids.length %></td></tr>
         <tr><td>Görüntülenme</td><td><%= request.viewCount %></td></tr>
@@ -106,8 +120,14 @@
           <div class="side-card-body">
             <div class="contact-row"><strong><%= contact.name %></strong></div>
             <div class="contact-row"><a href="mailto:<%= contact.email %>"><%= contact.email %></a></div>
-            <% if (contact.phone) { %>
-              <div class="contact-row"><a href="tel:<%= contact.phone %>"><%= contact.phone %></a></div>
+            <% if (contact.phone) { const phone = phoneLinks(contact.phone); %>
+              <div class="contact-row"><%= phone.display %></div>
+              <div class="contact-actions">
+                <a class="btn btn-sm" href="<%= phone.tel %>">Ara</a>
+                <% if (phone.whatsapp) { %>
+                  <a class="btn btn-sm" target="_blank" rel="noopener" href="<%= phone.whatsapp %>?text=<%= encodeURIComponent('Merhaba, TeklifVer\'deki "' + request.title + '" talebi için yazıyorum.') %>">WhatsApp</a>
+                <% } %>
+              </div>
             <% } %>
           </div>
         </div>
@@ -252,11 +272,6 @@
     data-image="<%= request.images && request.images.length ? request.images[0] : '' %>"
     data-budget="<%= budgetLabel(request.budget) %>"></div>
 
-  <section class="box">
-    <div class="box-head">Talep Açıklaması</div>
-    <div class="box-body"><p class="prose"><%= request.description %></p></div>
-  </section>
-
   <% if (userBid && isOpen && userBid.status === 'pending') { %>
     <section class="box" id="teklif-duzenle">
       <div class="box-head">Teklifimi Düzenle</div>
@@ -294,6 +309,7 @@
       <div class="box-body">
         <form class="form" action="/bids" method="POST" style="max-width:560px">
           <input type="hidden" name="requestId" value="<%= request._id %>">
+          <p class="field-hint">Müşterinin bütçesi: <strong><%= budgetLabel(request.budget) %></strong></p>
           <div class="field-row">
             <div class="field">
               <label class="field-label" for="amount">Tutar</label>
@@ -311,8 +327,10 @@
             </div>
           </div>
           <div class="field">
-            <label class="field-label" for="bidDescription">Açıklama</label>
-            <textarea class="textarea" id="bidDescription" name="description" rows="4" maxlength="3000" required></textarea>
+            <label class="field-label" for="bidDescription">Açıklama
+              <% if (lastBidText) { %><button class="link-button" type="button" data-fill-target="bidDescription" data-fill-text="<%= lastBidText %>">Son teklif metnimi kullan</button><% } %>
+            </label>
+            <textarea class="textarea" id="bidDescription" name="description" rows="4" maxlength="3000" placeholder="Fiyata neler dahil, ne zaman başlarsınız, ödemeyi nasıl istersiniz?" required></textarea>
           </div>
           <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Gönder</button></div>
         </form>
@@ -334,6 +352,9 @@
     </div>
     <span id="teklifler"></span>
     <% if (bids.length && !canSeeBids) { %><p class="box-note">Rekabet adil kalsın diye teklif tutarları ve açıklamalar yalnızca talep sahibine görünür.</p><% } %>
+    <% if (bidSummary) { %>
+      <p class="box-note bid-summary"><%= bidSummary.count %> bekleyen teklif: en düşük <strong><%= money(bidSummary.lowest) %></strong>, ortalama <strong><%= money(bidSummary.average) %></strong>, en kısa süre <strong><%= bidSummary.fastest %> gün</strong>.</p>
+    <% } %>
     <% if (bids.length === 0) { %>
       <div class="empty">Bu talebe henüz teklif verilmedi.</div>
     <% } else { %>
@@ -360,6 +381,7 @@
                 <a class="bid-company" href="/companies/<%= bid.company._id %>"><%= bid.company.companyName || bid.company.name %></a>
                 <% if (bid.company.verified) { %><%- include('../partials/verified') %><% } %>
                 <% if (bid.company.ratingCount > 0) { %>
+                  <% if (bidSummary && bid.status === 'pending' && bid.company.rating === bidSummary.bestRating) { %><span class="tag-lowest">En yüksek puan</span><% } %>
                   <span class="bid-rating"><%- icon('star', { size: 12, class: 'star' }) %> <%= ratingLabel(bid.company.rating) %> (<%= bid.company.ratingCount %>)</span>
                 <% } else { %>
                   <span class="bid-rating">Puan yok</span>
@@ -378,7 +400,10 @@
                   <div class="tag-lowest">En düşük</div>
                 <% } %>
               </td>
-              <td class="col-date"><%= bid.deliveryTime %> gün</td>
+              <td class="col-date">
+                <%= bid.deliveryTime %> gün
+                <% if (bidSummary && bid.status === 'pending' && bid.deliveryTime === bidSummary.fastestTag) { %><div class="tag-lowest">En hızlı</div><% } %>
+              </td>
               <% } %>
               <td class="col-date"><%= formatDate(bid.createdAt) %></td>
               <td class="col-status"><%- include('../partials/status', { status: bidStatus[bid.status] }) %></td>
