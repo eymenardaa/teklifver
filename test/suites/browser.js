@@ -211,7 +211,10 @@ const logout = async page => page.clickAndWait('form[action="/logout"] button');
     await page.goto('/');
     const style = (selector, prop) => page.evaluate(`getComputedStyle(document.querySelector(${JSON.stringify(selector)})).${prop}`);
     check('düğme yalnızca transform ile hareket eder', (await style('.btn', 'transitionProperty')) === 'transform');
-    check('kart yalnızca transform ile hareket eder', (await style('.showcase-item', 'transitionProperty')) === 'transform');
+    // Kart hareketi yalnızca fareli cihazlarda vardır; başsız Linux tarayıcısı fare bildirmez.
+    if (await page.evaluate("matchMedia('(hover: hover)').matches")) {
+      check('kart yalnızca transform ile hareket eder', (await style('.showcase-item', 'transitionProperty')) === 'transform');
+    }
     check('tablo satırı yeniden çizim geçişi kullanmaz', (await style('.listing-table td', 'transitionDuration')) === '0s');
     check('bağlantılarda renk geçişi yok', (await style('.side-list a', 'transitionDuration')) === '0s');
     const longest = await page.evaluate(`Math.max(...[...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } }).flatMap(function walk(rule) { return rule.cssRules ? [...rule.cssRules].flatMap(walk) : [rule]; }).filter(rule => rule.style).map(rule => parseFloat(rule.style.transitionDuration) || 0))`);
