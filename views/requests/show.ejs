@@ -14,7 +14,11 @@
   </div>
 
   <div class="detail-title">
-    <h1><%= request.title %></h1>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <h1><%= request.title %></h1>
+      <% if (request.isUrgent) { %><span class="label-urgent" style="background:var(--price); color:#fff; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:3px">ACİL</span><% } %>
+      <% if (request.isFeatured) { %><span class="label-featured" style="background:#f59f00; color:#fff; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:3px">⭐ VİTRİN</span><% } %>
+    </div>
     <div class="detail-actions">
       <% if (currentUser) { %>
         <form class="fav-form" action="/requests/<%= request._id %>/favorite" method="POST">
@@ -404,6 +408,59 @@
         </tbody>
       </table>
     <% } %>
+  </section>
+
+  <!-- Soru & Cevap Bölümü (Herkesin görebildiği halka açık SSS) -->
+  <section class="box" id="soru-cevap">
+    <div class="box-head">
+      Talebe Sorulan Sorular (<%= (request.questions && request.questions.length) || 0 %>)
+    </div>
+    <div class="box-body">
+      <% if (!request.questions || !request.questions.length) { %>
+        <p class="muted small" style="margin-bottom:12px">Bu taleple ilgili henüz soru sorulmamış.</p>
+      <% } else { %>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px">
+          <% request.questions.forEach(q => { %>
+            <div style="border:1px solid var(--line); border-radius:4px; padding:10px; background:var(--head)">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                <strong><%- icon('help-circle', { size: 14 }) %> <%= q.askerName || 'Firma' %> sordu:</strong>
+                <span class="muted small"><%= formatDate(q.createdAt) %></span>
+              </div>
+              <p style="margin:4px 0 8px 18px; color:var(--text)"><%= q.question %></p>
+
+              <% if (q.answer) { %>
+                <div style="margin-left:18px; padding:8px; background:var(--surface); border-left:3px solid var(--link); border-radius:0 4px 4px 0">
+                  <div style="display:flex; justify-content:space-between">
+                    <strong style="color:var(--link)"><%- icon('message-square', { size: 13 }) %> Talep Sahibinin Cevabı:</strong>
+                    <% if (q.answeredAt) { %><span class="muted small"><%= formatDate(q.answeredAt) %></span><% } %>
+                  </div>
+                  <p style="margin:4px 0 0 0"><%= q.answer %></p>
+                </div>
+              <% } else if (isOwner && isOpen) { %>
+                <form action="/requests/<%= request._id %>/questions/<%= q._id %>/answer" method="POST" style="margin-left:18px; margin-top:6px">
+                  <div style="display:flex; gap:6px">
+                    <input class="input" type="text" name="answer" placeholder="Bu soruyu yanıtlayın..." required style="height:32px; font-size:12px">
+                    <button class="btn btn-sm btn-primary" type="submit">Cevapla</button>
+                  </div>
+                </form>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+
+      <% if (currentUser && !isOwner && isOpen) { %>
+        <form class="form" action="/requests/<%= request._id %>/questions" method="POST" style="border-top:1px solid var(--line); padding-top:12px">
+          <label class="field-label" for="questionInput"><strong>Talep Sahibine Soru Sor</strong> (Herkes tarafından görülecektir)</label>
+          <div style="display:flex; gap:8px">
+            <input class="input" id="questionInput" type="text" name="question" placeholder="Örn: Malzemeyi kim temin edecek? Kat kaçıncı katta?" required>
+            <button class="btn btn-primary" type="submit" style="white-space:nowrap">Soruyu Gönder</button>
+          </div>
+        </form>
+      <% } else if (!currentUser && isOpen) { %>
+        <p class="muted small"><a href="/login?next=<%= encodeURIComponent(currentUrl + '#soru-cevap') %>">Giriş yaparak</a> talep sahibine soru sorabilirsiniz.</p>
+      <% } %>
+    </div>
   </section>
 
   <% if (review) { %>

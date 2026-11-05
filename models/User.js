@@ -124,6 +124,20 @@ const userSchema = new mongoose.Schema({
   ratingCount: {
     type: Number,
     default: 0
+  },
+  // --- YENİ EKLENEN ÖZELLİKLER (Firma Paketleri & İstatistikler) ---
+  plan: {
+    type: String,
+    enum: ['free', 'pro', 'enterprise'],
+    default: 'free'
+  },
+  bidCredits: {
+    type: Number,
+    default: 10 // Ücretsiz üyelik aylık 10 teklif hakkı
+  },
+  profileViews: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

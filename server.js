@@ -274,6 +274,7 @@ async function start() {
   });
 
   app.get('/uploads/:name', serveImage);
+  app.use('/', require('./routes/features'));
   app.use('/', require('./routes/home'));
   app.use('/', require('./routes/pages'));
   app.use('/', require('./routes/auth'));

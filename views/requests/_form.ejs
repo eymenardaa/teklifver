@@ -20,10 +20,26 @@
 </div>
 
 <div class="field <%= errors.description ? 'has-error' : '' %>">
-  <label class="field-label" for="description">Açıklama</label>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+    <label class="field-label" for="description" style="margin:0">Açıklama</label>
+    <button class="btn btn-sm" type="button" id="aiEnhanceBtn" style="background:linear-gradient(135deg, #1f3b57, #0b5cad); color:#fff; border:0; gap:4px">
+      <span>✨ Yapay Zekâ ile Detaylandır</span>
+    </button>
+  </div>
   <textarea class="textarea" id="description" name="description" rows="7" maxlength="5000" required><%= form.description %></textarea>
-  <p class="field-hint">Ölçü, adres, malzeme gibi detayları yazarsanız daha doğru teklif alırsınız. Telefon numarası yazmayın.</p>
+  <p class="field-hint">Ölçü, adres, malzeme gibi detayları yazarsanız daha doğru teklif alırsınız.</p>
   <% if (errors.description) { %><p class="field-error"><%= errors.description %></p><% } %>
+</div>
+
+<!-- Yapay Zekâ Fiyat Tahmin Kutusu -->
+<div class="field">
+  <div class="tip-box" id="aiPriceBox" style="background:#f0f7ff; border:1px solid #bcd3ee; display:flex; justify-content:space-between; align-items:center; padding:10px 14px">
+    <div>
+      <strong style="color:#0b5cad">🤖 Yapay Zekâ Fiyat Tahmini:</strong>
+      <span id="aiPriceText" style="margin-left:6px; color:#222">Kategori seçildiğinde otomatik piyasa tahmini sunulur.</span>
+    </div>
+    <button class="btn btn-sm" type="button" id="aiApplyPrice" style="display:none">Bütçeye Uygula</button>
+  </div>
 </div>
 
 <div class="field-row">
@@ -63,10 +79,27 @@
   <% if (errors.budget) { %><p class="field-error"><%= errors.budget %></p><% } %>
 </div>
 
-<div class="field <%= errors.deadline ? 'has-error' : '' %>" style="max-width:220px">
-  <label class="field-label" for="deadline">Son tarih <span class="optional">İsteğe bağlı</span></label>
-  <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
-  <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
+<div class="field-row">
+  <div class="field <%= errors.deadline ? 'has-error' : '' %>" style="max-width:220px">
+    <label class="field-label" for="deadline">Son tarih <span class="optional">İsteğe bağlı</span></label>
+    <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
+    <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
+  </div>
+</div>
+
+<!-- Para Kazandıran Özellikler: İlanı Öne Çıkarma & Acil İlan -->
+<div class="field" style="margin-top:10px; padding:12px; background:var(--head); border:1px solid var(--line); border-radius:4px">
+  <span class="field-label" style="font-weight:bold; margin-bottom:8px; display:block">🚀 İlanınızı Öne Çıkarın (Daha Hızlı Teklif Alın)</span>
+  <div style="display:flex; flex-direction:column; gap:8px">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+      <input type="checkbox" name="isFeatured" <%= form.isFeatured ? 'checked' : '' %>>
+      <span><strong>Vitrin İlanı:</strong> Talebiniz ana sayfa vitrininde ve aramalarda en üstte yer alsın.</span>
+    </label>
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+      <input type="checkbox" name="isUrgent" <%= form.isUrgent ? 'checked' : '' %>>
+      <span><strong style="color:var(--price)">Acil Talep:</strong> İlanınıza kırmızı "ACİL" rozeti eklenir, firmalar öncelik verir.</span>
+    </label>
+  </div>
 </div>
 
 <% if (locals.existingImages && existingImages.length) { %>
@@ -95,3 +128,73 @@
   <div class="thumbs" id="imagePreviews"></div>
   <p class="field-error" id="imagesError" <%= errors.images ? '' : 'hidden' %>><%= errors.images || '' %></p>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const catSelect = document.getElementById('category');
+  const descEl = document.getElementById('description');
+  const aiPriceBox = document.getElementById('aiPriceBox');
+  const aiPriceText = document.getElementById('aiPriceText');
+  const aiApplyBtn = document.getElementById('aiApplyPrice');
+  const minInput = document.getElementById('budgetMin');
+  const maxInput = document.getElementById('budgetMax');
+  const aiEnhanceBtn = document.getElementById('aiEnhanceBtn');
+
+  let currentEstimate = null;
+
+  async function updateAiEstimate() {
+    const category = catSelect.value;
+    if (!category) return;
+    try {
+      const res = await fetch('/ai/price-estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, description: descEl.value })
+      });
+      const data = await res.json();
+      currentEstimate = data;
+      aiPriceText.innerHTML = `<strong>${data.min.toLocaleString('tr-TR')} ₺ - ${data.max.toLocaleString('tr-TR')} ₺</strong> (${data.unit})`;
+      aiApplyBtn.style.display = 'inline-block';
+    } catch (e) {}
+  }
+
+  catSelect.addEventListener('change', updateAiEstimate);
+
+  if (aiApplyBtn) {
+    aiApplyBtn.addEventListener('click', () => {
+      if (currentEstimate) {
+        minInput.value = currentEstimate.min;
+        maxInput.value = currentEstimate.max;
+      }
+    });
+  }
+
+  if (aiEnhanceBtn) {
+    aiEnhanceBtn.addEventListener('click', async () => {
+      const category = catSelect.value;
+      if (!category) {
+        alert('Lütfen önce bir kategori seçin.');
+        return;
+      }
+      aiEnhanceBtn.disabled = true;
+      aiEnhanceBtn.innerText = 'Yapay Zekâ Yazıyor...';
+      try {
+        const res = await fetch('/ai/enhance-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category, text: descEl.value })
+        });
+        const data = await res.json();
+        if (data.enhanced) {
+          descEl.value = (descEl.value ? descEl.value + '\n\n' : '') + data.enhanced;
+          updateAiEstimate();
+        }
+      } catch (e) {
+      } finally {
+        aiEnhanceBtn.disabled = false;
+        aiEnhanceBtn.innerText = '✨ Yapay Zekâ ile Detaylandır';
+      }
+    });
+  }
+});
+</script>

@@ -76,7 +76,23 @@ const requestSchema = new mongoose.Schema({
   viewCount: {
     type: Number,
     default: 0
-  }
+  },
+  isUrgent: {
+    type: Boolean,
+    default: false
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false
+  },
+  questions: [{
+    asker: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    askerName: String,
+    question: { type: String, required: true },
+    answer: String,
+    createdAt: { type: Date, default: Date.now },
+    answeredAt: Date
+  }]
 }, {
   timestamps: true
 });

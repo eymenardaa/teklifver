@@ -3,6 +3,8 @@
   <ul class="side-list">
     <% if (currentUser.role === 'company') { %>
       <li><a class="<%= section === 'bids' ? 'is-active' : '' %>" href="/dashboard">Tekliflerim</a></li>
+      <li><a class="<%= section === 'analytics' ? 'is-active' : '' %>" href="/dashboard/analytics">📊 Analiz & Performans</a></li>
+      <li><a class="<%= section === 'plans' ? 'is-active' : '' %>" href="/dashboard/plans">💎 Üyelik Paketleri</a></li>
       <li><a class="<%= section === 'matches' ? 'is-active' : '' %>" href="/dashboard/matches">Size Uygun Talepler</a></li>
       <li><a href="/companies/<%= currentUser.id %>">Firma Sayfam</a></li>
     <% } else { %>

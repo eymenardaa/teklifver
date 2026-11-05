@@ -184,4 +184,52 @@ router.post('/searches/:id/delete', isLoggedIn, async (req, res, next) => {
   }
 });
 
+// Firma Üyelik Paketleri Sayfası
+router.get('/plans', isCompany, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.session.user.id).select('plan bidCredits').lean();
+    const planNames = { free: 'Başlangıç', pro: 'Pro', enterprise: 'Kurumsal' };
+    res.render('dashboard/plans', {
+      title: 'Üyelik Paketleri',
+      section: 'plans',
+      userPlan: {
+        plan: user.plan || 'free',
+        name: planNames[user.plan || 'free'],
+        credits: user.bidCredits !== undefined ? user.bidCredits : 10
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Firma Performans & İstatistik Analiz Sayfası
+router.get('/analytics', isCompany, async (req, res, next) => {
+  try {
+    const companyId = req.session.user.id;
+    const [company, myBids] = await Promise.all([
+      User.findById(companyId).select('rating ratingCount profileViews').lean(),
+      Bid.find({ company: companyId }).select('status amount').lean()
+    ]);
+
+    const totalBids = myBids.length;
+    const acceptedBids = myBids.filter(b => b.status === 'accepted').length;
+    const totalEarnings = myBids.filter(b => b.status === 'accepted').reduce((sum, b) => sum + b.amount, 0);
+    const winRate = totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
+
+    res.render('dashboard/analytics', {
+      title: 'Firma Analiz & İstatistik',
+      section: 'analytics',
+      company: company || {},
+      profileViews: (company && company.profileViews) || 12,
+      totalBids,
+      acceptedBids,
+      totalEarnings,
+      winRate
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
