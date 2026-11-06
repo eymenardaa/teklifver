@@ -21,6 +21,7 @@ const env = extra => ({
   SESSION_SECRET: 'x'.repeat(40),
   SITE_URL,
   ADMIN_EMAIL: 'patron@teklifver.example',
+  DISABLE_2FA: 'true',
   ...extra
 });
 

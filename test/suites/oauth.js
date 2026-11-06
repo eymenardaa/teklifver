@@ -46,7 +46,7 @@ async function social(c, provider, profile, startUrl) {
   const server = spawn(process.execPath, ['-r', path.join(__dirname, '..', 'helpers', 'oauth-mock.js'), path.join(ROOT, 'server.js')], {
     cwd,
     env: {
-      PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, MONGODB_URI: uri, PORT: String(PORT), SESSION_SECRET: 'test-secret',
+      PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, MONGODB_URI: uri, PORT: String(PORT), SESSION_SECRET: 'test-secret', DISABLE_2FA: 'true', NODE_ENV: 'test',
       GOOGLE_CLIENT_ID: 'gid', GOOGLE_CLIENT_SECRET: 'gsec', FACEBOOK_CLIENT_ID: 'fid', FACEBOOK_CLIENT_SECRET: 'fsec'
     },
     stdio: ['ignore', 'pipe', 'pipe']

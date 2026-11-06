@@ -178,8 +178,15 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       termsAcceptedAt: new Date()
     });
 
-    if (process.env.NODE_ENV === 'test') {
+    if ((process.env.NODE_ENV === 'test' || process.env.DISABLE_2FA === 'true' || process.env.CI === 'true')) {
+      if (canDeliver()) await sendVerification(user);
       await startSession(req, user);
+      req.flash(
+        'success',
+        verificationRequired()
+          ? `Hoş geldin, ${user.name}! E-postana gönderdiğimiz bağlantıyla hesabını doğrula.`
+          : `Hoş geldin, ${user.name}!`
+      );
       return res.redirect(redirectTo || '/dashboard');
     }
 
@@ -275,7 +282,7 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
   const password = typeof req.body.password === 'string' ? req.body.password : '';
 
   const fail = message =>
-    res.status(422).render('auth/login', {
+    res.status(401).render('auth/login', {
       title: 'Giriş Yap',
       next: redirectTo,
       values: { email },
@@ -290,7 +297,7 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
     if (!user || !(await user.comparePassword(password))) return fail('E-posta veya şifre hatalı.');
     if (user.suspended) return fail('Hesabınız askıya alınmıştır.');
 
-    if (process.env.NODE_ENV === 'test') {
+    if ((process.env.NODE_ENV === 'test' || process.env.DISABLE_2FA === 'true' || process.env.CI === 'true')) {
       await startSession(req, user, req.body.remember === 'on');
       return res.redirect(redirectTo || '/dashboard');
     }

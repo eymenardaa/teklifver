@@ -40,7 +40,8 @@ function assetVersion() {
 
 async function start() {
   if (!process.env.SESSION_SECRET) {
-    process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
+    if (!isProduction) process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
+    else throw new Error('SESSION_SECRET tanımlı değil.');
   }
   if (isProduction) checkProductionSettings();
 
@@ -91,6 +92,7 @@ async function start() {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+          workerSrc: ["'self'", "blob:"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           connectSrc: ["'self'"],
@@ -353,9 +355,10 @@ async function start() {
 function checkProductionSettings() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32 || secret === 'buraya-uzun-ve-rastgele-bir-metin-yazin') {
-    process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
+    throw new Error('SESSION_SECRET en az 32 karakter uzunluğunda rastgele bir metin olmalı.');
   }
-  // E-postalardaki bağlantılar istekteki alan adından üretilirse sahte adrese yönlendirilebilir.
+  if (!process.env.SITE_URL) throw new Error('SITE_URL zorunlu.');
+  if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI zorunlu.');
   if (!configuredUrl()) console.warn('  Uyarı: SITE_URL tanımlı değil; dinamik adres kullanılacak.');
   if (!mailEnabled()) console.warn('  Uyarı: SMTP tanımlı değil; şifre sıfırlama ve bildirim e-postaları gönderilemez.');
   if (!process.env.SITE_EMAIL) console.warn('  Uyarı: SITE_EMAIL tanımlı değil; iletişim mesajları yalnızca yönetim panelinde görünür.');
