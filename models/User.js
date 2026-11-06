@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema({
   },
   emailCode: String,
   emailCodeExpires: Date,
+  emailCodeSentAt: Date,
   emailTokenHash: String,
   emailTokenExpires: Date,
   // Doğrulanana kadar hesabın e-postası değişmez.

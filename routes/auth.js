@@ -187,8 +187,6 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       await sendVerificationCode(user);
     } catch (e) {
       console.error("Doğrulama kodu gönderilemedi:", e.message);
-      req.flash("error", "Onay kodu e-postanıza gönderilemedi: " + e.message);
-      return res.redirect("/register");
     }
 
     req.session.pendingVerifyUserId = user._id;
@@ -302,8 +300,6 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
       await sendVerificationCode(user);
     } catch (e) {
       console.error("Giriş onay kodu gönderilemedi:", e.message);
-      req.flash("error", "Giriş onay kodu e-postanıza gönderilemedi: " + e.message);
-      return res.redirect("/login");
     }
 
     req.session.pendingVerifyUserId = user._id;
