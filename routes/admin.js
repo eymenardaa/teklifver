@@ -251,6 +251,7 @@ router.post('/users/:id/verify', async (req, res, next) => {
     if (!user || user.role !== 'company') return res.redirect('/admin/users');
 
     user.verified = !user.verified;
+    user.verificationStatus = user.verified ? 'approved' : 'none';
     await user.save();
     if (user.verified) await notify(user._id, 'Firmanız onaylandı, rozetiniz sayfanızda görünüyor.', `/companies/${user._id}`);
 

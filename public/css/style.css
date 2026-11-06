@@ -912,3 +912,133 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
   75% { transform: rotate(2deg); }
   100% { transform: rotate(0); }
 }
+
+/* ========================================================
+   YENİ GELİŞTİRMELER: PWA, Canlı Chat, Sihirbaz, Escrow & Doğrulama
+   ======================================================== */
+
+/* PWA Kurulum Butonu */
+.pwa-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff !important;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+.pwa-btn:hover {
+  transform: translateY(-1px);
+  color: #fff !important;
+}
+
+/* Canlı Sohbet Yazıyor Göstergesi */
+.thread-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  animation: tv-drop 0.15s ease-out;
+}
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+.typing-dots span {
+  width: 5px;
+  height: 5px;
+  background: var(--muted);
+  border-radius: 50%;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Akıllı Talep Sihirbazı (Wizard) */
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--control-border);
+  gap: 8px;
+}
+.step-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.step-badge .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--head);
+  border: 1.5px solid var(--control-border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.step-badge.active {
+  color: var(--text);
+}
+.step-badge.active .num {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+.step-badge.completed {
+  color: var(--link);
+}
+.step-badge.completed .num {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--control-border);
+  margin-inline: 4px;
+}
+@media (max-width: 600px) {
+  .step-badge .label { display: none; }
+  .wizard-stepper { padding: 12px 14px; }
+}
+
+/* Güvenli Havuz (Escrow) */
+.escrow-shield-banner {
+}
+.escrow-shield-banner:hover {
+  transform: translateY(-1px);
+}
+
+/* Doğrulama Rozetleri */
+.badge-blue {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

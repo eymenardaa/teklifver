@@ -196,6 +196,16 @@ router.post('/:id/accept', isCustomer, async (req, res, next) => {
     bid.status = 'accepted';
     await bid.save();
 
+    // Güvenli Havuz (Escrow) ödemesi
+    const useEscrow = req.body.escrow === '1' || req.body.escrow === 'true';
+    if (useEscrow && bid.amount > 0) {
+      claimed.escrowStatus = 'held';
+      claimed.escrowAmount = bid.amount;
+      claimed.escrowFee = Math.round(bid.amount * 0.05); // %5 komisyon
+      claimed.escrowPaidAt = new Date();
+      await claimed.save();
+    }
+
     const others = await Bid.find({ request: requestId, _id: { $ne: bid._id }, status: 'pending' }).select('company');
     await Bid.updateMany(
       { request: requestId, _id: { $ne: bid._id }, status: 'pending' },
@@ -254,6 +264,10 @@ router.post('/:id/cancel', isLoggedIn, async (req, res, next) => {
     }
 
     const request = bid.status === 'accepted' ? await cancelDeal(bid) : null;
+    if (request && request.escrowStatus === 'held') {
+      request.escrowStatus = 'refunded';
+      await request.save();
+    }
     if (!request) {
       req.flash('error', 'Bu anlaşma iptal edilemez.');
       return res.redirect(requestUrl);

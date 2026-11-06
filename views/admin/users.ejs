@@ -23,6 +23,9 @@
                 <strong><%= user.companyName || user.name %></strong>
                 <% if (user.verified) { %><%- include('../partials/verified') %><% } %>
                 <div class="listing-sub"><%= user.email %></div>
+                <% if (user.verificationDoc) { %>
+                  <div style="margin-top:4px;"><a class="badge badge-blue" href="<%= user.verificationDoc %>" target="_blank" rel="noopener">Yüklenen Belgeyi Gör</a></div>
+                <% } %>
               </td>
               <td class="col-date"><%= user.isAdmin ? 'Yönetici' : user.role === 'company' ? 'Firma' : 'Bireysel' %></td>
               <td class="col-date"><%= memberSince(user.createdAt) %></td>

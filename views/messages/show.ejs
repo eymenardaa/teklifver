@@ -40,6 +40,10 @@
             <div class="msg-time"><%= formatDateTime(message.createdAt) %></div>
           </div>
         <% }) %>
+        <div class="thread-typing" id="threadTyping" hidden>
+          <span class="typing-dots"><span></span><span></span><span></span></span>
+          <span class="typing-label"><%= otherName %> yazıyor...</span>
+        </div>
       </div>
 
       <form class="thread-form" action="/messages/<%= request._id %>/<%= other._id %>" method="POST" enctype="multipart/form-data">

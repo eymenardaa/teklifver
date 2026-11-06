@@ -168,11 +168,19 @@ router.get('/:requestId/:userId', isLoggedIn, async (req, res, next) => {
   }
 });
 
-// Sayfa açıkken yeni mesajları alır
+// Sayfa açıkken yeni mesajları ve yazıyor durumunu alır
+const typingStatus = new Map();
+
+router.post('/:requestId/:userId/typing', isLoggedIn, (req, res) => {
+  const key = `${req.params.requestId}:${req.session.user.id}`;
+  typingStatus.set(key, Date.now() + 3500);
+  res.json({ ok: true });
+});
+
 router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
   try {
     const thread = await loadThread(req);
-    if (!thread) return res.status(403).json({ messages: [] });
+    if (!thread) return res.status(403).json({ messages: [], typing: false });
 
     const { requestId, userId } = req.params;
     const me = req.session.user.id;
@@ -184,7 +192,11 @@ router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
     const messages = await Message.find(filter).sort({ _id: 1 }).limit(50).lean();
     await markRead(requestId, userId, me);
 
+    const otherTypingKey = `${requestId}:${userId}`;
+    const isTyping = (typingStatus.get(otherTypingKey) || 0) > Date.now();
+
     res.json({
+      typing: isTyping,
       messages: messages.map(message => ({
         id: message._id,
         mine: message.sender.toString() === me,
@@ -228,7 +240,7 @@ router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter
       return res.redirect(backToThread);
     }
 
-    await Message.create({
+    const createdMsg = await Message.create({
       request: requestId,
       sender: req.session.user.id,
       receiver: userId,
@@ -243,6 +255,9 @@ router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter
       await notify(userId, `${sender} size mesaj gönderdi: "${thread.request.title}"`, threadForReceiver, { mail: 'messages' });
     }
 
+    if (req.xhr || req.headers.accept?.includes('application/json')) {
+      return res.json({ ok: true, id: createdMsg._id, content, time: formatDateTime(createdMsg.createdAt), image: createdMsg.image });
+    }
     res.redirect(backToThread);
   } catch (err) {
     next(err);

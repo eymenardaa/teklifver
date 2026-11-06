@@ -73,6 +73,21 @@ const requestSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Bid'
   },
+  escrowStatus: {
+    type: String,
+    enum: ['none', 'held', 'released', 'refunded'],
+    default: 'none'
+  },
+  escrowAmount: {
+    type: Number,
+    default: 0
+  },
+  escrowFee: {
+    type: Number,
+    default: 0
+  },
+  escrowPaidAt: Date,
+  escrowReleasedAt: Date,
   bidCount: {
     type: Number,
     default: 0

@@ -431,7 +431,8 @@
                     <div class="bid-actions">
                       <form action="/bids/<%= bid._id %>/accept" method="POST"
                         data-confirm="Bu teklifi kabul edince diğer teklifler reddedilir ve iletişim bilgileriniz firmayla paylaşılır." data-confirm-label="Kabul Et">
-                        <button class="btn btn-primary btn-sm" type="submit">Kabul Et</button>
+                        <button class="btn btn-primary btn-sm" type="submit" title="TeklifVer Korumasıyla Kabul Et">Kabul Et</button>
+                        <input type="hidden" name="escrow" value="1">
                       </form>
                       <form action="/bids/<%= bid._id %>/reject" method="POST"
                         data-confirm="Bu teklif reddedilecek." data-confirm-label="Reddet" data-confirm-tone="danger">

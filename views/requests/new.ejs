@@ -4,14 +4,36 @@
   <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Talep Ver</span></div>
 
   <div class="request-form-layout">
-    <section class="box">
-      <div class="box-head">Talep Ver</div>
+    <section class="box request-wizard">
+      <div class="box-head">
+        <span>Hizmet Talebi Oluştur</span>
+      </div>
+
+      <!-- Akıllı Sihirbaz İlerleme Adımları -->
+      <div class="wizard-stepper" aria-label="Talep adımları">
+        <div class="step-badge active" data-step-indicator="1">
+          <span class="num">1</span>
+          <span class="label">Kategori & Başlık</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-badge" data-step-indicator="2">
+          <span class="num">2</span>
+          <span class="label">İşin Detayları</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-badge" data-step-indicator="3">
+          <span class="num">3</span>
+          <span class="label">Konum, Bütçe & Fotoğraf</span>
+        </div>
+      </div>
+
       <div class="box-body">
         <div class="tip-box" id="draftNote" hidden>
           <span>Yarım kalan taslağınız geri yüklendi.</span>
           <button class="btn btn-sm" type="button" id="draftClear">Taslağı Sil</button>
         </div>
-        <form class="form" action="/requests" method="POST" enctype="multipart/form-data" data-draft="request-draft">
+
+        <form class="form" id="requestForm" action="/requests" method="POST" enctype="multipart/form-data" data-draft="request-draft">
           <%- include('_form', {
             form: {
               title: values.title || '',
@@ -24,8 +46,8 @@
               location: values.location || ''
             }
           }) %>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Talebi Yayınla</button>
+          <div class="form-actions" style="margin-top:24px;">
+            <button class="btn btn-primary" type="submit">Talebi Hemen Yayınla</button>
             <a class="btn" href="/requests">Vazgeç</a>
           </div>
         </form>

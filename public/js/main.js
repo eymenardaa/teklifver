@@ -472,6 +472,38 @@
       thread.append(box);
     };
 
+    // Canlı bildirim sesi
+    function playDing() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.22);
+      } catch { /* ses engellendiyse sessiz kal */ }
+    }
+
+    // Yazıyor durumu ping'i
+    let lastTypingPing = 0;
+    if (textarea) {
+      textarea.addEventListener('input', () => {
+        if (Date.now() - lastTypingPing > 2000) {
+          lastTypingPing = Date.now();
+          const typingUrl = thread.dataset.poll ? thread.dataset.poll.replace(/\/new.*$/, '/typing') : '';
+          if (typingUrl) fetch(typingUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
+        }
+      });
+    }
+
     const poll = async () => {
       if (polling || document.hidden) return;
       polling = true;
@@ -479,13 +511,21 @@
         const query = last ? `?after=${encodeURIComponent(last)}` : '';
         const response = await fetch(thread.dataset.poll + query, { headers: { Accept: 'application/json' } });
         if (!response.ok) return;
-        const { messages } = await response.json();
+        const data = await response.json();
+        const messages = data.messages || [];
+
+        // Yazıyor göstergesi
+        const typingEl = $('#threadTyping');
+        if (typingEl) typingEl.hidden = !data.typing;
+
         if (messages.length) {
-          emptyNote.hidden = true;
-          const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
+          if (emptyNote) emptyNote.hidden = true;
+          const hasOther = messages.some(m => !m.mine);
+          if (hasOther) playDing();
+          const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
           messages.forEach(addMessage);
           last = messages[messages.length - 1].id;
-          if (atBottom) scrollDown();
+          if (atBottom || hasOther) scrollDown();
         }
       } catch {
         // Bağlantı geçici olarak kesildiyse bir sonraki denemede alınır.
@@ -494,7 +534,7 @@
       }
     };
 
-    setInterval(poll, 8000);
+    setInterval(poll, 2500);
   }
 
   /* Çerez onayı: seçim yapılana kadar yalnızca zorunlu çerezler kullanılır */
@@ -920,6 +960,72 @@
     setInterval(update, 60000);
   }
 
+
+  /* PWA: Servis işçisi kaydı ve Uygulamayı Yükle butonu */
+  function initPWA() {
+    if ('serviceWorker' in navigator && !navigator.webdriver) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
+    let deferredPrompt = null;
+    const btn = $('#pwaInstallBtn');
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (btn) btn.hidden = false;
+    });
+
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          btn.hidden = true;
+        }
+        deferredPrompt = null;
+      });
+    }
+  }
+
+    /* Akıllı Talep Sihirbazı (Armut Tarzı Çok Adımlı İlerleme) */
+  function initWizard() {
+    const wizard = $('.request-wizard');
+    if (!wizard) return;
+
+    const indicators = $$('[data-step-indicator]');
+    if (!indicators.length) return;
+
+    const cat = $('#category');
+    const title = $('#title');
+    const desc = $('#description');
+    const city = $('#city');
+
+    const updateStep = () => {
+      let step = 1;
+      if (cat && cat.value && title && title.value.trim().length > 3) {
+        step = 2;
+      }
+      if (step === 2 && desc && desc.value.trim().length > 10) {
+        step = 3;
+      }
+      indicators.forEach((ind, idx) => {
+        const stepNum = idx + 1;
+        ind.classList.toggle('active', stepNum === step);
+        ind.classList.toggle('completed', stepNum < step);
+      });
+    };
+
+    if (cat) cat.addEventListener('change', updateStep);
+    if (title) title.addEventListener('input', updateStep);
+    if (desc) desc.addEventListener('input', updateStep);
+    if (city) city.addEventListener('change', updateStep);
+
+    updateStep();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initMotion();
@@ -948,5 +1054,7 @@
     initSmallActions();
     initAttach();
     initDeadlines();
+    initPWA();
+    initWizard();
   });
 })();

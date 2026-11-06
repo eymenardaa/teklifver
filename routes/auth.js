@@ -514,6 +514,26 @@ router.post('/profile/logo/delete', isLoggedIn, async (req, res, next) => {
   }
 });
 
+// Usta / Firma Doğrulama Belgesi Yükleme
+router.post('/profile/verification', isLoggedIn, uploadImages, async (req, res, next) => {
+  try {
+    const uploaded = (req.files || []).map(file => '/uploads/' + file.filename);
+    if (!uploaded.length) {
+      req.flash('error', 'Lütfen geçerli bir belge (JPG, PNG veya PDF) seçin.');
+      return res.redirect('/profile');
+    }
+    const profile = await User.findById(req.session.user.id);
+    if (profile.verificationDoc) deleteImages([profile.verificationDoc]);
+    profile.verificationDoc = uploaded[0];
+    profile.verificationStatus = 'pending';
+    await profile.save();
+    req.flash('success', 'Belgeniz yüklendi ve onaya gönderildi. İnceleme sonrası rozetiniz açılacaktır.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/profile/password', isLoggedIn, async (req, res, next) => {
   try {
     const current = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';

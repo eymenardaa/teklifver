@@ -113,6 +113,23 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  verificationDoc: {
+    type: String,
+    default: ''
+  },
+  verificationStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none'
+  },
+  verificationNote: {
+    type: String,
+    default: ''
+  },
+  balance: {
+    type: Number,
+    default: 0
+  },
   isAdmin: {
     type: Boolean,
     default: false
