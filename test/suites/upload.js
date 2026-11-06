@@ -13,7 +13,7 @@ const check = (name, ok, extra = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} $
   });
   const cookie = login.headers.get('set-cookie').split(';')[0];
 
-  const base = { title: 'Görselli talep', description: 'Açıklama', category: 'Diğer' };
+  const base = { title: 'Görselli talep', description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' };
   const send = (path, fields, files) => {
     const body = new FormData();
     Object.entries(fields).forEach(([k, v]) => [].concat(v).forEach(x => body.append(k, x)));

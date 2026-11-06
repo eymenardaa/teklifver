@@ -12,11 +12,12 @@ const Review = require('../models/Review');
 const Report = require('../models/Report');
 const Notification = require('../models/Notification');
 const SavedSearch = require('../models/SavedSearch');
+const { monthKey } = require('../lib/plans');
 
 const DEMO_DOMAIN = 'teklifver.test';
 const DEMO_PASSWORD = 'demo1234';
 // Örnek veriler değişince artır: eski örnek veriler kendiliğinden yenilenir, gerçek kullanıcılara dokunulmaz.
-const DEMO_VERSION = 3;
+const DEMO_VERSION = 4;
 
 // Giriş sayfasındaki tek tıkla giriş butonları
 const demoAccounts = [
@@ -105,7 +106,7 @@ const customers = {
 
 const companies = {
   usta: {
-    name: 'Hakan Demir', companyName: 'Demir Tadilat', email: `sirket@${DEMO_DOMAIN}`, phone: '0555 000 00 02',
+    name: 'Hakan Demir', companyName: 'Demir Tadilat', email: `sirket@${DEMO_DOMAIN}`, phone: '0555 000 00 02', plan: 'pro',
     address: 'İstanbul', serviceCities: ['İstanbul', 'Kocaeli'], months: 52, specialties: ['Mutfak', 'Banyo', 'Boya badana', 'Anahtar teslim'],
     companyDescription: "2012'den beri Anadolu Yakası'nda ev tadilatı yapıyorum. Gelip bakmadan fiyat vermem, keşif ücretsiz. Yaptığım işin 2 yıl arkasındayım."
   },
@@ -115,7 +116,7 @@ const companies = {
     companyDescription: 'Kendi atölyemizde üretiyoruz. Ölçüye gelip çizim yapıyoruz, beğenirseniz başlıyoruz.'
   },
   temel: {
-    name: 'Serkan Polat', companyName: 'Polat İnşaat Ltd. Şti.', address: 'Ankara', serviceCities: ['Ankara', 'Kırıkkale', 'Çankırı'], months: 76,
+    name: 'Serkan Polat', companyName: 'Polat İnşaat Ltd. Şti.', plan: 'enterprise', address: 'Ankara', serviceCities: ['Ankara', 'Kırıkkale', 'Çankırı'], months: 76,
     specialties: ['Kaba inşaat', 'Tadilat', 'Su yalıtımı'],
     companyDescription: 'Konut ve dükkan tadilatı, su yalıtımı, kaba inşaat. Ankara ve çevre illere gidiyoruz. Faturalı çalışırız.'
   },
@@ -251,14 +252,21 @@ const listings = [
   // İnşaat ve tadilat
   ['elif', 'Mutfak dolapları ve tezgah yenilenecek', 'İnşaat & Tadilat', 'İstanbul', 'Kadıköy', 60000, 95000, 5, 64, 0, img('mutfak2', 'mutfak3'),
     'Yaklaşık 12 m2 mutfak. Eski dolaplar sökülecek, moloz da alınsın. Tezgah kuvars olsun diye düşünüyorum ama başka önerilere açığım.\n\nAnkastre fırın ve ocak bende var, aynısını kullanacağım. 3. kat, asansör var.',
-    { deadline: 40, bids: [['usta', 78000, 21, 'Keşif ücretsiz. Söküm, moloz, MDF lake dolap ve kuvars tezgah fiyata dahil. İşçiliğe 2 yıl garanti.', 'pending'], ['yilmaz', 91000, 30, 'Dolapları kendi atölyemizde yapıyoruz. Tezgah ve aydınlatma dahil anahtar teslim.', 'pending']] }],
+    { deadline: 40, discoveryTime: 'Hafta içi akşam (18:00 - 21:00)',
+      questions: [
+        ['yilmaz', 'Dolaplar L mi düz mü? Ölçüleri yazabilir misiniz, ona göre çizim hazırlayayım.', 'L şeklinde. Kısa kenar 2,1 m, uzun kenar 3,4 m. Kolon yok.', 0.6],
+        ['usta', 'Davlumbaz da değişecek mi, yoksa mevcut olan mı takılacak?', null, 0.3]
+      ],
+      bids: [['usta', 78000, 21, 'Keşif ücretsiz. Söküm, moloz, MDF lake dolap ve kuvars tezgah fiyata dahil. İşçiliğe 2 yıl garanti.', 'pending'], ['yilmaz', 91000, 30, 'Dolapları kendi atölyemizde yapıyoruz. Tezgah ve aydınlatma dahil anahtar teslim.', 'pending']] }],
   ['burak', 'Banyo komple yenilenecek, 6 m2', 'İnşaat & Tadilat', 'Ankara', 'Çankaya', 70000, 0, 30, 88, 0, [],
     'Fayans, lavabo, klozet ve duş kabini değişecek. Tesisat 25 yıllık, o da yenilenmeli. Malzemeyi birlikte seçebiliriz.',
-    { deadline: 25, bids: [['temel', 76500, 15, 'Ankara içi keşif ücretsiz. Su yalıtımı dahil.', 'pending'], ['usta', 82000, 12, 'Tesisat, seramik işçiliği ve vitrifiye montajı dahil. Ankara dışından geliyoruz, yol masrafı içinde.', 'pending']] }],
+    { deadline: 25, discoveryTime: 'Hafta sonu herhangi bir saat',
+      questions: [['temel', 'Altınızda daire var mı? Su yalıtımını ona göre planlıyoruz.', 'Var, ikinci kattayım. Alt komşunun tavanında eskiden leke olmuştu.', 0.7]],
+      bids: [['temel', 76500, 15, 'Ankara içi keşif ücretsiz. Su yalıtımı dahil.', 'pending'], ['usta', 82000, 12, 'Tesisat, seramik işçiliği ve vitrifiye montajı dahil. Ankara dışından geliyoruz, yol masrafı içinde.', 'pending']] }],
   ['aysel', '3+1 daire boya badana, kiracı çıktı', 'İnşaat & Tadilat', 'Antalya', 'Muratpaşa', 18000, 28000, 2, 19, 1, [],
     '110 m2 boş daire. Komple boyanacak, tavanlar dahil. Renk beyaz, salonda bir duvar açık gri olabilir. Bu hafta başlanırsa iyi olur.', { deadline: 6 }],
   ['hatice', 'Alt komşuya su sızıyor, kaçak tespiti lazım', 'İnşaat & Tadilat', 'Konya', 'Selçuklu', 0, 0, 3, 41, 1, img('tesisat'),
-    'Banyodan alt kata su iniyor. Kırmadan cihazla kaçak tespiti yapan tesisat ustası arıyorum. Acele.', { deadline: 3 }],
+    'Banyodan alt kata su iniyor. Kırmadan cihazla kaçak tespiti yapan tesisat ustası arıyorum. Acele.', { deadline: 3, urgent: true }],
   ['okan', 'Eski evin elektrik tesisatı yenilenecek', 'İnşaat & Tadilat', 'Muğla', 'Milas', 30000, 50000, 80, 52, 2, img('elektrik'),
     '30 yıllık 2 katlı ev. Pano ve hatlar komple değişecek. Yetki belgeli usta olsun, abonelik işlerinde de yardım lazım.', {}],
   ['elif', 'Lavabo gideri ve batarya değişimi', 'İnşaat & Tadilat', 'İstanbul', 'Maltepe', 1500, 4000, 6, 23, 2, [],
@@ -621,6 +629,7 @@ async function createDemoData({ showcase = false } = {}) {
       ...data, password, role: 'company', email: email || `${key}@${DEMO_DOMAIN}`,
       categories: Object.keys(companiesByCategory).filter(category => companiesByCategory[category].includes(key)),
       verified: verifiedCompanies.includes(key),
+      profileViews: 40 + ((months * 37 + key.length * 53) % 360),
       createdAt: monthsAgo(months), updatedAt: monthsAgo(1)
     });
   }
@@ -687,9 +696,30 @@ async function createDemoData({ showcase = false } = {}) {
       bidCount: bidDocs.length,
       viewCount: views,
       deadline: extra.deadline ? daysFromNow(extra.deadline) : undefined,
+      discoveryTime: extra.discoveryTime || '',
+      isUrgent: Boolean(extra.urgent),
+      questions: (extra.questions || []).map(([company, question, answer, share]) => ({
+        asker: people[company]._id,
+        askerName: companies[company].companyName,
+        question,
+        answer: answer || undefined,
+        createdAt: hoursAgo(listedHours * share),
+        answeredAt: answer ? hoursAgo(listedHours * share * 0.5) : undefined
+      })),
       createdAt: hoursAgo(listedHours),
       updatedAt: hoursAgo(listedHours)
     });
+  }
+
+  const thisMonth = monthKey();
+  const monthly = await Bid.aggregate([
+    { $match: { company: { $in: Object.keys(companies).map(key => people[key]._id) } } },
+    { $project: { company: 1, month: { $dateToString: { format: '%Y-%m', date: '$createdAt', timezone: '+03:00' } } } },
+    { $match: { month: thisMonth } },
+    { $group: { _id: '$company', count: { $sum: 1 } } }
+  ]);
+  for (const { _id, count } of monthly) {
+    await User.collection.updateOne({ _id }, { $set: { bidUsage: { month: thisMonth, count } } });
   }
 
   // Puanlar yalnızca gerçekten yazılmış yorumlardan hesaplanır, sayfadaki sayılar tutar.

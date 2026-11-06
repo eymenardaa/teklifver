@@ -1,4 +1,4 @@
-// E-posta doğrulama, bildirim e-postaları ve şifre sıfırlama: gerçek SMTP protokolüyle, sahte sunucuya.
+// Kayıt ve giriş kodu, bildirim e-postaları ve şifre sıfırlama: gerçek SMTP protokolüyle, sahte sunucuya.
 const { startMongo, startSite, startSmtpSink, client, reporter } = require('../helpers/harness');
 
 const { check, finish } = reporter();
@@ -19,64 +19,86 @@ const pathOf = url => url.replace(SITE_URL, '');
   });
 
   const newMail = async (to, subjectPart) => sink.waitFor(mail => mail.to.includes(to) && sink.textOf(mail).includes(subjectPart));
+  const codeOf = mail => (mail && (sink.textOf(mail).match(/kodunuz: (\d{6})/) || [])[1]) || '';
+  // Kod e-postası beklenmeden önce kutu boşaltılır; eski bir kod okunmasın.
   const signup = async (email, role = 'customer') => {
     const c = client(site.url);
+    sink.mails.length = 0;
     const res = await c.post('/register', { role, name: 'Test Kişi', companyName: role === 'company' ? 'Test Firma' : '', email, password: pw, terms: 'on' });
     return { c, res };
   };
-  const verify = async (email, c) => {
-    const mail = await newMail(email, '/email/verify/');
-    const url = linkIn(sink, mail, /https:\/\/teklifver\.example\/email\/verify\/[a-f0-9]+/);
-    return c.get(pathOf(url));
+  const enterCode = async (c, email, path) => c.post(path, { verifyStep: '1', code: codeOf(await newMail(email, 'kodunuz')) });
+  const join = async (email, role) => {
+    const { c } = await signup(email, role);
+    await enterCode(c, email, '/register');
+    return c;
+  };
+  const login = async (email, password = pw) => {
+    const c = client(site.url);
+    sink.mails.length = 0;
+    const first = await c.post('/login', { email, password });
+    if (first.status !== 200) return { c, res: first };
+    return { c, res: await enterCode(c, email, '/login') };
   };
   const makeRequest = async (c, title) => {
     const form = new FormData();
-    Object.entries({ title, description: 'Açıklama', category: 'Temizlik' }).forEach(([k, v]) => form.set(k, v));
+    Object.entries({ title, description: 'Mutfak ve banyo dahil 3+1 daire temizliği.', category: 'Temizlik' }).forEach(([k, v]) => form.set(k, v));
     return c.form('/requests', form);
   };
 
   try {
-    // Kayıt ve doğrulama
+    // Kayıt: e-postaya gelen kod girilmeden hesap açılmaz
     const { c: owner, res } = await signup('sahip@test.local');
-    check('kayıt olur', res.status === 302);
-    const dashboard = await owner.get('/dashboard');
-    check('doğrulama uyarısı görünür', dashboard.text.includes('E-posta adresiniz doğrulanmadı'));
-
-    let blocked = await makeRequest(owner, 'Engelli');
-    check('doğrulanmadan talep verilemez', blocked.location === '/dashboard');
-    check('form sayfası da yönlenir', (await owner.get('/requests/new')).location === '/dashboard');
-
-    const mail = await newMail('sahip@test.local', '/email/verify/');
-    check('doğrulama e-postası gelir', Boolean(mail));
-    check('bağlantı SITE_URL kullanır', Boolean(linkIn(sink, mail, /https:\/\/teklifver\.example\/email\/verify\/[a-f0-9]{64}/)));
-    check('HTML ve düz metin var', /text\/html/.test(mail.raw) && /text\/plain/.test(mail.raw));
-
-    check('yanlış bağlantı reddedilir', (await client(site.url).get(`/email/verify/${'a'.repeat(64)}`)).location === '/login');
-    const verified = await verify('sahip@test.local', owner);
-    check('doğrulama tamamlanır', verified.location === '/dashboard');
-    check('uyarı kalkar', !(await owner.get('/dashboard')).text.includes('E-posta adresiniz doğrulanmadı'));
+    check('kayıt kod adımına geçer', res.status === 200 && res.text.includes('altı haneli bir kod'));
+    check('adres gizlenir', res.text.includes('sa***p@test.local') && !res.text.includes('sahip@test.local'));
+    check('kod girilmeden oturum açılmaz', (await owner.get('/dashboard')).status === 302);
+    const codeMail = await newMail('sahip@test.local', 'kodunuz');
+    check('kod e-postası gelir', Boolean(codeMail));
+    check('HTML ve düz metin var', Boolean(codeMail) && /text\/html/.test(codeMail.raw) && /text\/plain/.test(codeMail.raw));
+    const code = codeOf(codeMail);
+    const wrongCode = code === '000000' ? '111111' : '000000';
+    const wrong = await owner.post('/register', { verifyStep: '1', code: wrongCode });
+    check('yanlış kod reddedilir', wrong.status === 422 && wrong.text.includes('Kod hatalı'));
+    const stranger = await client(site.url).post('/register', { verifyStep: '1', code });
+    check('kod başka tarayıcıdan girilemez', stranger.status === 302 && stranger.location === '/login');
+    const forged = await client(site.url).post('/login', { verifyStep: '1', email: 'sahip@test.local', code });
+    check('e-posta yazarak başka hesabın kodu denenemez', forged.status === 302 && forged.location === '/login');
+    const joined = await owner.post('/register', { verifyStep: '1', code });
+    check('doğru kodla hesap açılır', joined.status === 302 && joined.location === '/dashboard');
+    check('doğrulama uyarısı yok', !(await owner.get('/dashboard')).text.includes('E-posta adresiniz doğrulanmadı'));
+    check('kod ikinci kez kullanılamaz', (await client(site.url).post('/register', { verifyStep: '1', code })).location === '/login');
     const made = await makeRequest(owner, 'Doğrulanmış talep');
-    check('doğrulanınca talep verilir', made.location.startsWith('/requests/'));
+    check('kod sonrası talep verilir', made.location.startsWith('/requests/'));
     const requestId = made.location.split('/').pop();
 
-    // Bağlantıyı tekrar gönder
-    const { c: late } = await signup('gec@test.local');
-    await newMail('gec@test.local', '/email/verify/');
+    // Kod tahmin edilemez: beş yanlıştan sonra doğru kod da geçmez
+    const { c: guesser } = await signup('tahmin@test.local');
+    const realCode = codeOf(await newMail('tahmin@test.local', 'kodunuz'));
+    const badCode = realCode === '999999' ? '888888' : '999999';
+    let lastTry = null;
+    for (let i = 0; i < 5; i += 1) lastTry = await guesser.post('/register', { verifyStep: '1', code: badCode });
+    check('beş yanlıştan sonra kilitlenir', lastTry.text.includes('Çok fazla yanlış deneme'));
+    check('kilitliyken doğru kod geçmez', (await guesser.post('/register', { verifyStep: '1', code: realCode })).status === 422);
+    check('yeni kod için bir dakika beklenir', (await guesser.post('/verify-code/resend')).status === 429);
+
+    // Giriş: şifreden sonra koda geçilir
     sink.mails.length = 0;
-    await late.post('/email/resend');
-    check('tekrar gönderim çalışır', Boolean(await newMail('gec@test.local', '/email/verify/')));
+    const badPassword = await client(site.url).post('/login', { email: 'sahip@test.local', password: 'yanlis-sifre-1' });
+    check('yanlış şifrede kod gönderilmez', badPassword.status === 401 && !(await newMail('sahip@test.local', 'kodunuz')));
+    const signedIn = await login('sahip@test.local');
+    check('girişte kod istenir ve kodla açılır', signedIn.res.status === 302 && signedIn.res.location === '/dashboard');
+
+    // Doğrulama bağlantısını tekrar gönderme sınırlı (sınır kullanıcı başına; ayrı bir hesapla denenir)
+    const busy = await join('sinir@test.local');
     let limited = false;
     for (let i = 0; i < 6; i += 1) {
-      const again = await late.post('/email/resend');
-      if ((await late.get(again.location)).text.includes('Çok fazla e-posta')) limited = true;
+      const again = await busy.post('/email/resend');
+      if ((await busy.get(again.location)).text.includes('Çok fazla e-posta')) limited = true;
     }
     check('tekrar gönderim sınırlı', limited);
 
     // Teklif bildirimi e-postası
-    const { c: firm } = await signup('firma@test.local', 'company');
-    const blockedBid = await firm.post('/bids', { requestId, amount: '100', deliveryTime: '1', description: 'x' });
-    check('doğrulanmadan teklif verilemez', blockedBid.location === '/dashboard');
-    await verify('firma@test.local', firm);
+    const firm = await join('firma@test.local', 'company');
     sink.mails.length = 0;
     await firm.post('/bids', { requestId, amount: '100', deliveryTime: '1', description: 'x' });
     const bidMail = await newMail('sahip@test.local', 'teklif verdi');
@@ -119,14 +141,13 @@ const pathOf = url => url.replace(SITE_URL, '');
     check('sıfırlama e-postası gelir', Boolean(resetMail));
     check('sahte alan adı bağlantıya girmez', !sink.textOf(resetMail).includes('saldirgan.example') && sink.textOf(resetMail).includes(`${SITE_URL}/reset/`));
     const resetPath = pathOf(linkIn(sink, resetMail, /https:\/\/teklifver\.example\/reset\/[a-f0-9]+/));
-    const device = client(site.url);
-    await device.post('/login', { email: 'sahip@test.local', password: pw });
+    const { c: device } = await login('sahip@test.local');
     await anon.post(resetPath, { password: 'yeni-sifre-12345' });
     check('sıfırlama diğer oturumları kapatır', (await device.get('/dashboard')).status === 302);
     check('değişiklik bildirimi gelir', Boolean(await newMail('sahip@test.local', 'diğer cihazlardaki')));
     check('sıfırlama bağlantısı tek kullanımlık', (await anon.get(resetPath)).status === 302);
-    const newLogin = client(site.url);
-    check('yeni şifre geçer', (await newLogin.post('/login', { email: 'sahip@test.local', password: 'yeni-sifre-12345' })).status === 302);
+    const { c: newLogin, res: newLoginRes } = await login('sahip@test.local', 'yeni-sifre-12345');
+    check('yeni şifre geçer', newLoginRes.status === 302 && newLoginRes.location === '/dashboard');
 
     // E-posta değiştirme
     let change = await newLogin.post('/profile/email', { newEmail: 'firma@test.local', emailPassword: 'yeni-sifre-12345' });
@@ -143,16 +164,16 @@ const pathOf = url => url.replace(SITE_URL, '');
     await newLogin.get(pathOf(linkIn(sink, changeMail, /https:\/\/teklifver\.example\/email\/verify\/[a-f0-9]+/)));
     const after = (await newLogin.get('/profile')).text;
     check('adres değişti', after.includes('<strong>yeni@test.local</strong>') && !after.includes('Onay bekleyen'));
-    check('yeni adresle giriş', (await client(site.url).post('/login', { email: 'yeni@test.local', password: 'yeni-sifre-12345' })).status === 302);
+    check('yeni adresle giriş', (await login('yeni@test.local', 'yeni-sifre-12345')).res.location === '/dashboard');
     check('eski adresle giriş olmaz', (await client(site.url).post('/login', { email: 'sahip@test.local', password: 'yeni-sifre-12345' })).status === 401);
 
     // İletişim formu e-postası SITE_EMAIL olmadan da panele düşer (burada e-posta gitmez, kayıt tutulur)
     const contact = await anon.post('/iletisim', { name: 'Z', email: 'z@z.co', subject: 'Öneri', message: 'kayıt' });
     check('iletişim SITE_EMAIL olmadan çalışır', contact.location === '/iletisim');
 
-    // ADMIN_EMAIL: doğrulanmamış hesap yönetici olmaz
+    // ADMIN_EMAIL: kodu girilmemiş hesap yönetici olmaz
     const { c: fake } = await signup('patron@test.local');
-    const patronMail = await newMail('patron@test.local', '/email/verify/');
+    const patronCode = codeOf(await newMail('patron@test.local', 'kodunuz'));
     await site.stop();
     const restarted = await startSite({
       uri: mongo.getUri('email_test'),
@@ -160,8 +181,8 @@ const pathOf = url => url.replace(SITE_URL, '');
       env: { SMTP_HOST: '127.0.0.1', SMTP_PORT: String(SMTP_PORT), SITE_URL, DEMO_DATA: 'false', ADMIN_EMAIL: 'patron@test.local' }
     });
     site.stop = restarted.stop;
-    check('doğrulanmamış adres yönetici olmaz', (await fake.get('/admin')).status === 403);
-    await fake.get(pathOf(linkIn(sink, patronMail, /https:\/\/teklifver\.example\/email\/verify\/[a-f0-9]+/)));
+    check('doğrulanmamış adres yönetici olmaz', (await fake.get('/admin')).status !== 200);
+    await fake.post('/register', { verifyStep: '1', code: patronCode });
     await restarted.stop();
     const third = await startSite({
       uri: mongo.getUri('email_test'),

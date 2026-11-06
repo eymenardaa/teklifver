@@ -27,10 +27,9 @@
     </ol>
   <% } %>
   <div class="detail-title">
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+    <div class="detail-heading">
       <h1><%= request.title %></h1>
-      <% if (request.isUrgent) { %><span class="label-urgent" style="background:var(--price); color:#fff; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:3px">ACİL</span><% } %>
-      <% if (request.isFeatured) { %><span class="label-featured" style="background:#f59f00; color:#fff; font-size:11px; font-weight:bold; padding:2px 6px; border-radius:3px">⭐ VİTRİN</span><% } %>
+      <% if (isUrgent(request)) { %><span class="label label-urgent">ACİL</span><% } %>
     </div>
     <div class="detail-actions">
       <% if (currentUser) { %>
@@ -98,36 +97,9 @@
         <tr><td>Talep No</td><td><strong><%= request.no %></strong></td></tr>
         <tr><td>Talep Tarihi</td><td><%= formatDate(request.createdAt) %></td></tr>
         <tr><td>Kategori</td><td><%= request.category %></td></tr>
-        <tr><td>Son Tarih</td><td>
-          <%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %>
-          <% if (request.deadline && new Date(request.deadline) > new Date()) { %>
-            <div id="countdown" data-deadline="<%= request.deadline %>" style="margin-top:3px; font-weight:bold; color:var(--price); font-size:12px">
-              ⏳ Kalan: <span id="countdownTimer">Hesaplanıyor...</span>
-            </div>
-            <script>
-              (function() {
-                const target = new Date('<%= request.deadline %>').getTime();
-                const timerEl = document.getElementById('countdownTimer');
-                function tick() {
-                  const now = new Date().getTime();
-                  const diff = target - now;
-                  if (diff <= 0) {
-                    timerEl.innerText = 'Süre doldu!';
-                    return;
-                  }
-                  const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                  const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                  timerEl.innerText = `${d} gün ${h} sa ${m} dk`;
-                }
-                tick();
-                setInterval(tick, 60000);
-              })();
-            </script>
-          <% } %>
-        </td></tr>
+        <tr><td>Son Tarih</td><td><%= request.deadline ? formatDate(request.deadline) : 'Belirtilmemiş' %><% if (request.deadline && isOpen && !isExpired(request)) { %> <span class="muted small">(<span data-deadline="<%= new Date(request.deadline).toISOString() %>"><%= timeLeft(request.deadline) %></span> kaldı)</span><% } %></td></tr>
         <% if (request.discoveryTime) { %>
-          <tr><td>Keşif Uygunluğu</td><td><strong style="color:var(--navy)"><%- icon('calendar', { size: 12 }) %> <%= request.discoveryTime %></strong></td></tr>
+          <tr><td>Keşif</td><td><%= request.discoveryTime %></td></tr>
         <% } %>
         <tr><td>Durum</td><td><%- include('../partials/status', { status: requestStatus[request.status] }) %></td></tr>
         <tr><td>Teklif Sayısı</td><td><%= bids.length %></td></tr>
@@ -341,14 +313,15 @@
     <section class="box" id="teklif-ver">
       <div class="box-head">Teklif Ver</div>
       <div class="box-body">
+        <% if (allowance && allowance.limited && allowance.left === 0) { %>
+          <p class="box-note">Bu ayki teklif hakkınız doldu. Hakkınız ayın ilk günü yenilenir. <a href="/dashboard/plans">Paketlere bakın</a></p>
+        <% } else { %>
         <form class="form" action="/bids" method="POST" style="max-width:560px">
-          <% if (averages) { %>
-            <div style="background:#eef7ff; border:1px solid #cfe0f3; padding:8px 12px; border-radius:4px; margin-bottom:12px; font-size:12.5px; color:#174066">
-              💡 <strong>Teklif İpucu:</strong> Bu kategoride müşteriler genelde <strong><%= averages.days %> gün</strong> teslim süreli ve ortalama <strong><%= money(averages.amount) %></strong> civarındaki teklifleri tercih ediyor.
-            </div>
-          <% } %>
           <input type="hidden" name="requestId" value="<%= request._id %>">
-          <p class="field-hint">Müşterinin bütçesi: <strong><%= budgetLabel(request.budget) %></strong></p>
+          <p class="field-hint">
+            Müşterinin bütçesi: <strong><%= budgetLabel(request.budget) %></strong>
+            <% if (averages) { %><br>Bu kategorideki tekliflerin ortalaması <strong><%= money(averages.amount) %></strong>, <strong><%= averages.days %> gün</strong>.<% } %>
+          </p>
           <div class="field-row">
             <div class="field">
               <label class="field-label" for="amount">Tutar</label>
@@ -371,8 +344,12 @@
             </label>
             <textarea class="textarea" id="bidDescription" name="description" rows="4" maxlength="3000" placeholder="Fiyata neler dahil, ne zaman başlarsınız, ödemeyi nasıl istersiniz?" required></textarea>
           </div>
-          <div class="form-actions"><button class="btn btn-primary" type="submit">Teklifi Gönder</button></div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Teklifi Gönder</button>
+            <% if (allowance && allowance.limited) { %><span class="small muted">Bu ay <%= allowance.left %> teklif hakkınız kaldı.</span><% } %>
+          </div>
         </form>
+        <% } %>
       </div>
     </section>
   <% } %>
@@ -431,6 +408,8 @@
               </td>
               <% if (bid.hidden) { %>
               <td><span class="muted small">Gizli</span></td>
+              <% } else if (!canSeeBids) { %>
+              <td><strong><%= money(bid.amount) %></strong>, <%= bid.deliveryTime %> gün <span class="small muted">(sizin teklifiniz)</span><div class="bid-text"><%= bid.description %></div></td>
               <% } else { %>
               <td><div class="bid-text"><%= bid.description %></div></td>
               <td class="col-budget">
@@ -469,58 +448,55 @@
     <% } %>
   </section>
 
-  <!-- Soru & Cevap Bölümü (Herkesin görebildiği halka açık SSS) -->
+  <% const questions = request.questions || []; const canAsk = isOpen && !isExpired(request); %>
+  <% if (questions.length || canAsk) { %>
   <section class="box" id="soru-cevap">
-    <div class="box-head">
-      Talebe Sorulan Sorular (<%= (request.questions && request.questions.length) || 0 %>)
-    </div>
+    <div class="box-head">Sorular ve Cevaplar (<%= questions.length %>)</div>
     <div class="box-body">
-      <% if (!request.questions || !request.questions.length) { %>
-        <p class="muted small" style="margin-bottom:12px">Bu taleple ilgili henüz soru sorulmamış.</p>
+      <% if (!questions.length) { %>
+        <p class="muted small">Henüz soru sorulmadı. Firmalar teklif vermeden önce buradan soru sorabilir; soru ve cevaplar herkese açıktır.</p>
       <% } else { %>
-        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px">
-          <% request.questions.forEach(q => { %>
-            <div style="border:1px solid var(--line); border-radius:4px; padding:10px; background:var(--head)">
-              <div style="display:flex; justify-content:space-between; margin-bottom:4px">
-                <strong><%- icon('help-circle', { size: 14 }) %> <%= q.askerName || 'Firma' %> sordu:</strong>
-                <span class="muted small"><%= formatDate(q.createdAt) %></span>
+        <ol class="qa-list">
+          <% questions.forEach(item => { %>
+            <li class="qa-item">
+              <div class="qa-question">
+                <span class="qa-who"><%= item.askerName || 'Firma' %></span> <span class="muted small"><%= timeAgo(item.createdAt) %></span>
+                <p><%= item.question %></p>
               </div>
-              <p style="margin:4px 0 8px 18px; color:var(--text)"><%= q.question %></p>
-
-              <% if (q.answer) { %>
-                <div style="margin-left:18px; padding:8px; background:var(--surface); border-left:3px solid var(--link); border-radius:0 4px 4px 0">
-                  <div style="display:flex; justify-content:space-between">
-                    <strong style="color:var(--link)"><%- icon('message-square', { size: 13 }) %> Talep Sahibinin Cevabı:</strong>
-                    <% if (q.answeredAt) { %><span class="muted small"><%= formatDate(q.answeredAt) %></span><% } %>
-                  </div>
-                  <p style="margin:4px 0 0 0"><%= q.answer %></p>
+              <% if (item.answer) { %>
+                <div class="qa-answer">
+                  <span class="qa-who">Talep sahibi</span> <span class="muted small"><%= timeAgo(item.answeredAt || item.createdAt) %></span>
+                  <p><%= item.answer %></p>
                 </div>
               <% } else if (isOwner && isOpen) { %>
-                <form action="/requests/<%= request._id %>/questions/<%= q._id %>/answer" method="POST" style="margin-left:18px; margin-top:6px">
-                  <div style="display:flex; gap:6px">
-                    <input class="input" type="text" name="answer" placeholder="Bu soruyu yanıtlayın..." required style="height:32px; font-size:12px">
-                    <button class="btn btn-sm btn-primary" type="submit">Cevapla</button>
-                  </div>
+                <form class="qa-reply" action="/requests/<%= request._id %>/questions/<%= item._id %>/answer" method="POST">
+                  <label class="visually-hidden" for="answer-<%= item._id %>">Cevabınız</label>
+                  <input class="input" id="answer-<%= item._id %>" name="answer" maxlength="1000" placeholder="Cevabınızı yazın" required>
+                  <button class="btn btn-sm btn-primary" type="submit">Cevapla</button>
                 </form>
+              <% } else { %>
+                <p class="qa-waiting small muted">Cevap bekleniyor</p>
               <% } %>
-            </div>
+            </li>
           <% }) %>
-        </div>
+        </ol>
       <% } %>
 
-      <% if (currentUser && !isOwner && isOpen) { %>
-        <form class="form" action="/requests/<%= request._id %>/questions" method="POST" style="border-top:1px solid var(--line); padding-top:12px">
-          <label class="field-label" for="questionInput"><strong>Talep Sahibine Soru Sor</strong> (Herkes tarafından görülecektir)</label>
-          <div style="display:flex; gap:8px">
-            <input class="input" id="questionInput" type="text" name="question" placeholder="Örn: Malzemeyi kim temin edecek? Kat kaçıncı katta?" required>
-            <button class="btn btn-primary" type="submit" style="white-space:nowrap">Soruyu Gönder</button>
+      <% if (canAsk && currentUser && currentUser.role === 'company') { %>
+        <form class="qa-form" action="/requests/<%= request._id %>/questions" method="POST">
+          <label class="field-label" for="questionInput">Talep sahibine soru sorun</label>
+          <div class="qa-row">
+            <input class="input" id="questionInput" name="question" maxlength="500" placeholder="Örneğin: Malzemeyi siz mi alacaksınız?" required>
+            <button class="btn" type="submit">Sor</button>
           </div>
+          <p class="field-hint">Soru ve cevap herkese açık görünür; telefon veya e-posta yazmayın.</p>
         </form>
-      <% } else if (!currentUser && isOpen) { %>
-        <p class="muted small"><a href="/login?next=<%= encodeURIComponent(currentUrl + '#soru-cevap') %>">Giriş yaparak</a> talep sahibine soru sorabilirsiniz.</p>
+      <% } else if (canAsk && !currentUser) { %>
+        <p class="small muted"><a href="/login?next=<%= encodeURIComponent(currentUrl + '#soru-cevap') %>">Firma hesabıyla giriş yapın</a>, talep sahibine soru sorun.</p>
       <% } %>
     </div>
   </section>
+  <% } %>
 
   <% if (review) { %>
     <section class="box">
@@ -542,21 +518,5 @@
     </section>
   <% } %>
 </div>
-
-<% if (request.status === 'in_progress' || request.status === 'completed') { %>
-  <!-- Konfeti Efekti (Kabul Edilen Teklif Başarı Kutlaması) -->
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      try {
-        confetti({
-          particleCount: 90,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch (e) {}
-    });
-  </script>
-<% } %>
 
 <%- include('../partials/footer') %>

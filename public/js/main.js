@@ -444,13 +444,31 @@
     const addMessage = message => {
       const box = document.createElement('div');
       box.className = `msg${message.mine ? ' msg-mine' : ''}`;
-      const text = document.createElement('div');
-      text.className = 'msg-text';
-      text.textContent = message.content; // HTML olarak yorumlanmaz
+      // Yalnızca sitenin kendi yüklediği görseller gösterilir.
+      if (/^\/uploads\/[\w.-]+$/.test(message.image || '')) {
+        const link = document.createElement('a');
+        link.className = 'msg-image';
+        link.href = message.image;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        const image = document.createElement('img');
+        image.src = message.image.replace(/\.webp$/, '_t.webp');
+        image.alt = 'Gönderilen fotoğraf';
+        image.width = 200;
+        image.height = 150;
+        link.append(image);
+        box.append(link);
+      }
+      if (message.content) {
+        const text = document.createElement('div');
+        text.className = 'msg-text';
+        text.textContent = message.content; // HTML olarak yorumlanmaz
+        box.append(text);
+      }
       const time = document.createElement('div');
       time.className = 'msg-time';
       time.textContent = message.time;
-      box.append(text, time);
+      box.append(time);
       thread.append(box);
     };
 
@@ -872,125 +890,34 @@
   }
 
 
-  /* Yapay Zekâ Fiyat Tahmini ve Detaylandırma */
-  function initAiFeatures() {
-    const catSelect = $('#category');
-    const descEl = $('#description');
-    const aiPriceText = $('#aiPriceText');
-    const aiApplyBtn = $('#aiApplyPrice');
-    const minInput = $('#budgetMin');
-    const maxInput = $('#budgetMax');
-    const aiEnhanceBtn = $('#aiEnhanceBtn');
-
-    if (!catSelect || !descEl) return;
-
-    let currentEstimate = null;
-
-    async function updateAiEstimate() {
-      const category = catSelect.value;
-      if (!category || !aiPriceText) return;
-      try {
-        const res = await fetch('/ai/price-estimate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category, description: descEl.value || '' })
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        currentEstimate = data;
-        aiPriceText.innerHTML = '<strong>' + data.min.toLocaleString('tr-TR') + ' ₺ - ' + data.max.toLocaleString('tr-TR') + ' ₺</strong> <span style="color:#555; font-size:12px">(' + data.category + ' • ' + data.unit + ')</span>';
-        if (aiApplyBtn) aiApplyBtn.style.display = 'inline-block';
-      } catch (e) {}
-    }
-
-    catSelect.addEventListener('change', updateAiEstimate);
-    descEl.addEventListener('blur', updateAiEstimate);
-    if (catSelect.value) updateAiEstimate();
-
-    if (aiApplyBtn) {
-      aiApplyBtn.addEventListener('click', () => {
-        if (currentEstimate && minInput && maxInput) {
-          minInput.value = currentEstimate.min;
-          maxInput.value = currentEstimate.max;
-        }
-      });
-    }
-
-    if (aiEnhanceBtn) {
-      aiEnhanceBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const category = catSelect.value;
-        if (!category) {
-          alert('Lütfen önce bir kategori seçin.');
-          catSelect.focus();
-          return;
-        }
-        aiEnhanceBtn.disabled = true;
-        const oldHtml = aiEnhanceBtn.innerHTML;
-        aiEnhanceBtn.innerText = 'Yapay Zekâ Yazıyor...';
-        try {
-          const res = await fetch('/ai/enhance-description', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ category, text: descEl.value || '' })
-          });
-          if (!res.ok) throw new Error('API yanıt vermedi');
-          const data = await res.json();
-          if (data && data.enhanced) {
-            descEl.value = (descEl.value.trim() ? descEl.value.trim() + '\n\n' : '') + data.enhanced;
-            updateAiEstimate();
-          }
-        } catch (err) {
-          alert('Yapay zeka metni hazırlanırken bir sorun oluştu. Lütfen tekrar deneyin.');
-        } finally {
-          aiEnhanceBtn.disabled = false;
-          aiEnhanceBtn.innerHTML = oldHtml;
-        }
-      });
-    }
-  }
-
-  /* Mesajlarda Görsel Seçim Bildirimi */
-  function initMsgImagePreview() {
-    const fileInput = $('#msgImageInput');
-    const noteEl = $('#imageSelectedNote');
-    const nameEl = $('#imageFileName');
-    if (!fileInput) return;
-
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files && fileInput.files[0]) {
-        if (nameEl) nameEl.innerText = fileInput.files[0].name;
-        if (noteEl) noteEl.style.display = 'block';
-      } else {
-        if (noteEl) noteEl.style.display = 'none';
-      }
+  /* Mesaja fotoğraf eklenince düğmede dosya adı görünür */
+  function initAttach() {
+    const input = $('#messageImage');
+    if (!input) return;
+    const label = $('[data-attach-label]');
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      label.textContent = file ? file.name : 'Fotoğraf ekle';
+      input.closest('.attach-button').classList.toggle('has-file', Boolean(file));
     });
   }
 
-  /* İlan Kalan Süre Sayacı */
-  function initCountdownTimer() {
-    const timerEl = $('#countdownTimer');
-    const countdownBox = $('#countdown');
-    if (!timerEl || !countdownBox) return;
+  /* Son tarihe kalan süre, sayfa açık kaldıkça güncellenir */
+  function remaining(date) {
+    const minutes = Math.max(Math.floor((new Date(date).getTime() - Date.now()) / 60000), 0);
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    if (days >= 2) return days + ' gün';
+    if (days === 1) return hours ? '1 gün ' + hours + ' saat' : '1 gün';
+    if (hours >= 1) return hours + ' saat';
+    return Math.max(minutes, 1) + ' dakika';
+  }
 
-    const deadlineStr = countdownBox.dataset.deadline;
-    if (!deadlineStr) return;
-
-    const target = new Date(deadlineStr).getTime();
-    function tick() {
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0) {
-        timerEl.innerText = 'Süre doldu!';
-        return;
-      }
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      timerEl.innerText = d + ' gün ' + h + ' sa ' + m + ' dk';
-    }
-    tick();
-    setInterval(tick, 60000);
+  function initDeadlines() {
+    const items = $$('[data-deadline]');
+    if (!items.length) return;
+    const update = () => items.forEach(item => { item.textContent = remaining(item.dataset.deadline); });
+    setInterval(update, 60000);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -1019,8 +946,7 @@
     initToTop();
     initSuggest();
     initSmallActions();
-    initAiFeatures();
-    initMsgImagePreview();
-    initCountdownTimer();
+    initAttach();
+    initDeadlines();
   });
 })();

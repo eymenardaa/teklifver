@@ -31,13 +31,14 @@ Tüm ayarların örneği `.env.example` dosyasındadır.
 | --- | --- |
 | `PORT` | Sunucu portu (varsayılan 3000) |
 | `MONGODB_URI` | MongoDB bağlantı adresi |
-| `SESSION_SECRET` | Oturum çerezlerini imzalayan uzun, rastgele bir metin |
+| `SESSION_SECRET` | Oturum çerezlerini imzalayan en az 32 karakterlik rastgele metin. Yoksa veritabanı adresinden güvenli bir anahtar türetilir ve uyarı yazılır |
 | `DEMO_DATA` | `false`: örnek veri eklenmez. `showcase`: canlıda girilemeyen hesaplarla dolu vitrin |
 | `SITE_COMPANY`, `SITE_EMAIL` | Yasal ve reklam sayfalarında görünen bilgiler |
 | `SITE_URL` | Sitenin adresi. E-posta, paylaşım ve sosyal giriş bağlantıları bununla üretilir. Canlıda zorunlu (Render adresi otomatik alınır) |
 | `ADMIN_EMAIL` | Bu e-postayla kayıtlı hesap, sunucu açılışında yönetici yapılır |
-| `SMTP_*` | E-posta doğrulama, şifre sıfırlama ve bildirim e-postaları. Boşsa geliştirmede bağlantı sunucu günlüğüne yazılır |
-| `REQUIRE_EMAIL_VERIFICATION` | SMTP varken doğrulama zorunludur; `true` veya `false` ile değiştirilir |
+| `GMAIL_USER`, `GMAIL_PASS` | Gmail adresi ve uygulama şifresiyle e-posta gönderimi (SMTP yerine) |
+| `SMTP_*` | Giriş kodu, şifre sıfırlama ve bildirim e-postaları. Boşsa geliştirmede e-posta sunucu günlüğüne yazılır |
+| `REQUIRE_EMAIL_VERIFICATION` | E-posta gönderilebiliyorsa kayıtta ve her girişte altı haneli kod istenir; `true` veya `false` ile değiştirilir |
 | `GOOGLE_SITE_VERIFICATION` | Google Search Console doğrulama kodu |
 | `RATE_LIMIT_PER_MINUTE` | Tek IP'den dakikada kabul edilen istek (varsayılan 600) |
 | `TRUST_PROXY_HOPS` | Canlıda önündeki vekil sunucu sayısı (varsayılan 1) |
@@ -63,6 +64,10 @@ Geliştirme ortamında veritabanında hiç talep yoksa sunucu açılışta örne
 ```bash
 npm run demo:sil
 ```
+
+## Firma paketleri
+
+Firmalar ayda belirli sayıda teklif verebilir; paketler ve haklar `config/plans.js` dosyasındadır. Sitede ödeme alınmaz: firma paket isteğini iletişim formundan gönderir, yönetici **Yönetim Paneli → Kullanıcılar** sayfasından paketi açar. Hak her ayın ilk günü (Türkiye saati) yenilenir; teklifi geri çekmek hakkı iade etmez.
 
 ## Tema
 

@@ -22,26 +22,10 @@
 </div>
 
 <div class="field <%= errors.description ? 'has-error' : '' %>">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
-    <label class="field-label" for="description" style="margin:0">Açıklama</label>
-    <button class="btn btn-sm" type="button" id="aiEnhanceBtn" style="background:var(--navy); color:#fff; border:0; gap:4px">
-      <span>✨ Yapay Zekâ ile Detaylandır</span>
-    </button>
-  </div>
+  <label class="field-label" for="description">Açıklama</label>
   <textarea class="textarea" id="description" name="description" rows="7" maxlength="5000" placeholder="Ölçü, kat, malzeme, ne zaman başlanacağı gibi firmaların soracağı şeyleri yazın." required><%= form.description %></textarea>
-  <p class="field-hint">Ölçü, adres, malzeme gibi detayları yazarsanız daha doğru teklif alırsınız. Telefon numaranızı buraya yazmayın.</p>
+  <p class="field-hint">Ölçü, malzeme ve zaman gibi ayrıntıları yazarsanız teklifler daha isabetli olur. Telefon numaranızı buraya yazmayın; teklifi kabul edince firma görür.</p>
   <% if (errors.description) { %><p class="field-error"><%= errors.description %></p><% } %>
-</div>
-
-<!-- Yapay Zekâ Fiyat Tahmin Kutusu -->
-<div class="field">
-  <div class="tip-box" id="aiPriceBox" style="background:var(--head); border:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:var(--radius)">
-    <div>
-      <strong style="color:var(--link)">🤖 Yapay Zekâ Fiyat Tahmini:</strong>
-      <span id="aiPriceText" style="margin-left:6px; color:var(--text)">Kategori seçildiğinde otomatik piyasa tahmini sunulur.</span>
-    </div>
-    <button class="btn btn-sm" type="button" id="aiApplyPrice" style="display:none">Bütçeye Uygula</button>
-  </div>
 </div>
 
 <fieldset class="form-optional">
@@ -90,31 +74,22 @@
     <input class="input" type="date" id="deadline" name="deadline" min="<%= dateInput() %>" value="<%= form.deadline %>">
     <% if (errors.deadline) { %><p class="field-error"><%= errors.deadline %></p><% } %>
   </div>
-  <div class="field">
-    <label class="field-label" for="discoveryTime">Keşif / Randevu Uygunluğu <span class="optional">İsteğe bağlı</span></label>
+  <div class="field <%= errors.discoveryTime ? 'has-error' : '' %>">
+    <label class="field-label" for="discoveryTime">Keşif için uygun zaman</label>
     <select class="select" id="discoveryTime" name="discoveryTime">
-      <option value="">Keşif gerekmiyor / Fark etmez</option>
-      <option value="Hafta içi gündüz (09:00 - 17:00)" <%= form.discoveryTime === 'Hafta içi gündüz (09:00 - 17:00)' ? 'selected' : '' %>>Hafta içi gündüz (09:00 - 17:00)</option>
-      <option value="Hafta içi akşam (18:00 - 21:00)" <%= form.discoveryTime === 'Hafta içi akşam (18:00 - 21:00)' ? 'selected' : '' %>>Hafta içi akşam (18:00 - 21:00)</option>
-      <option value="Hafta sonu herhangi bir saat" <%= form.discoveryTime === 'Hafta sonu herhangi bir saat' ? 'selected' : '' %>>Hafta sonu herhangi bir saat</option>
+      <option value="">Keşif gerekmiyor</option>
+      <% discoveryTimes.forEach(option => { %>
+        <option value="<%= option %>" <%= form.discoveryTime === option ? 'selected' : '' %>><%= option %></option>
+      <% }) %>
     </select>
+    <% if (errors.discoveryTime) { %><p class="field-error"><%= errors.discoveryTime %></p><% } %>
   </div>
 </div>
 
-<!-- Para Kazandıran Özellikler: İlanı Öne Çıkarma & Acil İlan -->
-<div class="field" style="margin-top:10px; padding:12px; background:var(--head); border:1px solid var(--line); border-radius:var(--radius)">
-  <span class="field-label" style="font-weight:bold; margin-bottom:8px; display:block">🚀 İlanınızı Öne Çıkarın (Daha Hızlı Teklif Alın)</span>
-  <div style="display:flex; flex-direction:column; gap:8px">
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
-      <input type="checkbox" name="isFeatured" <%= form.isFeatured ? 'checked' : '' %>>
-      <span><strong>Vitrin İlanı:</strong> Talebiniz ana sayfa vitrininde ve aramalarda en üstte yer alsın.</span>
-    </label>
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
-      <input type="checkbox" name="isUrgent" <%= form.isUrgent ? 'checked' : '' %>>
-      <span><strong style="color:var(--urgent)">Acil Talep:</strong> İlanınıza kırmızı "ACİL" rozeti eklenir, firmalar öncelik verir.</span>
-    </label>
-  </div>
-</div>
+<label class="checkbox urgent-check">
+  <input type="checkbox" name="isUrgent" <%= form.isUrgent ? 'checked' : '' %>>
+  <span><strong>Acil iş.</strong> Birkaç gün içinde başlanması gerekiyor; talebinizde ACİL etiketi görünür.</span>
+</label>
 </fieldset>
 
 <% if (locals.existingImages && existingImages.length) { %>

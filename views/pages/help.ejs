@@ -10,8 +10,14 @@
         <div class="faq">
           <details open>
             <summary>Talep vermek ücretli mi?</summary>
-            <p>Hayır. Hesap açmak, talep vermek ve teklif almak ücretsizdir.</p>
+            <p>Hayır. Hesap açmak, talep vermek ve teklif almak ücretsizdir. Firmalar da ayda <%= freeBids %> teklife kadar ücret ödemez.</p>
           </details>
+          <% if (codeLogin) { %>
+          <details>
+            <summary>Girişte neden e-postama kod geliyor?</summary>
+            <p>Şifreniz başkasının eline geçse bile hesabınıza girilemesin diye, şifreden sonra e-postanıza altı haneli bir kod gönderiyoruz. Kod 15 dakika geçerli. Gelmediyse istenmeyen e-posta klasörüne bakın ya da kod ekranındaki "Yeni kod gönder" bağlantısını kullanın. TeklifVer çalışanları sizden bu kodu asla istemez.</p>
+          </details>
+          <% } %>
           <details>
             <summary>Google veya Facebook ile giriş yapabilir miyim?</summary>
             <p>Evet. Giriş veya kayıt sayfasındaki düğmelerle devam edin. Bize yalnızca adınız ve e-postanız gelir, şifrenizi görmeyiz. E-postayla açtığınız bir hesabınız varsa önce şifrenizle girip Hesap Bilgilerim sayfasından bağlayın.</p>
@@ -23,6 +29,14 @@
           <details>
             <summary>Firma olarak nasıl teklif veririm?</summary>
             <p>Firma hesabıyla giriş yapın, talep sayfasındaki "Teklif Ver" bölümüne tutar, teslim süresi ve açıklama yazın. Bir talebe bir kez teklif verebilirsiniz.</p>
+          </details>
+          <details>
+            <summary>Firma olarak ayda kaç teklif verebilirim?</summary>
+            <p>Başlangıç paketinde ayda <%= freeBids %> teklif verebilirsiniz; hak her ayın ilk günü yenilenir. Geri çektiğiniz teklif hakkınızdan düşmeye devam eder. Daha fazlası için panelinizdeki Paketler sayfasından istek gönderebilirsiniz.</p>
+          </details>
+          <details>
+            <summary>Teklif vermeden önce soru sorabilir miyim?</summary>
+            <p>Evet. Firmalar talep sayfasındaki "Sorular ve Cevaplar" bölümünden talep sahibine soru sorabilir. Soru ve cevaplar herkese açık görünür; bu yüzden telefon veya e-posta yazmayın.</p>
           </details>
           <details>
             <summary>Telefonum ve e-postam kimlere görünür?</summary>

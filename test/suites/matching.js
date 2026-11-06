@@ -53,18 +53,18 @@ const search = async term => get(null, `/requests?search=${encodeURIComponent(te
 
   const before = async () => Promise.all([izmir, everywhere, ankara].map(async firm => unread((await get(firm.cookie, '/')).text)));
   const start = await before();
-  const inIzmir = await newRequest(owner, { title: `İzmir temizlik ${stamp}`, description: 'Açıklama', category: 'Temizlik', city: 'İzmir' });
+  const inIzmir = await newRequest(owner, { title: `İzmir temizlik ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', city: 'İzmir' });
   const afterIzmir = await before();
   check('İzmir talebi İzmir firmasına gider', afterIzmir[0] === start[0] + 1);
   check('İzmir talebi her yere bakan firmaya gider', afterIzmir[1] === start[1] + 1);
   check('İzmir talebi Ankara firmasına gitmez', afterIzmir[2] === start[2]);
 
-  const inAnkara = await newRequest(owner, { title: `Ankara temizlik ${stamp}`, description: 'Açıklama', category: 'Temizlik', city: 'Ankara' });
+  const inAnkara = await newRequest(owner, { title: `Ankara temizlik ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', city: 'Ankara' });
   const afterAnkara = await before();
   check('Ankara talebi İzmir firmasına gitmez', afterAnkara[0] === afterIzmir[0]);
   check('Ankara talebi Ankara firmasına gider', afterAnkara[2] === afterIzmir[2] + 1);
 
-  const noCity = await newRequest(owner, { title: `İlsiz temizlik ${stamp}`, description: 'Açıklama', category: 'Temizlik' });
+  const noCity = await newRequest(owner, { title: `İlsiz temizlik ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik' });
   const afterNoCity = await before();
   check('ili belirtilmeyen talep herkese gider', afterNoCity.every((count, index) => count === afterAnkara[index] + 1));
 
@@ -81,7 +81,7 @@ const search = async term => get(null, `/requests?search=${encodeURIComponent(te
   check('il seçmeyen firma tüm Türkiye', (await get(null, `/companies/${everywhere.id}`)).text.includes('Tüm Türkiye'));
 
   // Akıllı arama
-  await newRequest(owner, { title: `Salon boya ${stamp}`, description: 'Bir oda', category: 'İnşaat & Tadilat', city: 'Ankara' });
+  await newRequest(owner, { title: `Salon boya ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'İnşaat & Tadilat', city: 'Ankara' });
   check('boyacı boyayı bulur', (await search('boyacı')).text.includes(`Salon boya ${stamp}`));
   check('ek almış kelime kökünü bulur', resultCount((await search('mutfağı')).text) > 0);
   check('kelime sırası önemli değil', resultCount((await search('eve evden')).text) === resultCount((await search('evden eve')).text) && resultCount((await search('evden eve')).text) > 0);
@@ -103,7 +103,7 @@ const search = async term => get(null, `/requests?search=${encodeURIComponent(te
   // Kayıtlı arama da aynı kuralla eşleşir
   await post(izmir.cookie, '/dashboard/searches', { query: 'search=boyacı' });
   const beforeAlert = unread((await get(izmir.cookie, '/')).text);
-  await newRequest(owner, { title: `Daire boya işi ${stamp}`, description: 'Üç oda', category: 'İnşaat & Tadilat' });
+  await newRequest(owner, { title: `Daire boya işi ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'İnşaat & Tadilat' });
   await new Promise(resolve => setTimeout(resolve, 400));
   check('kayıtlı arama eklere dayanır', unread((await get(izmir.cookie, '/')).text) === beforeAlert + 1);
 
@@ -123,7 +123,7 @@ const search = async term => get(null, `/requests?search=${encodeURIComponent(te
   check('hizmet sayfası formu hazır açar', landing.includes('/requests/new?category=Temizlik'));
 
   // Teklif karşılaştırma
-  const compare = await newRequest(owner, { title: `Karşılaştırma ${stamp}`, description: 'İş tarifi', category: 'Temizlik', city: 'Ankara', deadline: '2099-01-01' });
+  const compare = await newRequest(owner, { title: `Karşılaştırma ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', city: 'Ankara', deadline: '2099-01-01' });
   const compareId = compare.split('/').pop();
   check('ilk teklifte metin önerilmez', !(await get(everywhere.cookie, compare)).text.includes('Son teklif metnimi kullan'));
   await post(everywhere.cookie, '/bids', { requestId: compareId, amount: '4000', deliveryTime: '5', description: `Malzeme dahil ${stamp}` });
@@ -134,12 +134,12 @@ const search = async term => get(null, `/requests?search=${encodeURIComponent(te
   const guestView = (await get(null, compare)).text;
   check('dışarıdan özet görünmez', !guestView.includes('bid-summary') && !guestView.includes('En hızlı') && guestView.includes('Gizli'));
 
-  const again = await newRequest(owner, { title: `İkinci iş ${stamp}`, description: 'İş tarifi', category: 'Temizlik', city: 'Ankara' });
+  const again = await newRequest(owner, { title: `İkinci iş ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', city: 'Ankara' });
   check('sonraki teklifte son metin önerilir', (await get(everywhere.cookie, again)).text.includes(`data-fill-text="Malzeme dahil ${stamp}"`));
 
   // Talep sayfası
-  check('açıklama bilgi tablosundan önce', ownerView.indexOf('detail-desc') < ownerView.indexOf('info-table') && ownerView.includes('İş tarifi'));
-  check('son tarihe kalan gün yazar', /\d+ gün kaldı/.test(guestView));
+  check('açıklama bilgi tablosundan önce', ownerView.indexOf('detail-desc') < ownerView.indexOf('info-table') && ownerView.includes('Ayrıntıları keşifte konuşalım'));
+  check('son tarihe kalan süre yazar', /\d+ gün(<\/span>)? kaldı/.test(guestView) && guestView.includes('data-deadline='));
   check('talep sahibi adımları görür', ownerView.includes('request-steps') && ownerView.includes('2 teklif geldi'));
   check('ziyaretçi adımları görmez', !guestView.includes('request-steps'));
 

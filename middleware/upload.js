@@ -112,6 +112,7 @@ const withFriendlyErrors = (handler, maxFiles = MAX_IMAGES) => (req, res, next) 
 
 const uploadImages = withFriendlyErrors(upload.array('images', MAX_IMAGES));
 const uploadLogo = withFriendlyErrors(upload.single('logo'), 1);
+const uploadMessageImage = withFriendlyErrors(upload.array('images', 1), 1);
 
 const copyFile = (from, to) =>
   new Promise((resolve, reject) => {
@@ -163,4 +164,4 @@ async function serveImage(req, res, next) {
   }
 }
 
-module.exports = { uploadImages, uploadLogo, deleteImages, copyImages, serveImage, MAX_IMAGES };
+module.exports = { uploadImages, uploadLogo, uploadMessageImage, deleteImages, copyImages, serveImage, MAX_IMAGES };

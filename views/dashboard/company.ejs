@@ -14,7 +14,12 @@
         <div><strong><%= stats.rejectedBids %></strong><span>Reddedilen</span></div>
         <div><strong><%= money(stats.totalEarnings) %></strong><span>Kabul edilen tutar</span></div>
       </div>
-      <p class="box-note">Firma sayfanız <strong><%= profileViews %></strong> kez görüntülendi. <a href="/companies/<%= currentUser.id %>">Sayfamı gör</a></p>
+      <p class="box-note">
+        Firma sayfanız <strong><%= profileViews %></strong> kez görüntülendi. <a href="/companies/<%= currentUser.id %>">Sayfamı gör</a>
+        <span class="note-sep">·</span>
+        <% if (allowance.limited) { %>Bu ay <strong><%= allowance.left %></strong> teklif hakkınız kaldı.<% } else { %><%= allowance.plan.name %> paketi: teklif sınırı yok.<% } %>
+        <a href="/dashboard/plans">Paketler</a>
+      </p>
 
       <% if (myBids.length === 0) { %>
         <div class="empty">

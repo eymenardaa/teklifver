@@ -11,7 +11,7 @@ const { str } = require('../lib/input');
 const { formatDateTime } = require('../lib/helpers');
 const { notify } = require('../lib/notify');
 const Notification = require('../models/Notification');
-const { uploadImages } = require('../middleware/upload');
+const { uploadMessageImage, deleteImages } = require('../middleware/upload');
 
 const { MAX_MESSAGE_LENGTH } = Message;
 const objectId = id => new mongoose.Types.ObjectId(id);
@@ -189,6 +189,7 @@ router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
         id: message._id,
         mine: message.sender.toString() === me,
         content: message.content,
+        image: message.image || '',
         time: formatDateTime(message.createdAt)
       }))
     });
@@ -197,32 +198,42 @@ router.get('/:requestId/:userId/new', isLoggedIn, async (req, res, next) => {
   }
 });
 
-// Mesaj gönder
-router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter, uploadImages, async (req, res, next) => {
+// Mesaj gönder (isteğe bağlı bir fotoğrafla)
+router.post('/:requestId/:userId', isLoggedIn, requireVerifiedEmail, sendLimiter, uploadMessageImage, async (req, res, next) => {
+  const uploaded = (req.files || []).map(file => '/uploads/' + file.filename);
+  // Mesaj kaydedilmezse yüklenen fotoğraf veritabanında sahipsiz kalmasın.
+  const discard = () => deleteImages(uploaded);
   try {
     const thread = await loadThread(req);
-    if (!thread) return denyThread(req, res);
+    if (!thread) {
+      discard();
+      return denyThread(req, res);
+    }
 
     const { requestId, userId } = req.params;
     const content = str(req.body.content);
     const backToThread = `/messages/${requestId}/${userId}`;
 
-    if (!content && !(req.files && req.files.length)) {
+    if (req.uploadError) {
+      req.flash('error', req.uploadError);
+      return res.redirect(backToThread);
+    }
+    if (!content && !uploaded.length) {
       req.flash('error', 'Boş mesaj gönderilemez.');
       return res.redirect(backToThread);
     }
     if (content.length > MAX_MESSAGE_LENGTH) {
+      discard();
       req.flash('error', `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`);
       return res.redirect(backToThread);
     }
 
-    const imagePath = (req.files && req.files.length) ? '/uploads/' + req.files[0].filename : '';
     await Message.create({
       request: requestId,
       sender: req.session.user.id,
       receiver: userId,
-      content: content || '📷 Fotoğraf paylaştı',
-      image: imagePath
+      content,
+      image: uploaded[0] || ''
     });
 
     // Art arda mesajlarda bildirim yığılmasın: okunmamış bildirim varsa yenisi açılmaz.

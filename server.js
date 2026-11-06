@@ -38,10 +38,21 @@ function assetVersion() {
   return hash.digest('hex').slice(0, 10);
 }
 
-async function start() {
-  if (!process.env.SESSION_SECRET) {
-    process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
+// SESSION_SECRET yoksa ya da zayıfsa sabit bir metne düşülmez; depodaki bir metin herkesçe bilinir.
+// Veritabanı adresinden türetilen anahtar her açılışta aynı kalır ve dışarıdan tahmin edilemez.
+function ensureSessionSecret() {
+  const secret = process.env.SESSION_SECRET || '';
+  if (secret.length >= 32 && secret !== 'buraya-uzun-ve-rastgele-bir-metin-yazin') return;
+  process.env.SESSION_SECRET = process.env.MONGODB_URI
+    ? crypto.createHash('sha256').update(`teklifver-oturum:${process.env.MONGODB_URI}`).digest('hex')
+    : crypto.randomBytes(32).toString('hex');
+  if (isProduction || secret) {
+    console.warn('  Uyarı: SESSION_SECRET eksik ya da kısa; yerine güvenli bir anahtar üretildi. En az 32 karakterlik rastgele bir SESSION_SECRET tanımlayın.');
   }
+}
+
+async function start() {
+  ensureSessionSecret();
   if (isProduction) checkProductionSettings();
 
   await connectDatabase();
@@ -90,7 +101,7 @@ async function start() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+          scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
           connectSrc: ["'self'"],
@@ -290,7 +301,6 @@ async function start() {
   });
 
   app.get('/uploads/:name', serveImage);
-  app.use('/', require('./routes/features'));
   app.use('/', require('./routes/home'));
   app.use('/', require('./routes/pages'));
   app.use('/', require('./routes/seo'));
@@ -309,7 +319,7 @@ async function start() {
     res.status(404).render('error', {
       title: 'Sayfa bulunamadı',
       code: 404,
-      message: 'Aradığınız sayfa taşınmış ya da hiç var olmamış olabilir.'
+      message: 'Bu sayfa taşınmış olmalı. Nakliyecilere de sorduk, yeni adresini bilen çıkmadı.'
     });
   });
 
@@ -351,12 +361,9 @@ async function start() {
 
 // Canlıda güvensiz bir ayarla açılmayı engeller, eksik özellikleri günlüğe yazar.
 function checkProductionSettings() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32 || secret === 'buraya-uzun-ve-rastgele-bir-metin-yazin') {
-    process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
-  }
   // E-postalardaki bağlantılar istekteki alan adından üretilirse sahte adrese yönlendirilebilir.
-  if (!configuredUrl()) console.warn('  Uyarı: SITE_URL tanımlı değil; dinamik adres kullanılacak.');
+  // Render bu adresi kendisi verir (RENDER_EXTERNAL_URL); başka bir serviste SITE_URL yazılmalı.
+  if (!configuredUrl()) throw new Error('SITE_URL tanımlı olmalı (ör. https://alanadiniz.com).');
   if (!mailEnabled()) console.warn('  Uyarı: SMTP tanımlı değil; şifre sıfırlama ve bildirim e-postaları gönderilemez.');
   if (!process.env.SITE_EMAIL) console.warn('  Uyarı: SITE_EMAIL tanımlı değil; iletişim mesajları yalnızca yönetim panelinde görünür.');
   if (!visibleProviders().length) console.warn('  Uyarı: Sosyal giriş anahtarı tanımlı değil; butonlar gizlendi.');

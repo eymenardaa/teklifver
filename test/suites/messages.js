@@ -32,7 +32,7 @@ const idOf = async cookie => {
   const firmC = await signup({ role: 'company', name: 'C', companyName: 'Firma C Ltd', email: `c${stamp}@test.local` });
 
   const body = new FormData();
-  Object.entries({ title: `Mesaj testi ${stamp}`, description: 'Aciklama', category: 'Diğer' }).forEach(([k, v]) => body.append(k, v));
+  Object.entries({ title: `Mesaj testi ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' }).forEach(([k, v]) => body.append(k, v));
   const created = await fetch(BASE + '/requests', { method: 'POST', redirect: 'manual', headers: { cookie: owner }, body });
   const requestPath = created.headers.get('location');
   const requestId = requestPath.split('/').pop();

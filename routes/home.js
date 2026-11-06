@@ -6,6 +6,7 @@ const Bid = require('../models/Bid');
 const Review = require('../models/Review');
 const { openCountsByCategory, uniqueByPhoto } = require('../lib/stats');
 const { liveFilter } = require('../lib/listing');
+const { priceBoard } = require('../lib/price-board');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -44,7 +45,9 @@ router.get('/', async (req, res, next) => {
           .lean()
       ]);
 
+    const board = await priceBoard();
     res.render('home', {
+      board,
       title: '',
       ownHeading: true,
       metaDescription: 'Tadilat, nakliye, temizlik, web tasarım ve daha fazlası için ücretsiz talep verin, firmalardan teklif alın. Fiyat, süre ve yorumları karşılaştırın.',

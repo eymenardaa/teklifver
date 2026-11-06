@@ -57,7 +57,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   const profileHtml = (await get(firm, '/profile')).text;
   check('hizmet ve kategori kaydedilir', profileHtml.includes('value="Boya, Parke, Alçıpan"') && /value="Temizlik" checked/.test(profileHtml));
   const notifBefore = notifCount((await get(firm, '/')).text);
-  const requestPath = await newRequest(owner, { title: `Ozellik testi ${stamp}`, description: 'Aciklama', category: 'Temizlik', budgetMax: '5000', city: 'Ankara' });
+  const requestPath = await newRequest(owner, { title: `Ozellik testi ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', budgetMax: '5000', city: 'Ankara' });
   const requestId = requestPath.split('/').pop();
   check('yeni talep firmaya bildirim düşürür', notifCount((await get(firm, '/')).text) === notifBefore + 1);
   check('ikinci firmaya (kategorisiz) düşmez', notifCount((await get(firm2, '/')).text) === 0);
@@ -165,7 +165,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   check('açık talep yeniden yayınlanamaz', (await get(owner, res.headers.get('location'))).text.includes('Yalnızca kapanmış'));
 
   // 17 Süresi dolan talep
-  const expiredPath = await newRequest(owner, { title: `Suresi dolmus ${stamp}`, description: 'x', category: 'Diğer' });
+  const expiredPath = await newRequest(owner, { title: `Suresi dolmus ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' });
   await setDeadline(expiredPath.split('/').pop(), new Date('2020-01-01'));
   check('süresi dolan talep listede yok', !(await get(null, `/requests?search=Suresi dolmus ${stamp}`)).text.includes(expiredPath));
   check('süresi dolan talepte uyarı', (await get(null, expiredPath)).text.includes('son tarihi geçti'));
@@ -173,7 +173,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   check('süresi dolan talebe teklif verilemez', (await get(firm, res.headers.get('location'))).text.includes('teklif almıyor'));
 
   // 18 Yorumlu değerlendirme
-  const reviewPath = await newRequest(owner, { title: `Yorum testi ${stamp}`, description: 'x', category: 'Temizlik' });
+  const reviewPath = await newRequest(owner, { title: `Yorum testi ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik' });
   const reviewId = reviewPath.split('/').pop();
   await post(firm, '/bids', { requestId: reviewId, amount: '1000', deliveryTime: '3', description: 'teklif' });
   const acceptId = (await get(owner, reviewPath)).text.match(/\/bids\/([a-f0-9]{24})\/accept/)[1];
@@ -220,7 +220,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
   check('aynı arama iki kez kaydedilmez', (await get(owner, res.headers.get('location'))).text.includes('zaten kaydettiniz'));
   res = await post(owner, '/dashboard/searches', { query: '' });
   check('boş arama kaydedilmez', (await get(owner, res.headers.get('location'))).text.includes('önce bir filtre'));
-  await newRequest(firm === owner ? owner : owner, { title: `Yeni kayitli ${stamp}`, description: 'x', category: 'Temizlik', city: 'Ankara' });
+  await newRequest(firm === owner ? owner : owner, { title: `Yeni kayitli ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', city: 'Ankara' });
   searches = (await get(owner, '/dashboard/searches')).text;
   check('kayıtlı aramada yeni sayısı görünür', /class="unread-count">1</.test(searches));
   const openSearch = searches.match(/\/dashboard\/searches\/[a-f0-9]{24}\/open/)[0];
@@ -304,7 +304,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
 
   // 29 Hesap silme
   const victim = await signup({ role: 'customer', name: 'Silinecek', email: `sil${stamp}@test.local` });
-  const victimPath = await newRequest(victim, { title: `Silinecek ${stamp}`, description: 'x', category: 'Diğer' });
+  const victimPath = await newRequest(victim, { title: `Silinecek ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' });
   await post(firm, '/bids', { requestId: victimPath.split('/').pop(), amount: '100', deliveryTime: '1', description: 'teklif' });
   res = await post(victim, '/profile/delete', { password: 'yanlis' });
   check('yanlış şifreyle hesap silinmez', res.status === 422 && (await get(victim, '/dashboard')).status === 200);
@@ -316,7 +316,7 @@ const notifCount = html => Number((html.match(/Bildirimler <span class="unread-c
 
   // Teklif vermiş firma silinince talep sayfası bozulmaz
   const leaving = await signup({ role: 'company', name: 'Gidecek', companyName: `Gidecek ${stamp}`, email: `git${stamp}@test.local` });
-  const keepPath = await newRequest(owner, { title: `Kalacak ${stamp}`, description: 'x', category: 'Diğer' });
+  const keepPath = await newRequest(owner, { title: `Kalacak ${stamp}`, description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' });
   await post(leaving, '/bids', { requestId: keepPath.split('/').pop(), amount: '100', deliveryTime: '1', description: 'teklif' });
   await post(leaving, '/profile/delete', { password: pw });
   const kept = await get(owner, keepPath);

@@ -26,8 +26,7 @@
         </td>
         <td>
           <a class="listing-title" href="/requests/<%= item._id %>"><%= truncate(item.title, 90) %></a>
-          <% if (item.isFeatured) { %><span class="label" style="background:#f59f00; color:#fff">⭐ VİTRİN</span><% } %>
-          <% if (isUrgent(item) || item.isUrgent) { %><span class="label label-urgent">ACİL</span><% } %>
+          <% if (isUrgent(item)) { %><span class="label label-urgent">ACİL</span><% } %>
           <% if (isFresh(item)) { %><span class="label label-new">YENİ</span><% } %>
           <% if (item.description) { %><p class="listing-snippet"><%= truncate(item.description.replace(/\s+/g, ' '), 170) %></p><% } %>
           <div class="listing-meta">

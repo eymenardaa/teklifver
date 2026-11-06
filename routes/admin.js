@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const PLANS = require('../config/plans');
 const router = express.Router();
 const User = require('../models/User');
 const Request = require('../models/Request');
@@ -179,7 +180,7 @@ router.get('/users', async (req, res, next) => {
     }
     const pager = await paginate(User, filter, req);
     const users = await User.find(filter)
-      .select('name email role companyName verified suspended isAdmin emailVerified createdAt')
+      .select('name email role companyName verified suspended isAdmin emailVerified createdAt plan')
       .sort({ createdAt: -1 })
       .skip(pager.skip)
       .limit(pager.limit)
@@ -189,6 +190,7 @@ router.get('/users', async (req, res, next) => {
       section: 'users',
       users,
       search,
+      plans: Object.values(PLANS),
       pager,
       pagerBase: '/admin/users',
       pageQuery: search ? new URLSearchParams({ search }).toString() : ''
@@ -215,6 +217,27 @@ router.post('/users/:id/suspend', async (req, res, next) => {
       : Request.updateMany({ customer: user._id, status: 'removed', previousStatus: 'open' }, { status: 'open', $unset: { previousStatus: 1 } }));
 
     req.flash('success', user.suspended ? 'Hesap askıya alındı.' : 'Hesap yeniden açıldı.');
+    res.redirect('/admin/users');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Firma paketi: ödeme sitede alınmadığı için paketi yönetici açar.
+router.post('/users/:id/plan', async (req, res, next) => {
+  try {
+    const user = mongoose.isValidObjectId(req.params.id) ? await User.findById(req.params.id) : null;
+    const plan = PLANS[req.body.plan];
+    if (!user || user.role !== 'company' || !plan) {
+      req.flash('error', 'Paket değiştirilemedi.');
+      return res.redirect('/admin/users');
+    }
+    if (user.plan !== plan.key) {
+      user.plan = plan.key;
+      await user.save();
+      await notify(user._id, `Firmanızın paketi ${plan.name} oldu.`, '/dashboard/plans');
+    }
+    req.flash('success', `${user.companyName || user.name}: ${plan.name} paketi.`);
     res.redirect('/admin/users');
   } catch (err) {
     next(err);

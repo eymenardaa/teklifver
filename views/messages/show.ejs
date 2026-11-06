@@ -7,11 +7,9 @@
     <aside class="desktop-only"><%- include('../partials/panel-menu') %></aside>
 
     <section class="box">
-      <div class="box-head" style="display:flex; justify-content:space-between; align-items:center">
-        <span style="display:flex; align-items:center; gap:6px">
-          <span style="display:inline-block; width:9px; height:9px; background:#1b7a3d; border-radius:50%; box-shadow:0 0 6px #1b7a3d" title="Çevrimiçi"></span>
+      <div class="box-head">
+        <span>
           <a href="/messages" style="font-size:13px;font-weight:bold">Mesajlarım</a> &rsaquo; <%= otherName %>
-          <span class="small muted" style="font-weight:normal">(Çevrimiçi)</span>
         </span>
         <% if (other.role === 'company') { %><a href="/companies/<%= other._id %>">Firma Sayfası</a><% } %>
       </div>
@@ -36,13 +34,9 @@
         <% messages.forEach(message => { const mine = message.sender.toString() === currentUser.id; %>
           <div class="msg <%= mine ? 'msg-mine' : '' %>">
             <% if (message.image) { %>
-              <div style="margin-bottom:6px">
-                <a href="<%= message.image %>" target="_blank" rel="noopener">
-                  <img src="<%= message.image %>" alt="Eklenen görsel" style="max-width:200px; max-height:160px; border-radius:4px; object-fit:cover; display:block">
-                </a>
-              </div>
+              <a class="msg-image" href="<%= message.image %>" target="_blank" rel="noopener"><img src="<%= thumb(message.image) %>" alt="Gönderilen fotoğraf" loading="lazy" width="200" height="150"></a>
             <% } %>
-            <div class="msg-text"><%= message.content %></div>
+            <% if (message.content) { %><div class="msg-text"><%= message.content %></div><% } %>
             <div class="msg-time"><%= formatDateTime(message.createdAt) %></div>
           </div>
         <% }) %>
@@ -58,24 +52,14 @@
           <% }) %>
         </div>
 
-        <div style="display:flex; gap:8px; align-items:flex-end">
-          <div style="flex:1">
-            <label class="visually-hidden" for="messageContent">Mesajınız</label>
-            <textarea class="textarea" id="messageContent" name="content" rows="3" maxlength="<%= maxLength %>" placeholder="Mesajınızı yazın" required style="margin:0"></textarea>
-          </div>
-          <div>
-            <label class="btn" style="cursor:pointer; height:38px; display:inline-flex; align-items:center; gap:4px" title="Fotoğraf Ekle">
-              <%- icon('camera', { size: 16 }) %> Fotoğraf
-              <input type="file" name="image" accept="image/*" class="visually-hidden" id="msgImageInput">
-            </label>
-          </div>
-        </div>
-        <div id="imageSelectedNote" class="small muted" style="margin-top:4px; display:none">
-          📷 Görsel seçildi: <span id="imageFileName"></span>
-        </div>
-
-        <div class="thread-form-foot" style="margin-top:8px">
-          <span class="muted small">Ctrl + Enter ile gönderebilirsiniz.</span>
+        <label class="visually-hidden" for="messageContent">Mesajınız</label>
+        <textarea class="textarea" id="messageContent" name="content" rows="3" maxlength="<%= maxLength %>" placeholder="Mesajınızı yazın"></textarea>
+        <div class="thread-form-foot">
+          <label class="attach-button">
+            <input class="visually-hidden" type="file" id="messageImage" name="images" accept="image/jpeg,image/png,image/gif,image/webp">
+            <%- icon('camera', { size: 15 }) %><span data-attach-label>Fotoğraf ekle</span>
+          </label>
+          <span class="muted small thread-hint">Ctrl + Enter ile gönderebilirsiniz.</span>
           <button class="btn btn-primary" type="submit">Gönder</button>
         </div>
       </form>
