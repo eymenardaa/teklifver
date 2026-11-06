@@ -272,7 +272,7 @@ router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
   const password = typeof req.body.password === 'string' ? req.body.password : '';
 
   const fail = message =>
-    res.status(401).render('auth/login', {
+    res.status(422).render('auth/login', {
       title: 'Giriş Yap',
       next: redirectTo,
       values: { email },
