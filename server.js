@@ -39,6 +39,14 @@ function assetVersion() {
 }
 
 async function start() {
+  if (process.env.RENDER) {
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+      process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session-32char';
+    }
+    if (!process.env.SITE_URL) {
+      process.env.SITE_URL = process.env.RENDER_EXTERNAL_URL || 'https://teklifver-5frd.onrender.com';
+    }
+  }
   if (!process.env.SESSION_SECRET) {
     if (!isProduction) process.env.SESSION_SECRET = 'teklifver-super-gizli-varsayilan-anahtar-2026-guclu-session';
     else throw new Error('SESSION_SECRET tanımlı değil.');
