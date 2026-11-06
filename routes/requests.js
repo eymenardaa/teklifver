@@ -54,7 +54,8 @@ function parseRequestForm(req) {
     budgetMax: str(req.body.budgetMax),
     deadline: str(req.body.deadline),
     city: str(req.body.city),
-    location: str(req.body.location)
+    location: str(req.body.location),
+    discoveryTime: str(req.body.discoveryTime)
   };
 
   const errors = {};
@@ -79,7 +80,11 @@ function parseRequestForm(req) {
   if (req.uploadError) errors.images = req.uploadError;
 
   return {
-    values,
+    values: {
+      ...values,
+      isUrgent: req.body.isUrgent === 'on',
+      isFeatured: req.body.isFeatured === 'on'
+    },
     errors,
     data: {
       title: values.title,
@@ -88,7 +93,10 @@ function parseRequestForm(req) {
       budget: { min, max },
       city: values.city || undefined,
       location: values.location,
-      deadline: deadline || undefined
+      discoveryTime: values.discoveryTime,
+      deadline: deadline || undefined,
+      isUrgent: req.body.isUrgent === 'on',
+      isFeatured: req.body.isFeatured === 'on'
     }
   };
 }
@@ -105,7 +113,7 @@ router.get('/', async (req, res, next) => {
     const page = Math.min(requestedPage, totalPages);
 
     const requests = await Request.find(filter)
-      .sort(SORT_OPTIONS[filters.sort])
+      .sort(filters.sort === 'newest' ? { isFeatured: -1, isUrgent: -1, createdAt: -1 } : SORT_OPTIONS[filters.sort])
       .skip((page - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .lean();
@@ -225,6 +233,79 @@ router.post('/', isCustomer, requireVerifiedEmail, limits.newRequest, uploadImag
   }
 });
 
+// Talep soru sorma (Kullanıcı Deneyimi - Soru & Cevap)
+router.post('/:id/questions', isLoggedIn, async (req, res, next) => {
+  try {
+    const questionText = str(req.body.question);
+    if (!questionText) {
+      req.flash('error', 'Lütfen sorunuzu yazın.');
+      return res.redirect(`/requests/${req.params.id}`);
+    }
+
+    const request = await Request.findById(req.params.id);
+    if (!request) {
+      req.flash('error', 'Talep bulunamadı.');
+      return res.redirect('/requests');
+    }
+
+    const askerName = req.session.user.companyName || req.session.user.name;
+    request.questions.push({
+      asker: req.session.user.id,
+      askerName,
+      question: questionText
+    });
+    await request.save();
+
+    await notify(
+      request.customer,
+      `${askerName}, "${request.title}" talebinize bir soru sordu.`,
+      `/requests/${request._id}#soru-cevap`
+    );
+
+    req.flash('success', 'Sorunuz talep sahibine iletildi.');
+    res.redirect(`/requests/${request._id}#soru-cevap`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Talep soru cevaplama
+router.post('/:id/questions/:questionId/answer', isCustomer, async (req, res, next) => {
+  try {
+    const answerText = str(req.body.answer);
+    if (!answerText) {
+      req.flash('error', 'Lütfen cevabınızı yazın.');
+      return res.redirect(`/requests/${req.params.id}`);
+    }
+
+    const request = await Request.findOne({ _id: req.params.id, customer: req.session.user.id });
+    if (!request) {
+      req.flash('error', 'Talep bulunamadı.');
+      return res.redirect('/requests');
+    }
+
+    const q = request.questions.id(req.params.questionId);
+    if (q) {
+      q.answer = answerText;
+      q.answeredAt = new Date();
+      await request.save();
+
+      if (q.asker) {
+        await notify(
+          q.asker,
+          `Talep sahibi sorunuzu cevapladı: "${request.title}"`,
+          `/requests/${request._id}#soru-cevap`
+        );
+      }
+    }
+
+    req.flash('success', 'Cevabınız yayınlandı.');
+    res.redirect(`/requests/${request._id}#soru-cevap`);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Favorilere ekle / çıkar
 router.post('/:id/favorite', isLoggedIn, async (req, res, next) => {
   try {
@@ -306,7 +387,6 @@ router.get('/:id', async (req, res, next) => {
     const isOwner = Boolean(viewer && viewer.id === request.customer._id.toString());
     const isAdminViewer = Boolean(viewer && viewer.isAdmin);
 
-    // Yönetici tarafından kaldırılan talebi yalnızca sahibi ve yöneticiler görür.
     if (request.status === 'removed' && !isOwner && !isAdminViewer) return notFoundPage(res);
 
     if (!isOwner) {
@@ -327,7 +407,6 @@ router.get('/:id', async (req, res, next) => {
       if (bidSort === 'days') allBids.sort((a, b) => a.deliveryTime - b.deliveryTime);
       if (bidSort === 'rating') allBids.sort((a, b) => b.company.rating - a.company.rating);
     } else {
-      // Sıralama tutarı ele vermesin diye dışarıdan bakana tarih sırasıyla gösterilir.
       allBids.sort((a, b) => a.createdAt - b.createdAt);
     }
 
@@ -336,7 +415,6 @@ router.get('/:id', async (req, res, next) => {
         ? allBids.find(bid => bid.company._id.toString() === viewer.id)
         : null;
 
-    // İletişim bilgileri yalnızca teklif kabul edildikten sonra iki tarafa da gösterilir.
     const acceptedBid = allBids.find(bid => bid.status === 'accepted');
     let contact = null;
     if (acceptedBid && isOwner) {
@@ -371,7 +449,6 @@ router.get('/:id', async (req, res, next) => {
       };
     }
 
-    // Tutar ve açıklama yalnızca talep sahibine, yöneticiye ve teklifi verene görünür; rakip firmalar görmez.
     const bids = allBids.map(bid => {
       const company = { _id: bid.company._id, name: bid.company.name, companyName: bid.company.companyName, rating: bid.company.rating, ratingCount: bid.company.ratingCount, verified: bid.company.verified };
       if (canSeeBids || bid === userBid) return { ...bid, company };
@@ -436,7 +513,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// Sahibinin talebini getirir; değilse uyarıp yönlendirir.
+// Sahibinin talebini getirir
 async function loadOwnRequest(req, res) {
   let request = null;
   try {
@@ -548,7 +625,6 @@ router.post('/:id/invite/:companyId', isCustomer, requireVerifiedEmail, limits.i
       return res.redirect(back);
     }
 
-    // Koşullu güncelleme: aynı firma aynı talebe iki kez davet edilip bildirim yağmuruna tutulmaz.
     const invited = await Request.updateOne(
       { _id: request._id, invitedCompanies: { $ne: company._id } },
       { $addToSet: { invitedCompanies: company._id } }
@@ -564,7 +640,7 @@ router.post('/:id/invite/:companyId', isCustomer, requireVerifiedEmail, limits.i
   }
 });
 
-// Talebi kapat: yayından çıkar, bekleyen teklifleri reddeder.
+// Talebi kapat
 router.post('/:id/close', isCustomer, async (req, res, next) => {
   try {
     const request = await loadOwnOpenRequest(req, res);
@@ -589,7 +665,7 @@ router.post('/:id/close', isCustomer, async (req, res, next) => {
   }
 });
 
-// Kapanmış veya biten talebi yeni bir talep olarak yeniden yayınla
+// Yeniden yayınla
 router.post('/:id/republish', isCustomer, async (req, res, next) => {
   try {
     const request = await loadOwnRequest(req, res);

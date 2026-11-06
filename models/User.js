@@ -29,6 +29,8 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  emailCode: String,
+  emailCodeExpires: Date,
   emailTokenHash: String,
   emailTokenExpires: Date,
   // Doğrulanana kadar hesabın e-postası değişmez.
@@ -131,6 +133,20 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   ratingCount: {
+    type: Number,
+    default: 0
+  },
+  // --- YENİ EKLENEN ÖZELLİKLER (Firma Paketleri & İstatistikler) ---
+  plan: {
+    type: String,
+    enum: ['free', 'pro', 'enterprise'],
+    default: 'free'
+  },
+  bidCredits: {
+    type: Number,
+    default: 10 // Ücretsiz üyelik aylık 10 teklif hakkı
+  },
+  profileViews: {
     type: Number,
     default: 0
   }

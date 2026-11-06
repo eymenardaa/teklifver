@@ -24,6 +24,10 @@ const messageSchema = new mongoose.Schema({
     trim: true,
     maxlength: MAX_MESSAGE_LENGTH
   },
+  image: {
+    type: String,
+    default: ''
+  },
   read: {
     type: Boolean,
     default: false

@@ -1,0 +1,85 @@
+<%- include('../partials/header') %>
+
+<div class="wrap page">
+  <div class="layout">
+    <aside><%- include('../partials/panel-menu') %></aside>
+
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <section class="box">
+        <div class="box-head">💎 Firma Üyelik Paketleri</div>
+        <div class="box-body">
+          <p style="margin-bottom:16px; color:var(--text)">
+            Mevcut Paketiniz: <strong style="text-transform:uppercase; color:var(--orange)"><%= userPlan.name %></strong>
+            <% if (userPlan.plan === 'free') { %>
+              <span class="muted small">(Kalan Teklif Hakkınız: <strong><%= userPlan.credits %></strong>)</span>
+            <% } else { %>
+              <span class="muted small">(Kalan Teklif Hakkınız: <strong>Sınırsız</strong>)</span>
+            <% } %>
+          </p>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px">
+            <!-- Ücretsiz Paket -->
+            <div style="border:1px solid var(--line); border-radius:6px; padding:16px; background:var(--surface); display:flex; flex-direction:column; justify-content:space-between">
+              <div>
+                <h3 style="font-size:16px; margin-bottom:4px">Başlangıç Paketi</h3>
+                <div style="font-size:24px; font-weight:bold; color:var(--navy); margin-bottom:12px">0 ₺ <span style="font-size:12px; font-weight:normal; color:var(--muted)">/ ay</span></div>
+                <ul style="padding-left:18px; margin-bottom:16px; font-size:13px; line-height:1.6">
+                  <li>Aylık 10 Teklif Verme Hakkı</li>
+                  <li>Standart Profil Listelemesi</li>
+                  <li>Müşteriyle Mesajlaşma</li>
+                </ul>
+              </div>
+              <% if (userPlan.plan === 'free') { %>
+                <button class="btn btn-block" disabled style="opacity:0.7">Mevcut Paket</button>
+              <% } else { %>
+                <form action="/plan/upgrade" method="POST">
+                  <input type="hidden" name="plan" value="free">
+                  <button class="btn btn-block" type="submit">Bu Pakete Geç</button>
+                </form>
+              <% } %>
+            </div>
+
+            <!-- Pro Paket -->
+            <div style="border:2px solid var(--orange); border-radius:6px; padding:16px; background:var(--surface); position:relative; display:flex; flex-direction:column; justify-content:space-between">
+              <span style="position:absolute; top:-10px; right:12px; background:var(--orange); color:#fff; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:10px">POPÜLER</span>
+              <div>
+                <h3 style="font-size:16px; margin-bottom:4px">Pro Paket</h3>
+                <div style="font-size:24px; font-weight:bold; color:var(--orange); margin-bottom:12px">490 ₺ <span style="font-size:12px; font-weight:normal; color:var(--muted)">/ ay</span></div>
+                <ul style="padding-left:18px; margin-bottom:16px; font-size:13px; line-height:1.6">
+                  <li><strong>Aylık 50 Teklif Hakkı</strong></li>
+                  <li>Firma Rehberinde Üst Sıralar</li>
+                  <li>"Onaylı Pro Firma" Rozeti</li>
+                  <li>Taleplerde Öncelikli Bildirim</li>
+                </ul>
+              </div>
+              <form action="/plan/upgrade" method="POST">
+                <input type="hidden" name="plan" value="pro">
+                <button class="btn btn-primary btn-block" type="submit"><%= userPlan.plan === 'pro' ? 'Paketi Yenile' : 'Hemen Yükselt' %></button>
+              </form>
+            </div>
+
+            <!-- Kurumsal Sınırsız Paket -->
+            <div style="border:1px solid var(--line); border-radius:6px; padding:16px; background:var(--surface); display:flex; flex-direction:column; justify-content:space-between">
+              <div>
+                <h3 style="font-size:16px; margin-bottom:4px">Sınırsız Kurumsal</h3>
+                <div style="font-size:24px; font-weight:bold; color:var(--navy); margin-bottom:12px">1.250 ₺ <span style="font-size:12px; font-weight:normal; color:var(--muted)">/ ay</span></div>
+                <ul style="padding-left:18px; margin-bottom:16px; font-size:13px; line-height:1.6">
+                  <li><strong>Sınırsız Teklif Hakkı</strong></li>
+                  <li>Tüm Kategorilerde Öncelik</li>
+                  <li>Özel Müşteri Temsilcisi</li>
+                  <li>Vitrin Reklam Alanlarında İndirim</li>
+                </ul>
+              </div>
+              <form action="/plan/upgrade" method="POST">
+                <input type="hidden" name="plan" value="enterprise">
+                <button class="btn btn-navy btn-block" type="submit"><%= userPlan.plan === 'enterprise' ? 'Paketi Yenile' : 'Kurumsal Satın Al' %></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

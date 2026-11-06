@@ -4,6 +4,7 @@ const router = express.Router();
 const Bid = require('../models/Bid');
 const Request = require('../models/Request');
 const Review = require('../models/Review');
+const User = require('../models/User');
 const { isLoggedIn, isCompany, isCustomer, requireVerifiedEmail } = require('../middleware/auth');
 const { str } = require('../lib/input');
 const { notify, notifyMany } = require('../lib/notify');
@@ -48,6 +49,12 @@ router.post('/', isCompany, requireVerifiedEmail, limits.newBid, async (req, res
       return res.redirect(backToRequest);
     }
 
+    const companyUser = await User.findById(req.session.user.id).select('bidCredits plan');
+    if (companyUser && companyUser.bidCredits !== undefined && companyUser.bidCredits <= 0) {
+      req.flash('error', 'Aylık teklif verme hakkınız doldu. Lütfen paketinizi yükseltin.');
+      return res.redirect('/dashboard/plans');
+    }
+
     const form = readBidForm(req.body);
     if (!form.valid) {
       req.flash('error', 'Lütfen tutar, teslim süresi ve açıklamayı doğru girin.');
@@ -62,6 +69,7 @@ router.post('/', isCompany, requireVerifiedEmail, limits.newBid, async (req, res
       deliveryTime: form.deliveryTime
     });
     await Request.updateOne({ _id: requestId }, { $inc: { bidCount: 1 } });
+    await User.updateOne({ _id: req.session.user.id, bidCredits: { $gt: 0 } }, { $inc: { bidCredits: -1 } });
     await notify(request.customer, `${companyLabel(req.session.user)}, "${request.title}" talebinize teklif verdi.`, backToRequest, { mail: 'bids' });
 
     req.flash('success', 'Teklifiniz gönderildi.');
@@ -99,6 +107,12 @@ router.post('/:id/edit', isCompany, async (req, res, next) => {
   try {
     const bid = await loadOwnPendingBid(req, res);
     if (!bid) return;
+
+    const companyUser = await User.findById(req.session.user.id).select('bidCredits plan');
+    if (companyUser && companyUser.bidCredits !== undefined && companyUser.bidCredits <= 0) {
+      req.flash('error', 'Aylık teklif verme hakkınız doldu. Lütfen paketinizi yükseltin.');
+      return res.redirect('/dashboard/plans');
+    }
 
     const form = readBidForm(req.body);
     if (!form.valid) {

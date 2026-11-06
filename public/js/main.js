@@ -871,6 +871,128 @@
     });
   }
 
+
+  /* Yapay Zekâ Fiyat Tahmini ve Detaylandırma */
+  function initAiFeatures() {
+    const catSelect = $('#category');
+    const descEl = $('#description');
+    const aiPriceText = $('#aiPriceText');
+    const aiApplyBtn = $('#aiApplyPrice');
+    const minInput = $('#budgetMin');
+    const maxInput = $('#budgetMax');
+    const aiEnhanceBtn = $('#aiEnhanceBtn');
+
+    if (!catSelect || !descEl) return;
+
+    let currentEstimate = null;
+
+    async function updateAiEstimate() {
+      const category = catSelect.value;
+      if (!category || !aiPriceText) return;
+      try {
+        const res = await fetch('/ai/price-estimate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category, description: descEl.value || '' })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        currentEstimate = data;
+        aiPriceText.innerHTML = '<strong>' + data.min.toLocaleString('tr-TR') + ' ₺ - ' + data.max.toLocaleString('tr-TR') + ' ₺</strong> <span style="color:#555; font-size:12px">(' + data.category + ' • ' + data.unit + ')</span>';
+        if (aiApplyBtn) aiApplyBtn.style.display = 'inline-block';
+      } catch (e) {}
+    }
+
+    catSelect.addEventListener('change', updateAiEstimate);
+    descEl.addEventListener('blur', updateAiEstimate);
+    if (catSelect.value) updateAiEstimate();
+
+    if (aiApplyBtn) {
+      aiApplyBtn.addEventListener('click', () => {
+        if (currentEstimate && minInput && maxInput) {
+          minInput.value = currentEstimate.min;
+          maxInput.value = currentEstimate.max;
+        }
+      });
+    }
+
+    if (aiEnhanceBtn) {
+      aiEnhanceBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const category = catSelect.value;
+        if (!category) {
+          alert('Lütfen önce bir kategori seçin.');
+          catSelect.focus();
+          return;
+        }
+        aiEnhanceBtn.disabled = true;
+        const oldHtml = aiEnhanceBtn.innerHTML;
+        aiEnhanceBtn.innerText = 'Yapay Zekâ Yazıyor...';
+        try {
+          const res = await fetch('/ai/enhance-description', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category, text: descEl.value || '' })
+          });
+          if (!res.ok) throw new Error('API yanıt vermedi');
+          const data = await res.json();
+          if (data && data.enhanced) {
+            descEl.value = (descEl.value.trim() ? descEl.value.trim() + '\n\n' : '') + data.enhanced;
+            updateAiEstimate();
+          }
+        } catch (err) {
+          alert('Yapay zeka metni hazırlanırken bir sorun oluştu. Lütfen tekrar deneyin.');
+        } finally {
+          aiEnhanceBtn.disabled = false;
+          aiEnhanceBtn.innerHTML = oldHtml;
+        }
+      });
+    }
+  }
+
+  /* Mesajlarda Görsel Seçim Bildirimi */
+  function initMsgImagePreview() {
+    const fileInput = $('#msgImageInput');
+    const noteEl = $('#imageSelectedNote');
+    const nameEl = $('#imageFileName');
+    if (!fileInput) return;
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files[0]) {
+        if (nameEl) nameEl.innerText = fileInput.files[0].name;
+        if (noteEl) noteEl.style.display = 'block';
+      } else {
+        if (noteEl) noteEl.style.display = 'none';
+      }
+    });
+  }
+
+  /* İlan Kalan Süre Sayacı */
+  function initCountdownTimer() {
+    const timerEl = $('#countdownTimer');
+    const countdownBox = $('#countdown');
+    if (!timerEl || !countdownBox) return;
+
+    const deadlineStr = countdownBox.dataset.deadline;
+    if (!deadlineStr) return;
+
+    const target = new Date(deadlineStr).getTime();
+    function tick() {
+      const now = Date.now();
+      const diff = target - now;
+      if (diff <= 0) {
+        timerEl.innerText = 'Süre doldu!';
+        return;
+      }
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      timerEl.innerText = d + ' gün ' + h + ' sa ' + m + ' dk';
+    }
+    tick();
+    setInterval(tick, 60000);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initMotion();
@@ -897,5 +1019,8 @@
     initToTop();
     initSuggest();
     initSmallActions();
+    initAiFeatures();
+    initMsgImagePreview();
+    initCountdownTimer();
   });
 })();

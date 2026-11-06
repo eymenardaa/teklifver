@@ -47,8 +47,8 @@
         <a href="/reklam">Reklam Ver</a>
       </div>
       <button class="theme-toggle" type="button" data-theme-toggle>
-        <span class="when-light">Siyah Tema</span>
-        <span class="when-dark">Beyaz Tema</span>
+        <span class="when-light"><%- icon('moon', { size: 14 }) %>Siyah Tema</span>
+        <span class="when-dark"><%- icon('sun', { size: 14 }) %>Beyaz Tema</span>
       </button>
       <% if (currentUser) { %>
         <a href="/notifications">Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
@@ -71,8 +71,8 @@
           </div>
         </div>
       <% } else { %>
-        <a href="/login">Giriş Yap</a>
-        <a href="/register">Hesap Aç</a>
+        <a class="topbar-login" href="/login">Giriş Yap</a>
+        <a class="topbar-register" href="/register">Hesap Aç</a>
       <% } %>
     </div>
   </nav>
