@@ -9,7 +9,8 @@ const CompanyReport = require('../models/CompanyReport');
 const categories = require('../config/categories');
 const cities = require('../config/cities');
 const { isLoggedIn, isCompany } = require('../middleware/auth');
-const { str, searchPattern } = require('../lib/input');
+const { str } = require('../lib/input');
+const { searchPatterns } = require('../public/js/search-terms');
 const { companyStats } = require('../lib/stats');
 const { liveFilter } = require('../lib/listing');
 const { limits } = require('../lib/limits');
@@ -21,7 +22,7 @@ const MAX_REPLY = 1000;
 
 // İletişim bilgileri burada gösterilmez; yalnızca kabul edilen tekliflerde paylaşılır.
 const PUBLIC_FIELDS =
-  'name companyName companyDescription address specialties categories rating ratingCount createdAt avatar verified portfolio';
+  'name companyName companyDescription address serviceCities specialties categories rating ratingCount createdAt avatar verified portfolio';
 
 const SORTS = {
   rating: { rating: -1, ratingCount: -1 },
@@ -39,11 +40,12 @@ router.get('/', async (req, res, next) => {
     const sort = Object.hasOwn(SORTS, req.query.sort) ? req.query.sort : 'rating';
 
     const filter = { role: 'company', suspended: { $ne: true } };
-    if (search) {
-      const pattern = { $regex: searchPattern(search), $options: 'i' };
-      filter.$or = [{ companyName: pattern }, { specialties: pattern }];
-    }
-    if (city) filter.address = city;
+    const conditions = searchPatterns(search).map(pattern => {
+      const regex = { $regex: pattern, $options: 'i' };
+      return { $or: [{ companyName: regex }, { specialties: regex }, { categories: regex }] };
+    });
+    if (city) conditions.push({ $or: [{ address: city }, { serviceCities: city }] });
+    if (conditions.length) filter.$and = conditions;
     if (category) filter.categories = category;
     if (minRating) filter.rating = { $gte: Number(minRating) };
     if (verified) filter.verified = true;
@@ -99,6 +101,10 @@ router.get('/:id', async (req, res, next) => {
     }
 
     const viewer = req.session.user;
+    // Firmanın kendi bakışları sayılmaz.
+    if (!viewer || viewer.id !== String(company._id)) {
+      await User.updateOne({ _id: company._id }, { $inc: { profileViews: 1 } }, { timestamps: false });
+    }
     const [wonBids, stats, reviews, ownRequests, alreadyReported] = await Promise.all([
       Bid.find({ company: company._id, status: 'accepted' })
         .populate('request', 'no title category status city location images createdAt')

@@ -18,10 +18,12 @@ const messageSchema = new mongoose.Schema({
     ref: 'Request',
     required: true
   },
+  // Fotoğraflı mesajda yazı boş olabilir.
   content: {
     type: String,
-    required: true,
+    required: [function() { return !this.image; }, 'Mesaj boş olamaz'],
     trim: true,
+    default: '',
     maxlength: MAX_MESSAGE_LENGTH
   },
   image: {

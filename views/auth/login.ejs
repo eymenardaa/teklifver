@@ -4,56 +4,7 @@
   <div class="auth-box has-side">
     <div>
     <% if (locals.step === 'verify') { %>
-      <!-- 2. Adım: 6 Haneli Giriş Onay Kodu -->
-      <div class="box">
-        <div class="box-head">2 Adımlı Güvenlik Onayı</div>
-        <div class="box-body">
-          <% if (errors && errors.form) { %><div class="form-error" role="alert" style="margin-bottom:14px"><%= errors.form %></div><% } %>
-
-          <div style="text-align:center; margin-bottom:18px">
-            <div style="font-size:36px; margin-bottom:6px">🔐</div>
-            <p style="margin:0 0 6px; font-size:14.5px; color:#222">
-              <strong><%= maskedEmail %></strong> adresinize 6 haneli giriş kodu gönderdik.
-            </p>
-            <p class="small muted" style="margin:0">
-              Girişi tamamlamak için lütfen Gmail'inize gelen kodu aşağıya girin.
-            </p>
-          </div>
-
-          <form class="form" action="/login" method="POST" style="text-align:center">
-            <% if (next) { %><input type="hidden" name="next" value="<%= next %>"><% } %>
-            <input type="hidden" name="email" value="<%= email %>">
-            <input type="hidden" name="verifyStep" value="true">
-
-            <div class="field" style="margin-bottom:18px">
-              <label class="field-label visually-hidden" for="verificationCode">Onay Kodu</label>
-              <input class="input" 
-                     type="text" 
-                     id="verificationCode" 
-                     name="code" 
-                     maxlength="6" 
-                     pattern="[0-9]{6}" 
-                     inputmode="numeric" 
-                     placeholder="123456" 
-                     autocomplete="one-time-code"
-                     autofocus 
-                     required 
-                     style="text-align:center; font-size:28px; font-family:monospace; letter-spacing:8px; font-weight:bold; height:52px; max-width:260px; margin:0 auto; display:block">
-            </div>
-
-            <button class="btn btn-primary btn-block" type="submit" style="height:44px; font-size:15px; font-weight:bold">
-              Kodu Doğrula ve Giriş Yap
-            </button>
-          </form>
-
-          <p class="small" style="margin-top:14px; text-align:center; color:#e67700; background:#fff9db; padding:8px 10px; border-radius:4px; border:1px solid #ffe066">
-            ⚠️ E-posta gelen kutusunda görünmüyorsa lütfen <strong>Spam / Gereksiz</strong> klasörünü kontrol edin.
-          </p>
-          <div style="text-align:center; margin-top:12px">
-            <a href="/login" class="small muted">Farklı bir e-posta ile giriş yap</a>
-          </div>
-        </div>
-      </div>
+      <%- include('../partials/code-step', { purpose: 'login' }) %>
     <% } else { %>
       <!-- 1. Adım: E-posta ve Şifre Girişi -->
       <% if (demoAccounts && demoAccounts.length) { %>

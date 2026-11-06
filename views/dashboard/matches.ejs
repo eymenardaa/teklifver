@@ -5,7 +5,16 @@
     <aside><%- include('../partials/panel-menu') %></aside>
 
     <section class="box">
-      <div class="box-head">Size Uygun Talepler (<%= requests.length %>) <a href="/profile">Kategorileri Düzenle</a></div>
+      <div class="box-head">Size Uygun Talepler (<%= requests.length %>) <a href="/profile">Kategori ve İlleri Düzenle</a></div>
+      <% if (serviceCities.length) { %>
+        <p class="box-note">
+          <% if (showAll) { %>
+            Tüm illerdeki talepler gösteriliyor. <a href="/dashboard/matches">Yalnızca <%= serviceCities.join(', ') %></a>
+          <% } else { %>
+            <%= serviceCities.join(', ') %> için gösteriliyor. <a href="/dashboard/matches?all=1">Tüm illeri göster</a>
+          <% } %>
+        </p>
+      <% } %>
       <% if (!hasCategories) { %>
         <div class="empty">
           <h2>Henüz kategori seçmediniz</h2>

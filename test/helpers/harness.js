@@ -16,8 +16,7 @@ const baseEnv = () => ({
   SystemRoot: process.env.SystemRoot,
   HOME: process.env.HOME,
   SESSION_SECRET: 'test-secret-test-secret-test-secret-123',
-  NODE_ENV: 'test',
-  DISABLE_2FA: 'true'
+  NODE_ENV: 'test'
 });
 
 // Sitenin açılmasını bekler; günlükleri server.logs içinde toplar.

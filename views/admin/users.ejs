@@ -29,9 +29,16 @@
               <td class="col-status">
                 <% if (user.suspended) { %><span class="badge badge-gray">Askıda</span><% } else { %><span class="badge badge-green">Aktif</span><% } %>
               </td>
-              <td style="width:190px">
+              <td class="admin-actions">
                 <div class="bid-actions">
                   <% if (user.role === 'company') { %>
+                    <form class="plan-form" action="/admin/users/<%= user._id %>/plan" method="POST">
+                      <label class="visually-hidden" for="plan-<%= user._id %>">Paket</label>
+                      <select class="select select-sm" id="plan-<%= user._id %>" name="plan" data-autosubmit>
+                        <% plans.forEach(plan => { %><option value="<%= plan.key %>" <%= (user.plan || 'free') === plan.key ? 'selected' : '' %>><%= plan.name %></option><% }) %>
+                      </select>
+                      <button class="btn btn-sm" type="submit">Kaydet</button>
+                    </form>
                     <form action="/admin/users/<%= user._id %>/verify" method="POST">
                       <button class="btn btn-sm" type="submit"><%= user.verified ? 'Onayı Kaldır' : 'Onayla' %></button>
                     </form>

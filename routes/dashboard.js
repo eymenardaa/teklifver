@@ -7,7 +7,8 @@ const SavedSearch = require('../models/SavedSearch');
 const { isLoggedIn, isCompany } = require('../middleware/auth');
 const { str } = require('../lib/input');
 const { profileChecklist } = require('../lib/stats');
-const { liveFilter, readFilters, buildConditions, filtersToQuery, describeFilters } = require('../lib/listing');
+const { PLANS, bidAllowance, monthKey } = require('../lib/plans');
+const { liveFilter, readFilters, buildConditions, filtersToQuery, describeFilters, requestsInArea } = require('../lib/listing');
 
 const MAX_SAVED_SEARCHES = 20;
 
@@ -49,10 +50,14 @@ router.get('/', isLoggedIn, async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const firm = await User.findById(user.id).select('profileViews plan bidUsage').lean();
+
     res.render('dashboard/company', {
       title: 'Tekliflerim',
       section: 'bids',
       myBids,
+      profileViews: (firm && firm.profileViews) || 0,
+      allowance: bidAllowance(firm),
       stats: {
         pendingBids: myBids.filter(b => b.status === 'pending').length,
         acceptedBids: myBids.filter(b => b.status === 'accepted').length,
@@ -68,14 +73,17 @@ router.get('/', isLoggedIn, async (req, res, next) => {
 // Firmanın hizmet kategorilerine uyan, henüz teklif vermediği talepler
 router.get('/matches', isCompany, async (req, res, next) => {
   try {
-    const me = await User.findById(req.session.user.id).select('categories').lean();
+    const me = await User.findById(req.session.user.id).select('categories serviceCities').lean();
     const categories = (me && me.categories) || [];
+    const serviceCities = (me && me.serviceCities) || [];
+    const showAll = req.query.all === '1';
     const myBids = await Bid.find({ company: req.session.user.id }).select('request').lean();
 
     const requests = categories.length
       ? await Request.find({
           ...liveFilter(),
           category: { $in: categories },
+          ...(showAll ? {} : requestsInArea({ serviceCities })),
           _id: { $nin: myBids.map(bid => bid.request) }
         })
           .sort({ createdAt: -1 })
@@ -87,6 +95,8 @@ router.get('/matches', isCompany, async (req, res, next) => {
       title: 'Size Uygun Talepler',
       section: 'matches',
       requests,
+      serviceCities,
+      showAll,
       hasCategories: categories.length > 0
     });
   } catch (err) {
@@ -184,48 +194,62 @@ router.post('/searches/:id/delete', isLoggedIn, async (req, res, next) => {
   }
 });
 
-// Firma Üyelik Paketleri Sayfası
+// Firma paketleri. Ödeme altyapısı olmadığı için paket değişikliği iletişim formundan istenir.
 router.get('/plans', isCompany, async (req, res, next) => {
   try {
-    const user = await User.findById(req.session.user.id).select('plan bidCredits').lean();
-    const planNames = { free: 'Başlangıç', pro: 'Pro', enterprise: 'Kurumsal' };
-    res.render('dashboard/plans', {
-      title: 'Üyelik Paketleri',
-      section: 'plans',
-      userPlan: {
-        plan: user.plan || 'free',
-        name: planNames[user.plan || 'free'],
-        credits: user.bidCredits !== undefined ? user.bidCredits : 10
-      }
-    });
+    const company = await User.findById(req.session.user.id).select('plan bidUsage').lean();
+    res.render('dashboard/plans', { title: 'Paketler', section: 'plans', allowance: bidAllowance(company), plans: Object.values(PLANS) });
   } catch (err) {
     next(err);
   }
 });
 
-// Firma Performans & İstatistik Analiz Sayfası
+const MONTH_NAMES = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+
+// Son altı ayın anahtarları, eskiden yeniye: 2026-06 ... 2026-11
+function lastMonths(count) {
+  const [year, month] = monthKey().split('-').map(Number);
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(Date.UTC(year, month - 1 - (count - 1 - index), 1));
+    return { key: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`, label: MONTH_NAMES[date.getUTCMonth()] };
+  });
+}
+
+// Firmanın teklif istatistikleri. Yalnızca gerçek kayıtlar sayılır; veri yoksa sıfır görünür.
 router.get('/analytics', isCompany, async (req, res, next) => {
   try {
     const companyId = req.session.user.id;
-    const [company, myBids] = await Promise.all([
+    const [company, bids] = await Promise.all([
       User.findById(companyId).select('rating ratingCount profileViews').lean(),
-      Bid.find({ company: companyId }).select('status amount').lean()
+      Bid.find({ company: companyId }).select('status amount deliveryTime createdAt').lean()
     ]);
 
-    const totalBids = myBids.length;
-    const acceptedBids = myBids.filter(b => b.status === 'accepted').length;
-    const totalEarnings = myBids.filter(b => b.status === 'accepted').reduce((sum, b) => sum + b.amount, 0);
-    const winRate = totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
+    const count = status => bids.filter(bid => bid.status === status).length;
+    const won = count('accepted');
+    const lost = count('rejected');
+    const months = lastMonths(6).map(month => {
+      const inMonth = bids.filter(bid => monthKey(new Date(bid.createdAt).getTime()) === month.key);
+      return { ...month, sent: inMonth.length, won: inMonth.filter(bid => bid.status === 'accepted').length };
+    });
 
     res.render('dashboard/analytics', {
-      title: 'Firma Analiz & İstatistik',
+      title: 'İstatistikler',
       section: 'analytics',
       company: company || {},
-      profileViews: (company && company.profileViews) || 12,
-      totalBids,
-      acceptedBids,
-      totalEarnings,
-      winRate
+      profileViews: (company && company.profileViews) || 0,
+      totals: {
+        sent: bids.length,
+        won,
+        lost,
+        waiting: count('pending'),
+        // Bekleyen teklifler sonucu belli olmadığı için orana girmez.
+        winRate: won + lost ? Math.round((won / (won + lost)) * 100) : null,
+        wonAmount: bids.filter(bid => bid.status === 'accepted').reduce((sum, bid) => sum + bid.amount, 0),
+        averageAmount: bids.length ? Math.round(bids.reduce((sum, bid) => sum + bid.amount, 0) / bids.length) : 0,
+        averageDays: bids.length ? Math.round(bids.reduce((sum, bid) => sum + bid.deliveryTime, 0) / bids.length) : 0
+      },
+      months,
+      busiestMonth: Math.max(1, ...months.map(month => month.sent))
     });
   } catch (err) {
     next(err);

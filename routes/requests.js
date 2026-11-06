@@ -8,16 +8,18 @@ const Report = require('../models/Report');
 const Review = require('../models/Review');
 const categories = require('../config/categories');
 const cities = require('../config/cities');
-const { isCustomer, isLoggedIn, requireVerifiedEmail } = require('../middleware/auth');
+const { isCustomer, isCompany, isLoggedIn, requireVerifiedEmail } = require('../middleware/auth');
 const { limits } = require('../lib/limits');
 const { categoryUrl } = require('../lib/slug');
 const { alertSavedSearches } = require('../lib/search-alerts');
-const { parseDateInput, isExpired } = require('../lib/helpers');
+const { parseDateInput, isExpired, discoveryTimes } = require('../lib/helpers');
+const { bidAllowance } = require('../lib/plans');
 const { rateLimit } = require('express-rate-limit');
 const { uploadImages, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
-const { str, safeNext, searchPattern } = require('../lib/input');
-const { openCountsByCategory, uniqueByPhoto, categoryAverages } = require('../lib/stats');
-const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery } = require('../lib/listing');
+const { str, safeNext } = require('../lib/input');
+const { searchPatterns, matchesText } = require('../public/js/search-terms');
+const { openCountsByCategory, uniqueByPhoto, categoryAverages, priceGuide } = require('../lib/stats');
+const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery, firmsServing } = require('../lib/listing');
 const { notify, notifyMany } = require('../lib/notify');
 const mongoose = require('mongoose');
 const { REPORT_REASONS } = Report;
@@ -25,6 +27,12 @@ const { REPORT_REASONS } = Report;
 const PAGE_SIZE = 20;
 const MAX_BUDGET = 10000000000;
 const MAX_DESCRIPTION = 5000;
+// "ghgfn" gibi denemeler yayına girmesin.
+const MIN_TITLE = 8;
+const MIN_DESCRIPTION = 20;
+const HAS_VOWEL = /[aeıioöuüâîû]/i;
+const MAX_QUESTION = 500;
+const MAX_ANSWER = 1000;
 
 const suggestLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -63,9 +71,12 @@ function parseRequestForm(req) {
   const deadline = values.deadline ? parseDateInput(values.deadline) : null;
 
   if (!values.title) errors.title = 'Başlık yazın.';
+  else if (values.title.length < MIN_TITLE || !HAS_VOWEL.test(values.title)) errors.title = 'Başlıkta işi birkaç kelimeyle anlatın. Örneğin: Mutfak dolabı kapakları değişecek';
   else if (values.title.length > 200) errors.title = 'Başlık en fazla 200 karakter olabilir.';
   if (!values.description) errors.description = 'Açıklama yazın.';
+  else if (values.description.length < MIN_DESCRIPTION || !HAS_VOWEL.test(values.description)) errors.description = `Açıklama en az ${MIN_DESCRIPTION} karakter olmalı. Ölçü, malzeme ve zaman gibi ayrıntıları yazın.`;
   else if (values.description.length > MAX_DESCRIPTION) errors.description = `Açıklama en fazla ${MAX_DESCRIPTION} karakter olabilir.`;
+  if (values.discoveryTime && !discoveryTimes.includes(values.discoveryTime)) errors.discoveryTime = 'Listeden bir seçenek seçin.';
   if (values.location.length > 100) errors.location = 'İlçe / semt en fazla 100 karakter olabilir.';
   if (!categories.names.includes(values.category)) errors.category = 'Kategori seçin.';
   if (values.city && !cities.includes(values.city)) errors.city = 'Listeden bir il seçin.';
@@ -79,11 +90,7 @@ function parseRequestForm(req) {
   if (req.uploadError) errors.images = req.uploadError;
 
   return {
-    values: {
-      ...values,
-      isUrgent: req.body.isUrgent === 'on',
-      isFeatured: req.body.isFeatured === 'on'
-    },
+    values: { ...values, isUrgent: req.body.isUrgent === 'on' },
     errors,
     data: {
       title: values.title,
@@ -94,8 +101,7 @@ function parseRequestForm(req) {
       location: values.location,
       discoveryTime: values.discoveryTime,
       deadline: deadline || undefined,
-      isUrgent: req.body.isUrgent === 'on',
-      isFeatured: req.body.isFeatured === 'on'
+      isUrgent: req.body.isUrgent === 'on'
     }
   };
 }
@@ -112,7 +118,7 @@ router.get('/', async (req, res, next) => {
     const page = Math.min(requestedPage, totalPages);
 
     const requests = await Request.find(filter)
-      .sort(filters.sort === 'newest' ? { isFeatured: -1, isUrgent: -1, createdAt: -1 } : SORT_OPTIONS[filters.sort])
+      .sort(SORT_OPTIONS[filters.sort])
       .skip((page - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .lean();
@@ -144,17 +150,18 @@ router.get('/suggest', suggestLimiter, async (req, res, next) => {
     const q = str(req.query.q);
     if (q.length < 2) return res.json({ items: [] });
 
-    const pattern = searchPattern(q);
-    const matches = await Request.find({ ...liveFilter(), title: { $regex: pattern, $options: 'i' } })
+    const matches = await Request.find({
+      ...liveFilter(),
+      $and: searchPatterns(q).map(pattern => ({ title: { $regex: pattern, $options: 'i' } }))
+    })
       .select('title no')
       .sort({ viewCount: -1 })
       .limit(6)
       .lean();
-    const matcher = new RegExp(pattern, 'i');
 
     res.json({
       items: [
-        ...categories.names.filter(name => matcher.test(name)).slice(0, 3).map(name => ({
+        ...categories.names.filter(name => matchesText(q, [name])).slice(0, 3).map(name => ({
           label: name,
           hint: 'Kategori',
           url: `/requests?category=${encodeURIComponent(name)}`
@@ -168,15 +175,23 @@ router.get('/suggest', suggestLimiter, async (req, res, next) => {
 });
 
 // Yeni talep formu
-router.get('/new', isCustomer, requireVerifiedEmail, (req, res) => {
-  // Ana sayfadaki kutudan gelen başlık ve il form hazır gelsin.
+router.get('/new', isCustomer, requireVerifiedEmail, (req, res, next) => {
+  // Ana sayfadaki kutudan veya hizmet sayfasından gelen bilgiler form hazır gelsin.
+  const formTitle = str(req.query.title).slice(0, 200);
   const city = str(req.query.city);
-  res.render('requests/new', {
-    title: 'Talep Ver',
-    categories,
-    maxImages: MAX_IMAGES,
-    values: { title: str(req.query.title).slice(0, 200), city: cities.includes(city) ? city : '' }
-  });
+  const category = str(req.query.category);
+  const chosen = categories.names.includes(category);
+  const guessed = chosen ? '' : categories.guess(formTitle);
+  priceGuide()
+    .then(priceHints => res.render('requests/new', {
+      title: 'Talep Ver',
+      categories,
+      maxImages: MAX_IMAGES,
+      priceHints,
+      guessedCategory: guessed,
+      values: { title: formTitle, city: cities.includes(city) ? city : '', category: chosen ? category : guessed }
+    }))
+    .catch(next);
 });
 
 // Yeni talep oluştur
@@ -201,8 +216,8 @@ router.post('/', isCustomer, requireVerifiedEmail, limits.newRequest, uploadImag
       images: uploadedPaths(req)
     });
 
-    // Bu kategoride hizmet veren firmalara haber ver.
-    const firms = await User.find({ role: 'company', suspended: false, categories: created.category })
+    // Bu kategoride ve bu ilde hizmet veren firmalara haber ver.
+    const firms = await User.find({ role: 'company', suspended: false, categories: created.category, ...firmsServing(created.city) })
       .select('_id')
       .limit(200)
       .lean();
@@ -223,74 +238,65 @@ router.post('/', isCustomer, requireVerifiedEmail, limits.newRequest, uploadImag
   }
 });
 
-// Talep soru sorma (Kullanıcı Deneyimi - Soru & Cevap)
-router.post('/:id/questions', isLoggedIn, async (req, res, next) => {
+// Firmalar teklif vermeden önce talep sahibine soru sorar; soru ve cevap herkese açıktır.
+router.post('/:id/questions', isCompany, requireVerifiedEmail, limits.question, async (req, res, next) => {
+  const back = `/requests/${req.params.id}#soru-cevap`;
   try {
-    const questionText = str(req.body.question);
-    if (!questionText) {
-      req.flash('error', 'Lütfen sorunuzu yazın.');
-      return res.redirect(`/requests/${req.params.id}`);
+    const question = str(req.body.question);
+    if (!question || question.length > MAX_QUESTION) {
+      req.flash('error', `Sorunuzu en fazla ${MAX_QUESTION} karakterle yazın.`);
+      return res.redirect(back);
     }
 
-    const request = await Request.findById(req.params.id);
-    if (!request) {
-      req.flash('error', 'Talep bulunamadı.');
-      return res.redirect('/requests');
+    const request = mongoose.isValidObjectId(req.params.id) ? await Request.findById(req.params.id) : null;
+    if (!request || request.status === 'removed') return notFoundPage(res);
+    if (request.status !== 'open' || isExpired(request)) {
+      req.flash('error', 'Bu talep artık soru almıyor.');
+      return res.redirect(back);
+    }
+    if ((request.questions || []).filter(item => String(item.asker) === req.session.user.id && !item.answer).length >= 3) {
+      req.flash('error', 'Cevap bekleyen üç sorunuz var. Talep sahibi yanıtlayınca yenisini sorabilirsiniz.');
+      return res.redirect(back);
     }
 
     const askerName = req.session.user.companyName || req.session.user.name;
-    request.questions.push({
-      asker: req.session.user.id,
-      askerName,
-      question: questionText
-    });
+    request.questions.push({ asker: req.session.user.id, askerName, question });
     await request.save();
-
-    await notify(
-      request.customer,
-      `${askerName}, "${request.title}" talebinize bir soru sordu.`,
-      `/requests/${request._id}#soru-cevap`
-    );
+    await notify(request.customer, `${askerName}, "${request.title}" talebinize soru sordu.`, back);
 
     req.flash('success', 'Sorunuz talep sahibine iletildi.');
-    res.redirect(`/requests/${request._id}#soru-cevap`);
+    res.redirect(back);
   } catch (err) {
     next(err);
   }
 });
 
-// Talep soru cevaplama
+// Talep sahibi soruyu cevaplar
 router.post('/:id/questions/:questionId/answer', isCustomer, async (req, res, next) => {
+  const back = `/requests/${req.params.id}#soru-cevap`;
   try {
-    const answerText = str(req.body.answer);
-    if (!answerText) {
-      req.flash('error', 'Lütfen cevabınızı yazın.');
-      return res.redirect(`/requests/${req.params.id}`);
+    const answer = str(req.body.answer);
+    if (!answer || answer.length > MAX_ANSWER) {
+      req.flash('error', `Cevabınızı en fazla ${MAX_ANSWER} karakterle yazın.`);
+      return res.redirect(back);
     }
 
-    const request = await Request.findOne({ _id: req.params.id, customer: req.session.user.id });
-    if (!request) {
-      req.flash('error', 'Talep bulunamadı.');
-      return res.redirect('/requests');
+    const request = mongoose.isValidObjectId(req.params.id)
+      ? await Request.findOne({ _id: req.params.id, customer: req.session.user.id })
+      : null;
+    const item = request && mongoose.isValidObjectId(req.params.questionId) ? request.questions.id(req.params.questionId) : null;
+    if (!item) {
+      req.flash('error', 'Soru bulunamadı.');
+      return res.redirect(request ? back : '/dashboard');
     }
 
-    const q = request.questions.id(req.params.questionId);
-    if (q) {
-      q.answer = answerText;
-      q.answeredAt = new Date();
-      await request.save();
-
-      if (q.asker) {
-        await notify(
-          q.asker,
-          `Talep sahibi sorunuzu cevapladı: "${request.title}"`,
-          `/requests/${request._id}#soru-cevap`
-        );
-      }
-    }
+    item.answer = answer;
+    item.answeredAt = new Date();
+    await request.save();
+    if (item.asker) await notify(item.asker, `"${request.title}" talebinde sorunuz cevaplandı.`, back);
 
     req.flash('success', 'Cevabınız yayınlandı.');
-    res.redirect(`/requests/${request._id}#soru-cevap`);
+    res.redirect(back);
   } catch (err) {
     next(err);
   }
@@ -377,6 +383,7 @@ router.get('/:id', async (req, res, next) => {
     const isOwner = Boolean(viewer && viewer.id === request.customer._id.toString());
     const isAdminViewer = Boolean(viewer && viewer.isAdmin);
 
+    // Yönetici tarafından kaldırılan talebi yalnızca sahibi ve yöneticiler görür.
     if (request.status === 'removed' && !isOwner && !isAdminViewer) return notFoundPage(res);
 
     if (!isOwner) {
@@ -397,6 +404,7 @@ router.get('/:id', async (req, res, next) => {
       if (bidSort === 'days') allBids.sort((a, b) => a.deliveryTime - b.deliveryTime);
       if (bidSort === 'rating') allBids.sort((a, b) => b.company.rating - a.company.rating);
     } else {
+      // Sıralama tutarı ele vermesin diye dışarıdan bakana tarih sırasıyla gösterilir.
       allBids.sort((a, b) => a.createdAt - b.createdAt);
     }
 
@@ -405,6 +413,7 @@ router.get('/:id', async (req, res, next) => {
         ? allBids.find(bid => bid.company._id.toString() === viewer.id)
         : null;
 
+    // İletişim bilgileri yalnızca teklif kabul edildikten sonra iki tarafa da gösterilir.
     const acceptedBid = allBids.find(bid => bid.status === 'accepted');
     let contact = null;
     if (acceptedBid && isOwner) {
@@ -421,15 +430,32 @@ router.get('/:id', async (req, res, next) => {
       };
     }
 
-    const pendingAmounts = allBids.filter(bid => bid.status === 'pending').map(bid => bid.amount);
+    const pendingBids = allBids.filter(bid => bid.status === 'pending');
+    const pendingAmounts = pendingBids.map(bid => bid.amount);
 
+    // Talep sahibi teklifleri karşılaştırsın diye öne çıkanlar; herkes eşitse işaretlenmez.
+    let bidSummary = null;
+    if (canSeeBids && pendingBids.length > 1) {
+      const days = pendingBids.map(bid => bid.deliveryTime);
+      const rated = pendingBids.filter(bid => bid.company.ratingCount > 0).map(bid => bid.company.rating);
+      bidSummary = {
+        count: pendingBids.length,
+        lowest: Math.min(...pendingAmounts),
+        average: Math.round(pendingAmounts.reduce((sum, amount) => sum + amount, 0) / pendingAmounts.length / 10) * 10,
+        fastest: Math.min(...days),
+        fastestTag: Math.min(...days) < Math.max(...days) ? Math.min(...days) : null,
+        bestRating: rated.length > 1 && Math.max(...rated) > Math.min(...rated) ? Math.max(...rated) : null
+      };
+    }
+
+    // Tutar ve açıklama yalnızca talep sahibine, yöneticiye ve teklifi verene görünür; rakip firmalar görmez.
     const bids = allBids.map(bid => {
       const company = { _id: bid.company._id, name: bid.company.name, companyName: bid.company.companyName, rating: bid.company.rating, ratingCount: bid.company.ratingCount, verified: bid.company.verified };
       if (canSeeBids || bid === userBid) return { ...bid, company };
       return { _id: bid._id, status: bid.status, createdAt: bid.createdAt, company, hidden: true };
     });
 
-    const [similarAll, ownerOpenCount, averages, review, alreadyReported] = await Promise.all([
+    const [similarAll, ownerOpenCount, averages, review, alreadyReported, lastBid, bidder] = await Promise.all([
       Request.find({ ...liveFilter(), category: request.category, _id: { $ne: request._id } })
         .sort({ createdAt: -1 })
         .limit(20)
@@ -437,7 +463,12 @@ router.get('/:id', async (req, res, next) => {
       Request.countDocuments({ ...liveFilter(), customer: request.customer._id }),
       categoryAverages(request.category),
       Review.findOne({ request: request._id, hidden: { $ne: true } }).lean(),
-      viewer ? Report.exists({ request: request._id, reporter: viewer.id }) : null
+      viewer ? Report.exists({ request: request._id, reporter: viewer.id }) : null,
+      // Firma her seferinde aynı metni baştan yazmasın.
+      viewer && viewer.role === 'company' && !userBid
+        ? Bid.findOne({ company: viewer.id }).sort({ createdAt: -1 }).select('description').lean()
+        : null,
+      viewer && viewer.role === 'company' && !userBid ? User.findById(viewer.id).select('plan bidUsage').lean() : null
     ]);
 
     res.render('requests/show', {
@@ -473,7 +504,10 @@ router.get('/:id', async (req, res, next) => {
       ),
       ownerOpenCount,
       canSeeBids,
-      lowestAmount: canSeeBids && pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null
+      lowestAmount: canSeeBids && pendingAmounts.length > 1 ? Math.min(...pendingAmounts) : null,
+      bidSummary,
+      lastBidText: lastBid ? lastBid.description : '',
+      allowance: bidder ? bidAllowance(bidder) : null
     });
   } catch (err) {
     if (err.name === 'CastError') return notFoundPage(res);
@@ -481,7 +515,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// Sahibinin talebini getirir
+// Sahibinin talebini getirir; değilse uyarıp yönlendirir.
 async function loadOwnRequest(req, res) {
   let request = null;
   try {
@@ -593,6 +627,7 @@ router.post('/:id/invite/:companyId', isCustomer, requireVerifiedEmail, limits.i
       return res.redirect(back);
     }
 
+    // Koşullu güncelleme: aynı firma aynı talebe iki kez davet edilip bildirim yağmuruna tutulmaz.
     const invited = await Request.updateOne(
       { _id: request._id, invitedCompanies: { $ne: company._id } },
       { $addToSet: { invitedCompanies: company._id } }
@@ -608,7 +643,7 @@ router.post('/:id/invite/:companyId', isCustomer, requireVerifiedEmail, limits.i
   }
 });
 
-// Talebi kapat
+// Talebi kapat: yayından çıkar, bekleyen teklifleri reddeder.
 router.post('/:id/close', isCustomer, async (req, res, next) => {
   try {
     const request = await loadOwnOpenRequest(req, res);
@@ -633,7 +668,7 @@ router.post('/:id/close', isCustomer, async (req, res, next) => {
   }
 });
 
-// Yeniden yayınla
+// Kapanmış veya biten talebi yeni bir talep olarak yeniden yayınla
 router.post('/:id/republish', isCustomer, async (req, res, next) => {
   try {
     const request = await loadOwnRequest(req, res);
@@ -670,6 +705,7 @@ router.delete('/:id', isCustomer, async (req, res, next) => {
 
     const pending = await Bid.find({ request: request._id }).select('company');
     await Bid.deleteMany({ request: request._id });
+    deleteImages(await Message.distinct('image', { request: request._id, image: { $nin: ['', null] } }));
     await Message.deleteMany({ request: request._id });
     await Report.deleteMany({ request: request._id });
     await User.updateMany({ favorites: request._id }, { $pull: { favorites: request._id } });

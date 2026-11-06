@@ -53,7 +53,7 @@ const pw = 'guvenlik-test-sifre-1';
     // Görsel işleme
     const send = async (name, type, data) => {
       const form = new FormData();
-      Object.entries({ title: 'Görsel', description: 'x', category: 'Diğer' }).forEach(([k, v]) => form.set(k, v));
+      Object.entries({ title: 'Görselli talep denemesi', description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Diğer' }).forEach(([k, v]) => form.set(k, v));
       form.append('images', new Blob([data], { type }), name);
       return c.form('/requests', form);
     };

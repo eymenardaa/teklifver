@@ -1,0 +1,19 @@
+<% if (locals.board && board.length) { %>
+  <% const boardId = 'priceBoard' + (locals.placement === 'feed' ? 'Feed' : 'Rail'); %>
+  <section class="price-board price-board-<%= locals.placement || 'rail' %>" aria-labelledby="<%= boardId %>">
+    <div class="price-board-head">
+      <h2 id="<%= boardId %>">Fiyat Panosu</h2>
+      <span>son 6 ay</span>
+    </div>
+    <ul class="price-board-rows">
+      <% board.forEach(row => { %>
+        <li>
+          <a href="/requests?search=<%= encodeURIComponent(row.search) %>&amp;category=<%= encodeURIComponent(row.category) %>"><%= row.label %></a>
+          <span class="price-board-range"><%= budgetLabel({ min: row.low, max: row.high }) %></span>
+          <span class="price-board-count"><%= row.count %> teklif</span>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="price-board-note">Sitede verilen tekliflerin ortadaki yarısı. <a href="/fiyat-rehberi">Fiyat rehberi</a></p>
+  </section>
+<% } %>

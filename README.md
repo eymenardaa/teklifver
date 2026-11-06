@@ -31,13 +31,14 @@ Tüm ayarların örneği `.env.example` dosyasındadır.
 | --- | --- |
 | `PORT` | Sunucu portu (varsayılan 3000) |
 | `MONGODB_URI` | MongoDB bağlantı adresi |
-| `SESSION_SECRET` | Oturum çerezlerini imzalayan uzun, rastgele bir metin |
+| `SESSION_SECRET` | Oturum çerezlerini imzalayan en az 32 karakterlik rastgele metin. Yoksa veritabanı adresinden güvenli bir anahtar türetilir ve uyarı yazılır |
 | `DEMO_DATA` | `false`: örnek veri eklenmez. `showcase`: canlıda girilemeyen hesaplarla dolu vitrin |
 | `SITE_COMPANY`, `SITE_EMAIL` | Yasal ve reklam sayfalarında görünen bilgiler |
 | `SITE_URL` | Sitenin adresi. E-posta, paylaşım ve sosyal giriş bağlantıları bununla üretilir. Canlıda zorunlu (Render adresi otomatik alınır) |
 | `ADMIN_EMAIL` | Bu e-postayla kayıtlı hesap, sunucu açılışında yönetici yapılır |
-| `SMTP_*` | E-posta doğrulama, şifre sıfırlama ve bildirim e-postaları. Boşsa geliştirmede bağlantı sunucu günlüğüne yazılır |
-| `REQUIRE_EMAIL_VERIFICATION` | SMTP varken doğrulama zorunludur; `true` veya `false` ile değiştirilir |
+| `GMAIL_USER`, `GMAIL_PASS` | Gmail adresi ve uygulama şifresiyle e-posta gönderimi (SMTP yerine) |
+| `SMTP_*` | Giriş kodu, şifre sıfırlama ve bildirim e-postaları. Boşsa geliştirmede e-posta sunucu günlüğüne yazılır |
+| `REQUIRE_EMAIL_VERIFICATION` | E-posta gönderilebiliyorsa kayıtta ve her girişte altı haneli kod istenir; `true` veya `false` ile değiştirilir |
 | `GOOGLE_SITE_VERIFICATION` | Google Search Console doğrulama kodu |
 | `RATE_LIMIT_PER_MINUTE` | Tek IP'den dakikada kabul edilen istek (varsayılan 600) |
 | `TRUST_PROXY_HOPS` | Canlıda önündeki vekil sunucu sayısı (varsayılan 1) |
@@ -63,6 +64,10 @@ Geliştirme ortamında veritabanında hiç talep yoksa sunucu açılışta örne
 ```bash
 npm run demo:sil
 ```
+
+## Firma paketleri
+
+Firmalar ayda belirli sayıda teklif verebilir; paketler ve haklar `config/plans.js` dosyasındadır. Sitede ödeme alınmaz: firma paket isteğini iletişim formundan gönderir, yönetici **Yönetim Paneli → Kullanıcılar** sayfasından paketi açar. Hak her ayın ilk günü (Türkiye saati) yenilenir; teklifi geri çekmek hakkı iade etmez.
 
 ## Tema
 
@@ -151,6 +156,10 @@ Tam çalışan sürüm için sitenin Node.js ve MongoDB destekleyen bir sunucuda
 - Tüm kategoriler, 81 il ve teklif verilerinden hesaplanan fiyat rehberi sayfaları
 - Hizmet ve il sayfaları (`/hizmet/temizlik/izmir`), site haritası, robots.txt, paylaşım etiketleri, yapısal veri (JSON-LD), canonical adresler, uygulama simgeleri
 - Küçük ekranda alt menü
+- Akıllı arama: "boyacı" boyayı, "mutfağı" mutfağı bulur, kelime sırası önemli değildir (`public/js/search-terms.js`)
+- Firmalar hizmet verdikleri illeri seçer; bildirimler ve uygun talepler buna göre gelir
+- Talep formu başlıktan kategoriyi tahmin eder, kategorideki teklif aralığını ve örnek talebi gösterir
+- Talep sahibine en düşük, en hızlı ve en yüksek puanlı teklif işaretlenir; kabulden sonra arama ve WhatsApp düğmeleri çıkar
 - Siyah ve beyaz tema: site beyaz açılır, seçim tarayıcıda saklanır, yazdırma her zaman beyazdır
 - Güvenlik başlıkları (CSP), gzip sıkıştırma, başka sitelerden form gönderimine karşı koruma, istek sınırları
 - Yüklenen görseller doğrulanır, küçültülür, konum bilgisi silinir ve veritabanında (GridFS) saklanır; sunucu yeniden başlasa da kaybolmaz

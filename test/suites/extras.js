@@ -1,0 +1,144 @@
+// Firma paketleri ve aylık teklif hakkı, soru-cevap, mesajda fotoğraf, ilan kalitesi, kaldırılan sahte uçlar.
+const { MINI_PNG } = require('../helpers/harness');
+
+const BASE = process.env.BASE || 'http://localhost:3000';
+const stamp = Date.now();
+const pw = `ekler-${stamp}`;
+const FILLER = 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.';
+let failures = 0;
+let passed = 0;
+const check = (name, ok, extra = '') => {
+  console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${extra ? ` — ${extra}` : ''}`);
+  if (ok) passed += 1; else failures += 1;
+};
+
+const formHeaders = { 'content-type': 'application/x-www-form-urlencoded' };
+const encode = data => new URLSearchParams(Object.entries(data)).toString();
+const cookieOf = res => (res.headers.get('set-cookie') || '').split(';')[0];
+const signup = async fields => {
+  const res = await fetch(`${BASE}/register`, { method: 'POST', redirect: 'manual', headers: formHeaders, body: encode({ ...fields, password: pw, terms: 'on' }) });
+  if (res.status !== 302) throw new Error(`kayıt ${fields.email} ${res.status}`);
+  return cookieOf(res);
+};
+const login = async (email, password) => {
+  const res = await fetch(`${BASE}/login`, { method: 'POST', redirect: 'manual', headers: formHeaders, body: encode({ email, password }) });
+  if (res.status !== 302) throw new Error(`giriş ${email} ${res.status}`);
+  return cookieOf(res);
+};
+const get = async (cookie, path) => {
+  const res = await fetch(BASE + path, { redirect: 'manual', headers: cookie ? { cookie } : {} });
+  return { status: res.status, location: res.headers.get('location'), text: await res.text() };
+};
+const post = async (cookie, path, data = {}) => {
+  const res = await fetch(BASE + path, { method: 'POST', redirect: 'manual', headers: { ...formHeaders, ...(cookie ? { cookie } : {}) }, body: encode(data) });
+  return { status: res.status, location: res.headers.get('location'), text: await res.text() };
+};
+const sendForm = async (cookie, path, fields, file) => {
+  const form = new FormData();
+  Object.entries(fields).forEach(([key, value]) => form.append(key, value));
+  if (file) form.append('images', new Blob([MINI_PNG], { type: 'image/png' }), file);
+  const res = await fetch(BASE + path, { method: 'POST', redirect: 'manual', headers: { cookie }, body: form });
+  return { status: res.status, location: res.headers.get('location'), text: await res.text() };
+};
+const newRequest = async (cookie, fields) => (await sendForm(cookie, '/requests', fields)).location;
+const idOf = path => path.split('/').pop();
+
+(async () => {
+  const owner = await signup({ role: 'customer', name: 'Ek Müşteri', email: `ek${stamp}@test.local` });
+  const stranger = await signup({ role: 'customer', name: 'Yabancı Müşteri', email: `eky${stamp}@test.local` });
+  const firm = await signup({ role: 'company', name: 'Ek Firma', companyName: `Ek Firma ${stamp}`, email: `ekf${stamp}@test.local` });
+  const rival = await signup({ role: 'company', name: 'Rakip Firma', companyName: `Rakip Firma ${stamp}`, email: `ekr${stamp}@test.local` });
+
+  // İlan kalitesi
+  let res = await sendForm(owner, '/requests', { title: 'ghgfn', description: 'sss', category: 'Temizlik' });
+  check('anlamsız başlık reddedilir', res.status === 422 && res.text.includes('Başlıkta işi birkaç kelimeyle'));
+  res = await sendForm(owner, '/requests', { title: 'Ev temizliği yapılacak', description: 'Temizlik', category: 'Temizlik' });
+  check('kısa açıklama reddedilir', res.status === 422 && res.text.includes('en az 20 karakter'));
+  res = await sendForm(owner, '/requests', { title: 'Ev temizliği yapılacak', description: FILLER, category: 'Temizlik', discoveryTime: 'Her zaman' });
+  check('listede olmayan keşif zamanı reddedilir', res.status === 422 && res.text.includes('Listeden bir seçenek'));
+
+  const path = await newRequest(owner, { title: `Acil ev temizliği ${stamp}`, description: FILLER, category: 'Temizlik', isUrgent: 'on', isFeatured: 'on', discoveryTime: 'Hafta sonu herhangi bir saat' });
+  const detail = (await get(null, path)).text;
+  check('acil etiketi görünür', detail.includes('label label-urgent'));
+  check('keşif zamanı görünür', detail.includes('Hafta sonu herhangi bir saat'));
+  check('vitrin işareti formdan alınmaz', !detail.includes('VİTRİN') && !(await get(null, '/requests')).text.includes('VİTRİN'));
+
+  // Kaldırılan sahte uçlar
+  check('sahte fiyat tahmini ucu yok', (await post(null, '/ai/price-estimate', { category: 'Temizlik' })).status === 404);
+  check('bedava paket yükseltme ucu yok', (await post(firm, '/plan/upgrade', { plan: 'enterprise' })).status === 404);
+
+  // Soru-cevap
+  await post(firm, `${path}/questions`, { question: 'Kaç metrekare?' });
+  check('firma soru sorar', (await get(null, path)).text.includes('Kaç metrekare?'));
+  await post(owner, `${path}/questions`, { question: 'Müşteri sorusu' });
+  check('müşteri soru soramaz', !(await get(null, path)).text.includes('Müşteri sorusu'));
+  await post(firm, `${path}/questions`, { question: 'u'.repeat(501) });
+  check('uzun soru reddedilir', !(await get(null, path)).text.includes('u'.repeat(501)));
+  const questionId = ((await get(owner, path)).text.match(/questions\/([a-f0-9]{24})\/answer/) || [])[1];
+  check('sahibine cevap formu görünür', Boolean(questionId));
+  await post(rival, `${path}/questions/${questionId}/answer`, { answer: 'Sahte cevap' });
+  await post(stranger, `${path}/questions/${questionId}/answer`, { answer: 'Yabancı cevabı' });
+  const afterFake = (await get(null, path)).text;
+  check('başkası cevaplayamaz', !afterFake.includes('Sahte cevap') && !afterFake.includes('Yabancı cevabı'));
+  await post(owner, `${path}/questions/${questionId}/answer`, { answer: 'Yaklaşık 120 metrekare.' });
+  check('talep sahibi cevaplar', (await get(null, path)).text.includes('Yaklaşık 120 metrekare.'));
+  check('soran firmaya bildirim gider', (await get(firm, '/notifications')).text.includes('sorunuz cevaplandı'));
+  for (let i = 1; i <= 4; i += 1) await post(firm, `${path}/questions`, { question: `Ek soru ${i}` });
+  const limited = (await get(null, path)).text;
+  check('cevapsız soru sınırı üç', limited.includes('Ek soru 3') && !limited.includes('Ek soru 4'));
+  await post(rival, `${path}/questions`, { question: '<script>alert(1)</script>' });
+  const escaped = (await get(null, path)).text;
+  check('sorudaki HTML kaçırılır', escaped.includes('&lt;script&gt;alert(1)') && !escaped.includes('<script>alert(1)'));
+
+  // Aylık teklif hakkı
+  const plans = (await get(firm, '/dashboard/plans')).text;
+  check('paket sayfası kullanımı gösterir', plans.includes('Başlangıç') && /Bu ay <strong>0<\/strong> teklif verdiniz/.test(plans));
+  check('istatistik sayfası açılır', (await get(firm, '/dashboard/analytics')).text.includes('Henüz teklif vermediniz'));
+  const jobs = [];
+  for (let i = 0; i < 11; i += 1) jobs.push(await newRequest(owner, { title: `Paket denemesi ${i} ${stamp}`, description: FILLER, category: 'Temizlik' }));
+  for (let i = 0; i < 10; i += 1) await post(firm, '/bids', { requestId: idOf(jobs[i]), amount: '1000', deliveryTime: '3', description: 'Teklif metni' });
+  const full = await post(firm, '/bids', { requestId: idOf(jobs[10]), amount: '1000', deliveryTime: '3', description: 'Fazla teklif' });
+  check('hak dolunca teklif verilemez', full.location === '/dashboard/plans');
+  check('teklif formunda hak doldu yazar', (await get(firm, jobs[10])).text.includes('Bu ayki teklif hakkınız doldu'));
+  const bidId = ((await get(firm, jobs[0])).text.match(/\/bids\/([a-f0-9]{24})\/edit/) || [])[1];
+  await post(firm, `/bids/${bidId}/edit`, { amount: '900', deliveryTime: '3', description: 'Güncel teklif' });
+  check('hak dolsa da teklif düzenlenir', (await get(firm, jobs[0])).text.includes('<strong>900 TL</strong>'));
+  await post(firm, `/bids/${bidId}/withdraw`);
+  const again = await post(firm, '/bids', { requestId: idOf(jobs[10]), amount: '1000', deliveryTime: '3', description: 'Yeniden' });
+  check('geri çekmek hakkı iade etmez', again.location === '/dashboard/plans');
+  check('istatistikte gönderilenler sayılır', (await get(firm, '/dashboard/analytics')).text.includes('Gönderilen teklif'));
+
+  const firmId = ((await get(firm, '/dashboard')).text.match(/\/companies\/([a-f0-9]{24})/) || [])[1];
+  check('firma kendi paketini değiştiremez', (await post(firm, `/admin/users/${firmId}/plan`, { plan: 'enterprise' })).status === 403);
+  const admin = await login('yonetici@teklifver.test', 'demo1234');
+  await post(admin, `/admin/users/${firmId}/plan`, { plan: 'pro' });
+  const upgraded = await post(firm, '/bids', { requestId: idOf(jobs[10]), amount: '1000', deliveryTime: '3', description: 'Pro teklif' });
+  check('yönetici paketi açınca teklif verilir', upgraded.location === jobs[10]);
+  check('firmaya paket bildirimi gider', (await get(firm, '/notifications')).text.includes('paketi Pro oldu'));
+  check('paket isteği iletişim formunu doldurur', (await get(firm, '/iletisim?paket=enterprise')).text.includes('Kurumsal paketine geçmek istiyorum'));
+
+  // Mesajda fotoğraf
+  const ownerId = ((await get(firm, path)).text.match(/\/messages\/[a-f0-9]{24}\/([a-f0-9]{24})/) || [])[1];
+  const thread = `/messages/${idOf(path)}/${ownerId}`;
+  const sent = await sendForm(firm, thread, { content: '' }, 'olcu.png');
+  check('yalnız fotoğraflı mesaj gider', sent.status === 302 && sent.location === thread);
+  const threadPage = (await get(owner, `/messages/${idOf(path)}/${firmId}`)).text;
+  check('fotoğraf konuşmada görünür', /class="msg-image" href="\/uploads\/[\w-]+\.webp"/.test(threadPage));
+  check('sahte çevrimiçi göstergesi yok', !threadPage.includes('Çevrimiçi'));
+  const live = await (await fetch(`${BASE}/messages/${idOf(path)}/${firmId}/new`, { headers: { cookie: owner } })).json();
+  check('canlı güncellemede fotoğraf var', live.messages.some(message => /^\/uploads\/[\w-]+\.webp$/.test(message.image)));
+  const inbox = (await get(owner, '/messages')).text;
+  check('gelen kutusunda "Fotoğraf" yazar', inbox.includes('Fotoğraf'));
+  const denied = await sendForm(stranger, thread, { content: 'Merhaba' }, 'izinsiz.png');
+  check('yetkisiz kişi fotoğraf gönderemez', denied.status === 302 && denied.location !== thread);
+  const countMessages = async () => ((await get(owner, `/messages/${idOf(path)}/${firmId}`)).text.match(/class="msg[ "]/g) || []).length;
+  const beforeEmpty = await countMessages();
+  await sendForm(firm, thread, { content: '' });
+  check('boş mesaj reddedilir', (await countMessages()) === beforeEmpty);
+
+  console.log(`${passed} geçti, ${failures} hata`);
+  process.exit(failures ? 1 : 0);
+})().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

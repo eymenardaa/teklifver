@@ -46,10 +46,16 @@ const https = c => ({
       Object.keys(merged).forEach(key => merged[key] === undefined && delete merged[key]);
       return spawnSync(process.execPath, [entry], { cwd: copyDir, env: merged, encoding: 'utf8', timeout: 30000 }).status === 1;
     };
-    check('kısa SESSION_SECRET reddi', refuses({ SESSION_SECRET: 'kisa' }));
-    check('örnek SESSION_SECRET reddi', refuses({ SESSION_SECRET: 'buraya-uzun-ve-rastgele-bir-metin-yazin' }));
     check('SITE_URL zorunlu', refuses({ SITE_URL: undefined }));
     check('MONGODB_URI zorunlu', refuses({ MONGODB_URI: undefined }));
+
+    // Kısa ya da örnek SESSION_SECRET ile sabit bir anahtara düşülmez; güvenli anahtar üretilip uyarılır.
+    for (const weak of ['kisa', 'buraya-uzun-ve-rastgele-bir-metin-yazin']) {
+      const weakServer = await start({ SESSION_SECRET: weak });
+      const health = await client(weakServer.url).get('/healthz');
+      check(`zayıf SESSION_SECRET uyarısı (${weak.slice(0, 6)})`, health.status === 200 && weakServer.logs.includes('SESSION_SECRET eksik ya da kısa'));
+      await weakServer.stop();
+    }
 
     let server = await start();
     check('sunucu uyarıları', server.logs.includes('SMTP tanımlı değil') && server.logs.includes('Sosyal giriş anahtarı'));
@@ -91,7 +97,7 @@ const https = c => ({
 
     // Görsel yükleme
     const fd = new FormData();
-    fd.set('title', 'Kalıcı görsel'); fd.set('description', 'Açıklama'); fd.set('category', 'Diğer');
+    fd.set('title', 'Kalıcı görsel'); fd.set('description', 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.'); fd.set('category', 'Diğer');
     fd.append('images', new Blob([MINI_PNG], { type: 'image/png' }), 'a.png');
     fd.append('images', new Blob([MINI_PNG], { type: 'image/png' }), 'b.png');
     const created = await c.form('/requests', fd);

@@ -8,7 +8,7 @@ const { rateLimit } = require('express-rate-limit');
 const { liveFilter } = require('../lib/listing');
 const { openCountsByCategory, priceGuide } = require('../lib/stats');
 const { str, isEmail } = require('../lib/input');
-const { sendInBackground, isEnabled: mailEnabled } = require('../lib/mailer');
+const { sendInBackground, isEnabled: mailEnabled, verificationRequired } = require('../lib/mailer');
 const ContactMessage = require('../models/ContactMessage');
 const Ad = require('../models/Ad');
 const { siteUrl } = require('../lib/url');
@@ -28,7 +28,14 @@ const pages = {
 
 Object.entries(pages).forEach(([path, page]) => {
   router.get(path, (req, res) => {
-    res.render(`pages/${page.view}`, { title: page.title, metaDescription: page.metaDescription || '', pagePath: path });
+    res.render(`pages/${page.view}`, {
+      title: page.title,
+      metaDescription: page.metaDescription || '',
+      pagePath: path,
+      // Yardım metni sitenin gerçek ayarına göre yazılır.
+      codeLogin: verificationRequired(),
+      freeBids: PLANS.free.monthlyBids
+    });
   });
 });
 
@@ -73,7 +80,8 @@ router.get('/iller', async (req, res, next) => {
   }
 });
 
-const CONTACT_SUBJECTS = ['Genel soru', 'Hesabımla ilgili sorun', 'Şikayet', 'Reklam', 'Öneri'];
+const CONTACT_SUBJECTS = ['Genel soru', 'Hesabımla ilgili sorun', 'Firma paketi', 'Şikayet', 'Reklam', 'Öneri'];
+const PLANS = require('../config/plans');
 const MAX_CONTACT_MESSAGE = 2000;
 
 const renderContact = (res, extra = {}) =>
@@ -92,8 +100,10 @@ const contactLimiter = rateLimit({
 
 router.get('/iletisim', (req, res) => {
   const user = req.session.user;
-  const subject = CONTACT_SUBJECTS.includes(req.query.konu) ? req.query.konu : '';
-  renderContact(res, { values: { subject, ...(user ? { name: user.name, email: user.email } : {}) } });
+  const plan = PLANS[req.query.paket];
+  const subject = plan ? 'Firma paketi' : CONTACT_SUBJECTS.includes(req.query.konu) ? req.query.konu : '';
+  const message = plan ? `${plan.name} paketine geçmek istiyorum.${user && user.companyName ? ` Firma: ${user.companyName}` : ''}` : '';
+  renderContact(res, { values: { subject, message, ...(user ? { name: user.name, email: user.email } : {}) } });
 });
 
 router.post('/iletisim', contactLimiter, async (req, res, next) => {

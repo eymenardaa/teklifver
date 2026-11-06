@@ -47,7 +47,7 @@
                   <% if (thread.unread) { %><span class="unread-count"><%= thread.unread %></span><% } %>
                   <div class="listing-sub"><%= truncate(thread.request.title, 60) %></div>
                 </td>
-                <td class="inbox-last"><%= thread.mine ? 'Siz: ' : '' %><%= truncate(thread.last.content, 80) %></td>
+                <td class="inbox-last"><%= thread.mine ? 'Siz: ' : '' %><%= thread.last.content ? truncate(thread.last.content, 80) : 'Fotoğraf' %></td>
                 <td class="col-date"><%= formatDate(thread.last.createdAt) %></td>
               </tr>
             <% }) %>

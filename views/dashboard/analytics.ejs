@@ -4,68 +4,52 @@
   <div class="layout">
     <aside><%- include('../partials/panel-menu') %></aside>
 
-    <div style="display:flex; flex-direction:column; gap:16px">
-      <section class="box">
-        <div class="box-head">📊 Firma Performans & İstatistik Paneli</div>
-        <div class="box-body">
-          <div class="summary" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); margin-bottom:20px">
-            <div>
-              <strong><%= profileViews %></strong>
-              <span>Profil Ziyareti</span>
-            </div>
-            <div>
-              <strong><%= totalBids %></strong>
-              <span>Toplam Teklif</span>
-            </div>
-            <div>
-              <strong><%= acceptedBids %></strong>
-              <span>Kazanılan İş</span>
-            </div>
-            <div>
-              <strong>%<%= winRate %></strong>
-              <span>Kazanma Oranı</span>
-            </div>
-            <div>
-              <strong style="color:var(--green)"><%= money(totalEarnings) %></strong>
-              <span>Toplam Ciro</span>
-            </div>
-          </div>
+    <section class="box">
+      <div class="box-head">İstatistikler</div>
+      <div class="summary">
+        <div><strong><%= totals.sent %></strong><span>Gönderilen teklif</span></div>
+        <div><strong><%= totals.won %></strong><span>Kazanılan iş</span></div>
+        <div><strong><%= totals.winRate === null ? '-' : '%' + totals.winRate %></strong><span>Kazanma oranı</span></div>
+        <div><strong><%= profileViews %></strong><span>Firma sayfası görüntülenme</span></div>
+      </div>
 
-          <!-- Başarı Grafiği / Analiz -->
-          <div style="background:var(--head); border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:16px">
-            <h3 style="font-size:14px; margin-bottom:8px">Teklif Sonuç Dağılımı</h3>
-            <div style="display:flex; gap:12px; align-items:center">
-              <div style="flex:1; height:20px; background:var(--track); border-radius:10px; overflow:hidden; display:flex">
-                <div style="width:<%= winRate %>%; background:var(--green)" title="Kabul Edilen (%<%= winRate %>)"></div>
-                <div style="width:<%= Math.max(0, 100 - winRate) %>%; background:var(--orange)" title="Bekleyen / Reddedilen"></div>
-              </div>
-              <span class="small muted">%<%= winRate %> Başarı</span>
-            </div>
-            <div style="display:flex; gap:16px; margin-top:8px; font-size:12px">
-              <span><span style="display:inline-block; width:10px; height:10px; background:var(--green); border-radius:2px"></span> Kabul Edilen: <%= acceptedBids %></span>
-              <span><span style="display:inline-block; width:10px; height:10px; background:var(--orange); border-radius:2px"></span> Diğer: <%= totalBids - acceptedBids %></span>
-            </div>
-          </div>
-
-          <!-- Firmanın Puan ve Değerlendirme Özeti -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px">
-            <div style="border:1px solid var(--line); border-radius:4px; padding:12px">
-              <h4 style="font-size:13px; margin-bottom:4px">Müşteri Memnuniyeti</h4>
-              <div style="display:flex; align-items:center; gap:8px">
-                <span style="font-size:24px; font-weight:bold; color:#f59f00">★ <%= company.rating || '5.0' %></span>
-                <span class="muted small">(<%= company.ratingCount || 0 %> değerlendirme)</span>
-              </div>
-            </div>
-            <div style="border:1px solid var(--line); border-radius:4px; padding:12px">
-              <h4 style="font-size:13px; margin-bottom:4px">Ortalama Teklif Tutarı</h4>
-              <div style="font-size:20px; font-weight:bold; color:var(--navy)">
-                <%= totalBids > 0 ? money(Math.round(totalEarnings / (acceptedBids || 1))) : '0 ₺' %>
-              </div>
-            </div>
-          </div>
+      <% if (!totals.sent) { %>
+        <div class="empty">
+          <h2>Henüz teklif vermediniz</h2>
+          <p>İlk tekliflerinizden sonra burada ay ay kaç teklif verdiğinizi ve kaçını kazandığınızı göreceksiniz.</p>
+          <a class="btn btn-primary" href="/dashboard/matches">Size Uygun Talepler</a>
         </div>
-      </section>
-    </div>
+      <% } else { %>
+        <div class="box-body">
+          <h2 class="section-title">Son altı ay</h2>
+          <table class="month-table">
+            <thead><tr><th>Ay</th><th>Teklif</th><th><span class="visually-hidden">Grafik</span></th><th>Kazanılan</th></tr></thead>
+            <tbody>
+              <% months.forEach(month => { %>
+                <tr>
+                  <td><%= month.label %></td>
+                  <td class="num"><%= month.sent %></td>
+                  <td class="month-bar-cell" aria-hidden="true">
+                    <span class="month-bar" style="width:<%= Math.round((month.sent / busiestMonth) * 100) %>%"><span class="month-bar-won" style="width:<%= month.sent ? Math.round((month.won / month.sent) * 100) : 0 %>%"></span></span>
+                  </td>
+                  <td class="num"><%= month.won %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          <p class="small muted month-legend"><span class="legend-won"></span> Kazanılan &nbsp; <span class="legend-sent"></span> Toplam teklif</p>
+
+          <table class="info-table">
+            <tr><td>Kazanılan işlerin toplamı</td><td><strong><%= money(totals.wonAmount) %></strong></td></tr>
+            <tr><td>Ortalama teklif tutarı</td><td><%= money(totals.averageAmount) %></td></tr>
+            <tr><td>Ortalama teslim süresi</td><td><%= totals.averageDays %> gün</td></tr>
+            <tr><td>Bekleyen / reddedilen</td><td><%= totals.waiting %> / <%= totals.lost %></td></tr>
+            <tr><td>Müşteri puanı</td><td><%= company.ratingCount ? `${ratingLabel(company.rating)} (${company.ratingCount} değerlendirme)` : 'Henüz değerlendirme yok' %></td></tr>
+          </table>
+          <p class="box-note">Kazanma oranı sonucu belli olan tekliflerden hesaplanır; bekleyen teklifler dahil değildir.</p>
+        </div>
+      <% } %>
+    </section>
   </div>
 </div>
 

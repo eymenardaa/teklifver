@@ -1,0 +1,22 @@
+<div class="box code-step">
+  <div class="box-head"><%= purpose === 'login' ? 'Giriş kodu' : 'E-posta adresini onayla' %></div>
+  <div class="box-body">
+    <% if (errors && errors.form) { %><div class="form-error" role="alert"><%= errors.form %></div><% } %>
+    <% if (locals.notice) { %><div class="form-note" role="status"><%= notice %></div><% } %>
+    <p class="code-step-lead"><strong><%= maskedEmail %></strong> adresine altı haneli bir kod gönderdik. Kod 15 dakika geçerli.</p>
+    <form class="form" action="<%= purpose === 'login' ? '/login' : '/register' %>" method="POST">
+      <input type="hidden" name="verifyStep" value="1">
+      <div class="field">
+        <label class="field-label" for="code">Kod</label>
+        <input class="input code-input" type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code"
+          pattern="[0-9 ]{6,7}" maxlength="7" placeholder="000 000" required autofocus>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit"><%= purpose === 'login' ? 'Giriş Yap' : 'Hesabı Aç' %></button>
+    </form>
+    <p class="small muted code-step-help">Kod gelmediyse istenmeyen e-posta klasörüne de bakın.</p>
+    <div class="code-step-links">
+      <form action="/verify-code/resend" method="POST"><button class="link-button" type="submit">Yeni kod gönder</button></form>
+      <a class="small" href="/login">Başka hesapla giriş yap</a>
+    </div>
+  </div>
+</div>

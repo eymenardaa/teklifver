@@ -53,7 +53,7 @@ async function renderLanding(req, res, next, { category, city }) {
       role: 'company',
       suspended: { $ne: true },
       ...(category ? { categories: category.name } : {}),
-      ...(city ? { address: city } : {})
+      ...(city ? { $or: [{ address: city }, { serviceCities: city }] } : {})
     };
 
     const [requests, companies, guide, cityRows, categoryRows] = await Promise.all([
@@ -106,6 +106,8 @@ async function renderLanding(req, res, next, { category, city }) {
       category,
       city,
       factors: category ? (content[category.name] || content['Diğer']).factors : [],
+      questions: category ? (content[category.name] || content['Diğer']).questions : [],
+      example: category ? (content[category.name] || content['Diğer']).example : null,
       requests,
       companies,
       price: price && price.total >= 3 ? price : null,

@@ -15,7 +15,7 @@
     <div>
       <h1><%= heading %></h1>
       <p><%= intro %></p>
-      <a class="btn btn-primary" href="/requests/new">Talep Ver</a>
+      <a class="btn btn-primary" href="/requests/new?<%= new URLSearchParams({ ...(category ? { category: category.name } : {}), ...(city ? { city } : {}) }).toString() %>">Talep Ver</a>
     </div>
     <dl class="landing-stats">
       <div><dt>Açık talep</dt><dd><%= total %></dd></div>
@@ -60,6 +60,17 @@
         </section>
       <% } %>
 
+      <% if (questions.length) { %>
+        <section class="box">
+          <h2 class="box-head">Firmaya Bunları Sorun</h2>
+          <div class="box-body">
+            <ul class="check-list">
+              <% questions.forEach(item => { %><li><%= item %></li><% }) %>
+            </ul>
+          </div>
+        </section>
+      <% } %>
+
       <section class="box">
         <h2 class="box-head">Sıkça Sorulan Sorular</h2>
         <div class="faq">
@@ -74,6 +85,16 @@
     </div>
 
     <aside aria-label="İlgili bağlantılar">
+      <% if (example) { %>
+        <div class="box">
+          <h2 class="box-head">Örnek Talep</h2>
+          <div class="request-example">
+            <blockquote><strong><%= example.title %></strong><br><%= example.text %></blockquote>
+            <a class="btn btn-block" style="margin-top:10px" href="/requests/new?<%= new URLSearchParams({ category: category.name, ...(city ? { city } : {}), title: example.title }).toString() %>">Benzer Talep Ver</a>
+          </div>
+        </div>
+      <% } %>
+
       <% if (companies.length) { %>
         <div class="box">
           <h2 class="box-head"><%= city && !category ? city + ' Firmaları' : 'Öne Çıkan Firmalar' %></h2>

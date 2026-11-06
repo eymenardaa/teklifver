@@ -4,8 +4,8 @@ const router = express.Router();
 const Bid = require('../models/Bid');
 const Request = require('../models/Request');
 const Review = require('../models/Review');
-const User = require('../models/User');
 const { isLoggedIn, isCompany, isCustomer, requireVerifiedEmail } = require('../middleware/auth');
+const { useBidSlot, refundBidSlot } = require('../lib/plans');
 const { str } = require('../lib/input');
 const { notify, notifyMany } = require('../lib/notify');
 const { isExpired } = require('../lib/helpers');
@@ -49,27 +49,34 @@ router.post('/', isCompany, requireVerifiedEmail, limits.newBid, async (req, res
       return res.redirect(backToRequest);
     }
 
-    const companyUser = await User.findById(req.session.user.id).select('bidCredits plan');
-    if (companyUser && companyUser.bidCredits !== undefined && companyUser.bidCredits <= 0) {
-      req.flash('error', 'Aylık teklif verme hakkınız doldu. Lütfen paketinizi yükseltin.');
-      return res.redirect('/dashboard/plans');
-    }
-
     const form = readBidForm(req.body);
     if (!form.valid) {
       req.flash('error', 'Lütfen tutar, teslim süresi ve açıklamayı doğru girin.');
       return res.redirect(backToRequest);
     }
 
-    await Bid.create({
-      request: requestId,
-      company: req.session.user.id,
-      amount: form.amount,
-      description: form.description,
-      deliveryTime: form.deliveryTime
-    });
+    if (await Bid.exists({ request: requestId, company: req.session.user.id })) {
+      req.flash('error', 'Bu talebe zaten teklif verdiniz.');
+      return res.redirect(backToRequest);
+    }
+    if (!(await useBidSlot(req.session.user.id))) {
+      req.flash('error', 'Bu ayki teklif hakkınız doldu. Hakkınız ayın ilk günü yenilenir; daha fazlası için paketlere bakın.');
+      return res.redirect('/dashboard/plans');
+    }
+
+    try {
+      await Bid.create({
+        request: requestId,
+        company: req.session.user.id,
+        amount: form.amount,
+        description: form.description,
+        deliveryTime: form.deliveryTime
+      });
+    } catch (err) {
+      await refundBidSlot(req.session.user.id);
+      throw err;
+    }
     await Request.updateOne({ _id: requestId }, { $inc: { bidCount: 1 } });
-    await User.updateOne({ _id: req.session.user.id, bidCredits: { $gt: 0 } }, { $inc: { bidCredits: -1 } });
     await notify(request.customer, `${companyLabel(req.session.user)}, "${request.title}" talebinize teklif verdi.`, backToRequest, { mail: 'bids' });
 
     req.flash('success', 'Teklifiniz gönderildi.');
@@ -107,12 +114,6 @@ router.post('/:id/edit', isCompany, async (req, res, next) => {
   try {
     const bid = await loadOwnPendingBid(req, res);
     if (!bid) return;
-
-    const companyUser = await User.findById(req.session.user.id).select('bidCredits plan');
-    if (companyUser && companyUser.bidCredits !== undefined && companyUser.bidCredits <= 0) {
-      req.flash('error', 'Aylık teklif verme hakkınız doldu. Lütfen paketinizi yükseltin.');
-      return res.redirect('/dashboard/plans');
-    }
 
     const form = readBidForm(req.body);
     if (!form.valid) {

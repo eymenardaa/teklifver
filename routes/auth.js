@@ -18,20 +18,19 @@ const { str, isEmail, safeNext } = require('../lib/input');
 const cities = require('../config/cities');
 const { sendInBackground, canDeliver, verificationRequired } = require('../lib/mailer');
 const { resetMail, emailChangeNotice, passwordChangedMail, CATEGORY_LABELS } = require('../lib/mail-templates');
-const { sendVerification, sendVerificationCode } = require('../lib/email-verify');
+const { sendVerification, sendVerificationCode, checkVerificationCode, canResendCode, CODE_MS } = require('../lib/email-verify');
 const { siteUrl } = require('../lib/url');
 const { startSession } = require('../lib/session');
 const { limits } = require('../lib/limits');
 const { recalcCompanyRating, cancelDeal } = require('../lib/deals');
 const { notify } = require('../lib/notify');
 
-
+// Kod adımında adresin tamamı yazılmaz: ah***t@gmail.com
 function maskEmail(email) {
   if (!email || !email.includes('@')) return email || '';
-  const parts = email.split('@');
-  const name = parts[0];
-  const maskedName = name.length <= 3 ? name[0] + '***' : name.slice(0, 2) + '***' + name.slice(-1);
-  return `${maskedName}@${parts[1]}`;
+  const [name, domain] = email.split('@');
+  const masked = name.length <= 3 ? name[0] + '***' : name.slice(0, 2) + '***' + name.slice(-1);
+  return `${masked}@${domain}`;
 }
 
 const MIN_PASSWORD = 8;
@@ -78,6 +77,69 @@ const forgotLimiter = rateLimit({
 const renderProfile = (res, profile, extra = {}) =>
   res.render('auth/profile', { title: 'Hesabım', section: 'profile', categories, profile, mailLabels: CATEGORY_LABELS, ...extra });
 
+const CODE_ERRORS = {
+  wrong: 'Kod hatalı. E-postadaki altı haneli kodu yeniden yazın.',
+  expired: 'Kodun süresi doldu. Aşağıdan yeni kod isteyin.',
+  locked: 'Çok fazla yanlış deneme oldu. Aşağıdan yeni kod isteyin.'
+};
+
+// Kod hangi hesaba gittiyse oturumda tutulur. Formdan gelen kimlik ya da e-posta kullanılmaz;
+// böylece şifre adımını geçmeyen biri başka bir hesabın kodunu deneyemez.
+function renderCodeStep(req, res, { purpose, email, error, notice, status = 200 }) {
+  const pending = req.session.pendingCode;
+  res.status(status).render(purpose === 'login' ? 'auth/login' : 'auth/register', {
+    title: purpose === 'login' ? 'Giriş Kodu' : 'Hesabını Onayla',
+    step: 'verify',
+    purpose,
+    maskedEmail: maskEmail(email),
+    next: pending ? pending.next : '',
+    values: {},
+    errors: error ? { form: error } : {},
+    notice
+  });
+}
+
+// Kod gönderip kod adımına geçer. E-posta gitmezse false döner.
+async function startCodeStep(req, user, purpose, { remember = false, next = '' } = {}) {
+  let sent = false;
+  try {
+    sent = await sendVerificationCode(user);
+  } catch (err) {
+    console.error('Kod e-postası gönderilemedi:', err.message);
+  }
+  if (!sent) return false;
+  req.session.pendingCode = { userId: user._id.toString(), purpose, remember, next, startedAt: Date.now() };
+  return true;
+}
+
+// Bekleyen kodu kontrol eder; doğruysa oturumu açar.
+async function finishCodeStep(req, res, next, purpose) {
+  const pending = req.session.pendingCode;
+  if (!pending || pending.purpose !== purpose || Date.now() - pending.startedAt > CODE_MS) {
+    delete req.session.pendingCode;
+    req.flash('error', purpose === 'login'
+      ? 'Kod adımının süresi doldu. Lütfen yeniden giriş yapın.'
+      : 'Kod adımının süresi doldu. Giriş yaparak yeni kod isteyebilirsiniz.');
+    return res.redirect('/login');
+  }
+  try {
+    const user = await User.findById(pending.userId);
+    if (!user || user.suspended) {
+      delete req.session.pendingCode;
+      return res.redirect('/login');
+    }
+    const result = await checkVerificationCode(user, req.body.code);
+    if (result !== 'ok') return renderCodeStep(req, res, { purpose, email: user.email, error: CODE_ERRORS[result], status: 422 });
+
+    // Yeni oturum açılırken bekleyen kod bilgisi de silinir.
+    await startSession(req, user, pending.remember);
+    req.flash('success', purpose === 'login' ? `Hoş geldin, ${user.name}!` : `Hoş geldin, ${user.name}! Hesabın açıldı.`);
+    res.redirect(pending.next || '/dashboard');
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ---- Kayıt ----
 
 router.get('/register', (req, res) => {
@@ -90,59 +152,8 @@ router.get('/register', (req, res) => {
 });
 
 router.post('/register', authLimiter('auth/register'), async (req, res, next) => {
-  const redirectTo = safeNext(req.body.next);
+  if (req.body.verifyStep) return finishCodeStep(req, res, next, 'register');
 
-  // 2. Adım: Kod Doğrulama
-  if (req.body.verifyStep) {
-    const userId = req.body.userId || req.session.pendingVerifyUserId;
-    const inputCode = (req.body.code || '').toString().trim().replace(/\s+/g, '');
-
-    try {
-      const user = await User.findById(userId);
-      if (!user) return res.redirect('/register');
-
-      if (!user.emailCode || inputCode !== user.emailCode) {
-        return res.render('auth/register', {
-          title: 'Hesap Aç - Kodu Onayla',
-          step: 'verify',
-          userId,
-          email: user.email,
-          maskedEmail: maskEmail(user.email),
-          next: redirectTo,
-          values: {},
-          errors: { form: 'Girdiğiniz 6 haneli kod hatalı. Lütfen tekrar deneyin.' }
-        });
-      }
-
-      if (!user.emailCodeExpires || new Date() > user.emailCodeExpires) {
-        return res.render('auth/register', {
-          title: 'Hesap Aç - Kodu Onayla',
-          step: 'verify',
-          userId,
-          email: user.email,
-          maskedEmail: maskEmail(user.email),
-          next: redirectTo,
-          values: {},
-          errors: { form: 'Kodun süresi dolmuş. Lütfen sayfayı yenileyip yeniden kayıt olun.' }
-        });
-      }
-
-      // Başarılı! Hesabı onayla ve oturum aç
-      user.emailVerified = true;
-      user.emailCode = undefined;
-      user.emailCodeExpires = undefined;
-      await user.save();
-
-      delete req.session.pendingVerifyUserId;
-      await startSession(req, user, false);
-      req.flash('success', `Tebrikler ${user.name}! Hesabınız doğrulandı ve açıldı.`);
-      return res.redirect(redirectTo || '/dashboard');
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  // 1. Adım: Bilgileri Kontrol Et ve Kod Gönder
   const values = {
     role: req.body.role === 'company' ? 'company' : 'customer',
     name: str(req.body.name),
@@ -150,6 +161,7 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
     companyName: str(req.body.companyName)
   };
   const password = typeof req.body.password === 'string' ? req.body.password : '';
+  const redirectTo = safeNext(req.body.next);
 
   const errors = {};
   if (!values.name) errors.name = 'Adınızı yazın.';
@@ -159,11 +171,12 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
   else if (password.length > MAX_PASSWORD) errors.password = `Şifre en fazla ${MAX_PASSWORD} karakter olabilir.`;
   if (values.role === 'company' && !values.companyName) errors.companyName = 'Şirket adını yazın.';
   else if (values.companyName.length > MAX_COMPANY_NAME) errors.companyName = `Şirket adı en fazla ${MAX_COMPANY_NAME} karakter olabilir.`;
+  // Formdaki gizli alanı yalnızca otomatik kayıt yazılımları doldurur.
   if (str(req.body.website)) errors.form = 'Kayıt tamamlanamadı.';
   if (req.body.terms !== 'on') errors.terms = 'Devam etmek için koşulları onaylamalısınız.';
 
-  const fail = () =>
-    res.status(422).render('auth/register', { title: 'Kayıt Ol', next: redirectTo, values, errors });
+  const fail = (status = 422) =>
+    res.status(status).render('auth/register', { title: 'Kayıt Ol', next: redirectTo, values, errors });
 
   if (Object.keys(errors).length) return fail();
 
@@ -174,39 +187,23 @@ router.post('/register', authLimiter('auth/register'), async (req, res, next) =>
       password,
       role: values.role,
       companyName: values.role === 'company' ? values.companyName : undefined,
-      emailVerified: false,
       termsAcceptedAt: new Date()
     });
 
-    if ((process.env.NODE_ENV === 'test' || process.env.DISABLE_2FA === 'true' || process.env.CI === 'true')) {
-      if (canDeliver()) await sendVerification(user);
-      await startSession(req, user);
-      req.flash(
-        'success',
-        verificationRequired()
-          ? `Hoş geldin, ${user.name}! E-postana gönderdiğimiz bağlantıyla hesabını doğrula.`
-          : `Hoş geldin, ${user.name}!`
-      );
-      return res.redirect(redirectTo || '/dashboard');
+    // E-posta gönderilebiliyorsa hesap, adrese gelen kod girilince açılır.
+    if (verificationRequired()) {
+      if (!(await startCodeStep(req, user, 'register', { next: redirectTo }))) {
+        await User.deleteOne({ _id: user._id });
+        errors.form = 'Onay kodu gönderilemedi. Lütfen biraz sonra tekrar deneyin.';
+        return fail(503);
+      }
+      return renderCodeStep(req, res, { purpose: 'register', email: user.email });
     }
 
-    try {
-      await sendVerificationCode(user);
-    } catch (e) {
-      console.error("Doğrulama kodu gönderilemedi:", e.message);
-    }
-
-    req.session.pendingVerifyUserId = user._id;
-    return res.render('auth/register', {
-      title: 'Hesap Aç - Kodu Onayla',
-      step: 'verify',
-      userId: user._id,
-      email: user.email,
-      maskedEmail: maskEmail(user.email),
-      next: redirectTo,
-      values: {},
-      errors: {}
-    });
+    if (canDeliver()) await sendVerification(user);
+    await startSession(req, user, false);
+    req.flash('success', `Hoş geldin, ${user.name}!`);
+    res.redirect(redirectTo || '/dashboard');
   } catch (err) {
     if (err.code === 11000) {
       errors.email = 'Bu e-posta zaten kayıtlı. Giriş yapmayı deneyin.';
@@ -224,104 +221,58 @@ router.get('/login', (req, res) => {
 });
 
 router.post('/login', authLimiter('auth/login'), async (req, res, next) => {
+  if (req.body.verifyStep) return finishCodeStep(req, res, next, 'login');
+
   const email = str(req.body.email).toLowerCase();
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
   const redirectTo = safeNext(req.body.next);
 
-  // 2. Adım: Kod Doğrulama
-  if (req.body.verifyStep) {
-    const inputCode = (req.body.code || '').toString().trim().replace(/\s+/g, '');
-    try {
-      const user = await User.findOne({ email });
-      if (!user) return res.redirect('/login');
-
-      if (!user.emailCode || inputCode !== user.emailCode) {
-        return res.render('auth/login', {
-          title: 'Giriş Yap - Kodu Onayla',
-          step: 'verify',
-          email,
-          maskedEmail: maskEmail(email),
-          next: redirectTo,
-          values: { email },
-          errors: { form: 'Girdiğiniz 6 haneli kod hatalı. Lütfen e-postanızı kontrol edip tekrar deneyin.' },
-          demoAccounts: []
-        });
-      }
-
-      if (!user.emailCodeExpires || new Date() > user.emailCodeExpires) {
-        return res.render('auth/login', {
-          title: 'Giriş Yap - Kodu Onayla',
-          step: 'verify',
-          email,
-          maskedEmail: maskEmail(email),
-          next: redirectTo,
-          values: { email },
-          errors: { form: 'Kodun süresi dolmuş. Lütfen başa dönüp tekrar giriş yapın.' },
-          demoAccounts: []
-        });
-      }
-
-      // Başarılı! Oturumu aç
-      user.emailVerified = true;
-      user.emailCode = undefined;
-      user.emailCodeExpires = undefined;
-      await user.save();
-
-      const remember = req.session.pendingVerifyRemember || false;
-      delete req.session.pendingVerifyUserId;
-      delete req.session.pendingVerifyRemember;
-
-      await startSession(req, user, remember);
-      req.flash('success', `Hoş geldin, ${user.name}!`);
-      return res.redirect(redirectTo || '/dashboard');
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  // 1. Adım: E-posta ve Şifre Kontrolü ➔ Kod Gönder
-  const password = typeof req.body.password === 'string' ? req.body.password : '';
-
-  const fail = message =>
-    res.status(401).render('auth/login', {
+  const fail = (message, status = 401) =>
+    res.status(status).render('auth/login', {
       title: 'Giriş Yap',
       next: redirectTo,
       values: { email },
-      errors: { form: message },
-      demoAccounts: []
+      errors: { form: message }
     });
 
   try {
     const user = email && password ? await User.findOne({ email }) : null;
 
+    // Yanıt süresinden e-postanın kayıtlı olup olmadığı anlaşılmasın.
     if (!user) await bcrypt.compare(password.slice(0, MAX_PASSWORD), DUMMY_HASH);
     if (!user || !(await user.comparePassword(password))) return fail('E-posta veya şifre hatalı.');
     if (user.suspended) return fail('Hesabınız askıya alınmıştır.');
 
-    if ((process.env.NODE_ENV === 'test' || process.env.DISABLE_2FA === 'true' || process.env.CI === 'true')) {
-      await startSession(req, user, req.body.remember === 'on');
-      return res.redirect(redirectTo || '/dashboard');
+    // E-posta gönderilebiliyorsa şifreden sonra adrese gelen kod da istenir.
+    if (verificationRequired()) {
+      const started = await startCodeStep(req, user, 'login', { remember: req.body.remember === 'on', next: redirectTo });
+      if (!started) return fail('Giriş kodu gönderilemedi. Lütfen biraz sonra tekrar deneyin.', 503);
+      return renderCodeStep(req, res, { purpose: 'login', email: user.email });
     }
 
-    // Şifre doğru! Anında Gmail'e kod gönder ve sayfayı kod ekranına dönüştür!
-    try {
-      await sendVerificationCode(user);
-    } catch (e) {
-      console.error("Giriş onay kodu gönderilemedi:", e.message);
+    await startSession(req, user, req.body.remember === 'on');
+    res.redirect(redirectTo || '/dashboard');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Kod adımında yeni kod ister.
+router.post('/verify-code/resend', authLimiter('auth/login'), async (req, res, next) => {
+  const pending = req.session.pendingCode;
+  if (!pending) return res.redirect('/login');
+  try {
+    const user = await User.findById(pending.userId);
+    if (!user || user.suspended) {
+      delete req.session.pendingCode;
+      return res.redirect('/login');
     }
-
-    req.session.pendingVerifyUserId = user._id;
-    req.session.pendingVerifyRemember = req.body.remember === "on";
-
-    return res.render('auth/login', {
-      title: 'Giriş Yap - Kodu Onayla',
-      step: 'verify',
-      email: user.email,
-      maskedEmail: maskEmail(user.email),
-      next: redirectTo,
-      values: { email },
-      errors: {},
-      demoAccounts: []
-    });
+    const step = { purpose: pending.purpose, email: user.email };
+    if (!canResendCode(user)) return renderCodeStep(req, res, { ...step, error: 'Yeni kod istemek için bir dakika bekleyin.', status: 429 });
+    if (!(await startCodeStep(req, user, pending.purpose, { remember: pending.remember, next: pending.next }))) {
+      return renderCodeStep(req, res, { ...step, error: 'Kod gönderilemedi. Lütfen biraz sonra tekrar deneyin.', status: 503 });
+    }
+    renderCodeStep(req, res, { ...step, notice: 'Yeni kod gönderildi. Önceki kod artık geçmez.' });
   } catch (err) {
     next(err);
   }
@@ -447,6 +398,7 @@ router.post('/profile', isLoggedIn, async (req, res, next) => {
         .filter(Boolean)
         .slice(0, 12);
       update.categories = [].concat(req.body.categories || []).filter(name => categories.names.includes(name));
+      update.serviceCities = [...new Set([].concat(req.body.serviceCities || []))].filter(city => cities.includes(city));
     }
 
     const errors = {};
@@ -717,9 +669,12 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
       $or: [{ customer: id }, { request: { $in: requestIds } }]
     });
 
+    const messageFilter = { $or: [{ sender: id }, { receiver: id }, { request: { $in: requestIds } }] };
+    deleteImages(await Message.distinct('image', { ...messageFilter, image: { $nin: ['', null] } }));
+
     await Promise.all([
       Bid.deleteMany({ $or: [{ company: id }, { request: { $in: requestIds } }] }),
-      Message.deleteMany({ $or: [{ sender: id }, { receiver: id }, { request: { $in: requestIds } }] }),
+      Message.deleteMany(messageFilter),
       Review.deleteMany({ $or: [{ customer: id }, { company: id }, { request: { $in: requestIds } }] }),
       Report.deleteMany({ $or: [{ reporter: id }, { request: { $in: requestIds } }] }),
       Notification.deleteMany({ user: id }),
@@ -740,96 +695,6 @@ router.post('/profile/delete', isLoggedIn, async (req, res, next) => {
     });
   } catch (err) {
     next(err);
-  }
-});
-
-
-// ---- 6 Haneli E-posta Kod Doğrulama ----
-
-router.get('/verify-code', async (req, res) => {
-  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
-  if (!userId) return res.redirect('/login');
-
-  const user = await User.findById(userId);
-  if (!user) {
-    delete req.session.pendingVerifyUserId;
-    return res.redirect('/login');
-  }
-
-  if (user.emailVerified) {
-    delete req.session.pendingVerifyUserId;
-    return res.redirect('/dashboard');
-  }
-
-  const parts = user.email.split('@');
-  const namePart = parts[0];
-  const maskedName = namePart.length <= 3 
-    ? namePart[0] + '***' 
-    : namePart.slice(0, 2) + '***' + namePart.slice(-1);
-  const maskedEmail = `${maskedName}@${parts[1]}`;
-
-  res.render('auth/verify-code', {
-    title: 'E-posta Doğrulama Kodu',
-    email: maskedEmail,
-    next: safeNext(req.query.next)
-  });
-});
-
-router.post('/verify-code', authLimiter('auth/verify-code'), async (req, res, next) => {
-  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
-  const redirectTo = safeNext(req.body.next);
-  if (!userId) return res.redirect('/login');
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      delete req.session.pendingVerifyUserId;
-      return res.redirect('/login');
-    }
-
-    const inputCode = (req.body.code || '').toString().trim().replace(/\s+/g, '');
-
-    if (!inputCode || inputCode.length !== 6 || inputCode !== user.emailCode) {
-      req.flash('error', 'Girdiğiniz 6 haneli kod hatalı. Lütfen e-postanızı kontrol edip tekrar deneyin.');
-      return res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
-    }
-
-    if (!user.emailCodeExpires || new Date() > user.emailCodeExpires) {
-      req.flash('error', 'Girdiğiniz kodun süresi dolmuş. Lütfen "Kodu Tekrar Gönder" butonuna basın.');
-      return res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
-    }
-
-    // Kod doğru! Hesabı onayla
-    user.emailVerified = true;
-    user.emailCode = undefined;
-    user.emailCodeExpires = undefined;
-    await user.save();
-
-    delete req.session.pendingVerifyUserId;
-
-    await startSession(req, user, true);
-    req.flash('success', `Tebrikler ${user.name}! Hesabınız doğrulandı ve oturumunuz açıldı.`);
-    res.redirect(redirectTo || '/dashboard');
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/verify-code/resend', authLimiter('auth/verify-code'), async (req, res, next) => {
-  const userId = req.session.pendingVerifyUserId || (req.session.user && req.session.user.id);
-  const redirectTo = safeNext(req.body.next);
-  if (!userId) return res.redirect('/login');
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.redirect('/login');
-
-    await sendVerificationCode(user);
-    req.flash('success', 'Yeni 6 haneli doğrulama kodunuz e-posta adresinize gönderildi.');
-    res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
-  } catch (err) {
-    req.flash('error', 'Kod gönderilirken bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.');
-    res.redirect('/verify-code' + (redirectTo ? '?next=' + encodeURIComponent(redirectTo) : ''));
   }
 });
 

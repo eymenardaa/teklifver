@@ -47,7 +47,8 @@
         </section>
       <% } else { %>
         <section class="composer">
-          <h1>Yaptıracağınız işi yazın, firmalardan fiyat alın</h1>
+          <h1>İşini yaz, firmalar yarışsın.</h1>
+          <p class="composer-lead">Yaptıracağınız işi birkaç kelimeyle yazın; o alandaki firmalar fiyat ve süre göndersin.</p>
           <form action="/requests/new" method="GET">
             <div class="composer-row">
               <input class="input" type="text" name="title" maxlength="200" placeholder="Örneğin: 2+1 daire boyanacak" aria-label="Yaptıracağınız iş" autocomplete="off">
@@ -65,6 +66,8 @@
           </p>
         </section>
       <% } %>
+
+      <%- include('partials/price-board', { placement: 'feed' }) %>
 
       <section class="box">
         <div class="box-head">Son Eklenen Talepler <% if (total) { %><a href="/requests">Tümü (<%= total %>)</a><% } %></div>
@@ -114,7 +117,8 @@
       </section>
     </div>
 
-    <aside class="home-right" aria-label="Firmalar ve öneriler">
+    <aside class="home-right" aria-label="Fiyatlar, firmalar ve öneriler">
+      <%- include('partials/price-board', { placement: 'rail' }) %>
       <% if (!currentUser || currentUser.role === 'company') { %>
         <section class="box">
           <div class="box-head">Firmanız mı Var?</div>

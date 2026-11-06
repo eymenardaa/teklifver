@@ -18,6 +18,7 @@
           <% } else { %>Henüz değerlendirme yok<% } %>
           <% if (company.address) { %> · <%= company.address %><% } %>
           · Üyelik: <%= memberSince(company.createdAt) %>
+          <% if (stats.lastBidAt) { %>· Son teklif: <%= timeAgo(stats.lastBidAt) %><% } %>
         </div>
       </div>
     </div>
@@ -39,6 +40,7 @@
       <% if (company.categories && company.categories.length) { %>
         <p class="tag-line" style="margin-top:4px"><strong>Kategoriler:</strong> <%= company.categories.join(', ') %></p>
       <% } %>
+      <p class="tag-line" style="margin-top:4px"><strong>Hizmet bölgesi:</strong> <%= company.serviceCities && company.serviceCities.length ? company.serviceCities.join(', ') : 'Tüm Türkiye' %></p>
     </div>
   </section>
 

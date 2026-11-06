@@ -16,7 +16,7 @@ async function signup(fields) {
 
 async function newRequest(c, fields) {
   const form = new FormData();
-  Object.entries({ description: 'Açıklama metni', category: 'Temizlik', ...fields }).forEach(([k, v]) => form.set(k, v));
+  Object.entries({ description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', ...fields }).forEach(([k, v]) => form.set(k, v));
   const res = await c.form('/requests', form);
   if (res.status !== 302) throw new Error(`talep oluşmadı: ${res.status} ${body(res.text, /field-error">([^<]+)/)}`);
   return res.location;
@@ -32,15 +32,15 @@ async function newRequest(c, fields) {
 
   // Tarih doğrulama
   let form = new FormData();
-  Object.entries({ title: 'Geçmiş', description: 'x', category: 'Temizlik', deadline: '2020-01-01' }).forEach(([k, v]) => form.set(k, v));
+  Object.entries({ title: 'Geçmiş tarihli talep', description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', deadline: '2020-01-01' }).forEach(([k, v]) => form.set(k, v));
   let res = await owner.form('/requests', form);
   check('geçmiş son tarih reddedilir', res.status === 422 && res.text.includes('geçmiş bir gün'));
   form = new FormData();
-  Object.entries({ title: 'Yanlış', description: 'x', category: 'Temizlik', deadline: '2030-02-31' }).forEach(([k, v]) => form.set(k, v));
+  Object.entries({ title: 'Yanlış tarihli talep', description: 'Ayrıntıları keşifte konuşalım, hafta içi uygunum.', category: 'Temizlik', deadline: '2030-02-31' }).forEach(([k, v]) => form.set(k, v));
   res = await owner.form('/requests', form);
   check('olmayan tarih reddedilir', res.status === 422 && res.text.includes('Geçerli bir tarih'));
   form = new FormData();
-  Object.entries({ title: 'Uzun', description: 'x'.repeat(5001), category: 'Temizlik' }).forEach(([k, v]) => form.set(k, v));
+  Object.entries({ title: 'Uzun açıklamalı talep', description: 'a'.repeat(5001), category: 'Temizlik' }).forEach(([k, v]) => form.set(k, v));
   check('çok uzun açıklama reddedilir', (await owner.form('/requests', form)).status === 422);
 
   const future = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);

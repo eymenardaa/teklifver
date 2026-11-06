@@ -26,16 +26,9 @@ async function icons() {
     await sharp(svg, { density: 300 }).resize(size, size).png().toFile(path.join(PUBLIC, file));
   }
 
-  // Paylaşımlarda görünen varsayılan görsel
-  const social = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
-    <rect width="1200" height="630" fill="#1f2226"/>
-    <text x="90" y="300" font-family="Arial Narrow, Arial, sans-serif" font-size="130" font-weight="bold" fill="#ffffff">teklif</text>
-    <path d="M470 192h230v136H470l-50-68z" fill="#ffc61a"/><circle cx="462" cy="260" r="10" fill="#1f2226"/>
-    <text x="490" y="300" font-family="Arial Narrow, Arial, sans-serif" font-size="130" font-weight="bold" fill="#1c1e21">ver</text>
-    <text x="94" y="400" font-family="Arial, sans-serif" font-size="42" fill="#c6c9ce">Yaptıracağınız işi yazın, firmalardan fiyat alın.</text>
-  </svg>`;
-  await sharp(Buffer.from(social)).png({ compressionLevel: 9 }).toFile(path.join(PUBLIC, 'img', 'paylasim.png'));
-  console.log('  Site simgeleri ve paylaşım görseli üretildi.');
+  // Paylaşım görseli (public/img/paylasim.png) sitenin yazı tipleriyle scripts/paylasim.html dosyasından
+  // tarayıcıda çizilir: msedge --headless=new --window-size=1200,630 --screenshot=public/img/paylasim.png scripts/paylasim.html
+  console.log('  Site simgeleri üretildi.');
 }
 
 thumbs().then(icons).catch(err => {

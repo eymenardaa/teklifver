@@ -29,9 +29,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Giriş ve kayıt kodu: yalnızca özeti saklanır.
   emailCode: String,
+  emailCodeHash: String,
   emailCodeExpires: Date,
   emailCodeSentAt: Date,
+  emailCodeTries: {
+    type: Number,
+    default: 0
+  },
   emailTokenHash: String,
   emailTokenExpires: Date,
   // Doğrulanana kadar hesabın e-postası değişmez.
@@ -94,6 +100,15 @@ const userSchema = new mongoose.Schema({
   categories: [{
     type: String
   }],
+  // Firmanın hizmet verdiği iller; boşsa tüm Türkiye
+  serviceCities: [{
+    type: String
+  }],
+  // Firma sayfasının kaç kez açıldığı
+  profileViews: {
+    type: Number,
+    default: 0
+  },
   verified: {
     type: Boolean,
     default: false
@@ -128,19 +143,19 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  // --- YENİ EKLENEN ÖZELLİKLER (Firma Paketleri & İstatistikler) ---
+  // Firma paketi; aylık teklif hakkı config/plans.js dosyasındadır.
   plan: {
     type: String,
     enum: ['free', 'pro', 'enterprise'],
     default: 'free'
   },
-  bidCredits: {
-    type: Number,
-    default: 10 // Ücretsiz üyelik aylık 10 teklif hakkı
-  },
-  profileViews: {
-    type: Number,
-    default: 0
+  // Bu ay gönderilen teklif sayısı (ay değişince sıfırlanır)
+  bidUsage: {
+    month: String,
+    count: {
+      type: Number,
+      default: 0
+    }
   }
 }, {
   timestamps: true

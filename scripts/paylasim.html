@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<!-- Paylaşım görseli 1200x630. Çizmek için scripts/make-thumbs.js içindeki komuta bakın. -->
+<style>
+  @font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("../public/fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("../public/fonts/barlow-condensed-turkce-700-normal.woff2") format("woff2"); unicode-range: U+011E-011F, U+0130-0131, U+015E-015F; }
+  @font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url("../public/fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url("../public/fonts/barlow-condensed-turkce-600-normal.woff2") format("woff2"); unicode-range: U+011E-011F, U+0130-0131, U+015E-015F; }
+  @font-face { font-family: "Source Sans 3"; font-weight: 200 900; src: url("../public/fonts/source-sans-3-latin-wght-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Source Sans 3"; font-weight: 200 900; src: url("../public/fonts/source-sans-3-turkce-wght-normal.woff2") format("woff2"); unicode-range: U+011E-011F, U+0130-0131, U+015E-015F; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body { background: #16181b; color: #fff; font-family: "Source Sans 3", sans-serif; position: relative; }
+  .inner { position: absolute; left: 96px; top: 118px; right: 96px; }
+  .logo { display: inline-flex; align-items: center; gap: 14px; font: 700 168px/1 "Barlow Condensed", sans-serif; letter-spacing: -0.005em; }
+  .tag { position: relative; display: inline-block; padding: 4px 44px 14px 92px; background: #ffc61a; color: #1c1e21; clip-path: polygon(54px 0, 100% 0, 100% 100%, 54px 100%, 0 50%); }
+  .tag::before { content: ""; position: absolute; left: 50px; top: 50%; width: 26px; height: 26px; margin-top: -13px; background: #16181b; border-radius: 50%; }
+  .slogan { margin: 46px 0 0; font: 600 82px/1.05 "Barlow Condensed", sans-serif; }
+  .slogan span { color: #ffc61a; }
+  .sub { margin: 18px 0 0; color: #c6c9ce; font-size: 33px; font-weight: 400; }
+  .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: repeating-linear-gradient(-45deg, #ffc61a 0 28px, #16181b 28px 56px); }
+</style>
+</head>
+<body>
+  <div class="inner">
+    <div class="logo">teklif<span class="tag">ver</span></div>
+    <p class="slogan">İşini yaz, <span>firmalar yarışsın.</span></p>
+    <p class="sub">Ücretsiz talep ver, gelen teklifleri yan yana karşılaştır.</p>
+  </div>
+  <div class="stripe"></div>
+</body>
+</html>
