@@ -220,7 +220,9 @@ details:not([open]) > summary.box-head { border-bottom: 0; }
 .thumb { position: relative; display: block; width: 84px; height: 63px; background: var(--head); border-radius: var(--radius-sm); overflow: hidden; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .thumb-sm { flex: none; width: 64px; height: 48px; }
-.no-photo { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding-inline: 8px; color: var(--muted); font-size: 12px; line-height: 1.15; text-align: center; }
+.no-photo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: 100%; padding: 6px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.15; text-align: center; background: var(--head); border: 1px dashed var(--line); }
+.no-photo .icon { color: var(--accent); opacity: 0.85; }
+.no-photo span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .photo-count { position: absolute; right: 0; bottom: 0; display: inline-flex; align-items: center; gap: 2px; padding: 0 4px; background: rgb(0 0 0 / 0.65); color: #fff; font-size: 11px; line-height: 16px; }
 .photo-count .icon { vertical-align: 0; }
 
@@ -1604,3 +1606,15 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
     align-items: stretch;
   }
 }
+
+/* WhatsApp Paylaş Butonu */
+.link-button-wa { color: #25d366 !important; font-weight: 600; }
+.link-button-wa:hover { color: #1eb956 !important; background: rgb(37 211 102 / 0.1); }
+
+/* Hızlı Teklif Şablonları */
+.quick-bid-templates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 8px; font-size: 12px; }
+.quick-bid-hint { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; }
+.quick-tmpl-btn { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.1s ease; }
+.quick-tmpl-btn:hover { background: var(--hover); border-color: var(--accent); color: var(--accent-ink); }
+
+

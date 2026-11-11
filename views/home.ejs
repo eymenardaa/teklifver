@@ -24,7 +24,7 @@
             <button class="btn" type="submit">Teklif Al</button>
           </div>
         </form>
-        <p class="composer-note">Talep vermek ücretsiz. Telefon numaranız, siz bir teklifi kabul edene kadar firmalara görünmez.</p>
+        <p class="composer-note">Talep vermek ücretsiz. Telefon numaranız, siz bir teklifi kabul edene kadar firmalara görünmez. · <b>Hizmet veren misiniz?</b> <a href="/register?role=company">Firma Hesabı Açın →</a></p>
         <% const quick = ['boya', 'evden eve nakliyat', 'koltuk yıkama', 'logo', 'özel ders']; %>
         <p class="composer-quick">Çok arananlar:
           <% quick.forEach((term, index) => { %><a href="/requests?search=<%= encodeURIComponent(term) %>"><%= term %></a><%= index < quick.length - 1 ? ', ' : '' %><% }) %>
