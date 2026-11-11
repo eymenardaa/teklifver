@@ -66,6 +66,12 @@
   --font: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --font-head: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
   --radius: 4px;
+  /* Kart, şerit ve küçük köşe değişkenleri */
+  --accent-soft: #fff1b8;
+  --tile-a: #ffc61a;
+  --tile-b: #8a8f96;
+  --card-shadow: 0 1px 2px rgb(16 20 26 / 0.06), 0 0 0 1px rgb(16 20 26 / 0.08);
+  --radius-sm: 4px;
   color-scheme: light;
 }
 
@@ -120,6 +126,8 @@
     --track: #303236;
     --star-empty: #565a60;
     --shadow: 0 4px 16px rgb(0 0 0 / 0.7);
+    --accent-soft: #3a3213;
+    --card-shadow: 0 0 0 1px #2f3237;
     color-scheme: dark;
   }
 }
