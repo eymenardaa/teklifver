@@ -521,7 +521,17 @@
         if (messages.length) {
           if (emptyNote) emptyNote.hidden = true;
           const hasOther = messages.some(m => !m.mine);
-          if (hasOther) playDing();
+          if (hasOther) {
+            playDing();
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
+              const other = messages.find(m => !m.mine);
+              const n = new Notification('TeklifVer - Yeni Mesaj', {
+                body: other && other.text ? other.text.slice(0, 120) : 'Yeni bir mesaj aldınız.',
+                icon: '/favicon.svg'
+              });
+              n.onclick = () => window.focus();
+            }
+          }
           const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
           messages.forEach(addMessage);
           last = messages[messages.length - 1].id;
@@ -881,6 +891,25 @@
   function initUnreadBadges() {
     if (!document.body.dataset.loggedIn) return;
     const baseTitle = document.title;
+    let lastTotal = null;
+
+    const notifyDesktop = (total, counts) => {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      if (lastTotal !== null && total > lastTotal && document.hidden) {
+        const text = counts.messages > 0
+          ? `Gelen kutunuzda ${counts.messages} yeni mesaj var.`
+          : `Taleplerinizle ilgili ${counts.notifications} yeni bildirim var.`;
+        const n = new Notification('TeklifVer', {
+          body: text,
+          icon: '/favicon.svg'
+        });
+        n.onclick = () => {
+          window.focus();
+          location.href = counts.messages > 0 ? '/messages' : '/dashboard';
+        };
+      }
+      lastTotal = total;
+    };
 
     const apply = counts => {
       Object.entries(counts).forEach(([name, value]) => {
@@ -891,6 +920,7 @@
       });
       const total = counts.notifications + counts.messages;
       document.title = total ? `(${total}) ${baseTitle}` : baseTitle;
+      notifyDesktop(total, counts);
     };
 
     const poll = async () => {
@@ -1044,6 +1074,79 @@
     });
   }
 
+  /* Karekod diyaloğu */
+  function initQrModal() {
+    const dialog = $('#qrDialog');
+    const openBtn = $('#openQrBtn');
+    if (!dialog || !openBtn) return;
+
+    openBtn.addEventListener('click', () => dialog.showModal());
+    const closeBtn = $('.qr-dialog-close', dialog);
+    if (closeBtn) closeBtn.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+
+    const copyBtn = $('#copyQrLinkBtn');
+    if (copyBtn) {
+      const origText = copyBtn.textContent;
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(location.href);
+          copyBtn.textContent = 'Kopyalandı';
+          setTimeout(() => { copyBtn.textContent = origText; }, 2000);
+        } catch {
+          // Panoya erişilemedi
+        }
+      });
+    }
+  }
+
+  /* Teklif karşılaştırma diyaloğu */
+  function initCompareModal() {
+    const dialog = $('#compareDialog');
+    const openBtn = $('#openCompareModal');
+    if (!dialog || !openBtn) return;
+
+    openBtn.addEventListener('click', () => dialog.showModal());
+    const closeBtn = $('.compare-dialog-close', dialog);
+    if (closeBtn) closeBtn.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  }
+
+  /* Masaüstü Bildirimleri */
+  function initNotifications() {
+    if (!document.body.dataset.loggedIn) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'default') return;
+    if (localStorage.getItem('tv_dismiss_notify_prompt')) return;
+
+    const bar = document.createElement('div');
+    bar.className = 'notify-permission-bar';
+    bar.innerHTML = '<span class="notify-bar-text">Yeni teklif ve mesajları anında görmek için masaüstü bildirimlerini açabilirsiniz.</span>' +
+      '<div class="notify-bar-actions">' +
+      '<button class="btn btn-sm btn-primary" id="enablePushBtn" type="button">Bildirimleri Aç</button>' +
+      '<button class="btn btn-sm" id="dismissPushBtn" type="button">Daha Sonra</button>' +
+      '</div>';
+    
+    const pageWrap = $('.wrap.page');
+    if (pageWrap) {
+      pageWrap.prepend(bar);
+      $('#enablePushBtn', bar).addEventListener('click', async () => {
+        try {
+          const res = await Notification.requestPermission();
+          if (res === 'granted') {
+            new Notification('TeklifVer', { body: 'Masaüstü bildirimleri açıldı.', icon: '/favicon.svg' });
+          }
+        } catch {
+          // İzin verilemedi
+        }
+        bar.remove();
+      });
+      $('#dismissPushBtn', bar).addEventListener('click', () => {
+        localStorage.setItem('tv_dismiss_notify_prompt', '1');
+        bar.remove();
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initMotion();
@@ -1075,5 +1178,8 @@
     initPWA();
     initWizard();
     initBeforeAfter();
+    initQrModal();
+    initCompareModal();
+    initNotifications();
   });
 })();

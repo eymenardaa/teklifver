@@ -1330,3 +1330,278 @@ label.upload-thumb:has(input:checked) .thumb-remove { background: var(--red); }
     padding-top: 8px;
   }
 }
+
+/* Galeri Büyütme İpucu (Lightbox Zoom Hint) */
+.gallery-main {
+  position: relative;
+}
+.gallery-zoom-hint {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.gallery-main:hover .gallery-zoom-hint {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+/* Teklif Karşılaştırma Modalı (Compare Bids) */
+.bids-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-compare {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-compare:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.compare-dialog {
+  max-width: min(92vw, 1000px);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+.compare-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+.compare-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+.compare-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--head);
+}
+.compare-dialog-head h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.compare-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.compare-dialog-close {
+  background: none;
+  border: 0;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.compare-dialog-close:hover {
+  color: var(--text);
+}
+.compare-table-wrapper {
+  overflow-x: auto;
+  padding: 16px 20px 24px;
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+}
+.compare-table th, .compare-table td {
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  text-align: left;
+  vertical-align: top;
+  font-size: 13px;
+}
+.compare-metric-col {
+  width: 130px;
+  font-weight: 700;
+  background: var(--head);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.compare-bid-col {
+  min-width: 180px;
+  background: var(--surface);
+}
+.compare-bid-col.is-accepted {
+  background: var(--ok-bg);
+}
+.cmp-company-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.cmp-company-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.cmp-company-name a:hover {
+  text-decoration: underline;
+}
+.cmp-rating {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.badge-best {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 4px;
+  margin-right: 4px;
+}
+.badge-price {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border: 1px solid var(--ok-line);
+}
+.badge-speed {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--accent);
+}
+.cmp-amount-cell.is-best {
+  background: rgba(20, 113, 58, 0.06);
+}
+.cmp-price {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-head);
+}
+.cmp-desc-text {
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+
+/* Karekod Modalı (QR Code Modal) */
+.qr-dialog {
+  max-width: 360px;
+  width: 90%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+.qr-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+}
+.qr-dialog-content {
+  padding: 20px;
+}
+.qr-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.qr-dialog-head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+.qr-dialog-close {
+  background: none;
+  border: 0;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+.qr-dialog-close:hover {
+  color: var(--text);
+}
+.qr-code-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+.qr-code-wrapper svg {
+  display: block;
+  width: 170px;
+  height: 170px;
+}
+.qr-desc {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.4;
+  margin: 0 0 16px;
+}
+.qr-actions {
+  display: flex;
+  gap: 8px;
+}
+.qr-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Masaüstü Bildirim İzin Çubuğu (Push Notification Bar) */
+.notify-permission-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  box-shadow: var(--card-shadow);
+  animation: tv-drop 0.2s ease-out;
+}
+.notify-bar-text {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+.notify-bar-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 650px) {
+  .notify-permission-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

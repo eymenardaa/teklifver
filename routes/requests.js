@@ -22,6 +22,7 @@ const { openCountsByCategory, uniqueByPhoto, categoryAverages, priceGuide } = re
 const { SORT_OPTIONS, liveFilter, readFilters, buildConditions, filtersToQuery, firmsServing } = require('../lib/listing');
 const { notify, notifyMany } = require('../lib/notify');
 const mongoose = require('mongoose');
+const QRCode = require('qrcode');
 const { REPORT_REASONS } = Report;
 
 const PAGE_SIZE = 20;
@@ -498,6 +499,14 @@ router.get('/:id', async (req, res, next) => {
       viewer && viewer.role === 'company' && !userBid ? User.findById(viewer.id).select('plan bidUsage').lean() : null
     ]);
 
+    const fullPageUrl = (process.env.SITE_URL || `${req.protocol}://${req.get('host')}`) + `/requests/${request._id}`;
+    let qrSvg = '';
+    try {
+      qrSvg = await QRCode.toString(fullPageUrl, { type: 'svg', margin: 1, width: 190, color: { dark: '#1c1e21', light: '#ffffff' } });
+    } catch {
+      qrSvg = '';
+    }
+
     res.render('requests/show', {
       title: request.title,
       fullTitle: `${request.title} - ${request.category}${request.city ? `, ${request.city}` : ''} | TeklifVer`,
@@ -506,6 +515,7 @@ router.get('/:id', async (req, res, next) => {
       // Bitmiş veya kaldırılmış talepler aramalarda çıkmaz.
       noIndex: request.status !== 'open' || isExpired(request),
       ownHeading: true,
+      qrSvg,
       jsonLdData: {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -573,6 +583,19 @@ async function loadOwnOpenRequest(req, res) {
   }
   return request;
 }
+
+// Talep QR SVG dosyası
+router.get('/:id/qr.svg', async (req, res, next) => {
+  try {
+    const fullPageUrl = (process.env.SITE_URL || `${req.protocol}://${req.get('host')}`) + `/requests/${req.params.id}`;
+    const svg = await QRCode.toString(fullPageUrl, { type: 'svg', margin: 1, width: 256, color: { dark: '#1c1e21', light: '#ffffff' } });
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Content-Disposition', `inline; filename="talep-${req.params.id}-qr.svg"`);
+    res.send(svg);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Düzenleme formu
 router.get('/:id/edit', isCustomer, async (req, res, next) => {

@@ -43,6 +43,7 @@
         <a class="link-button" href="/login?next=<%= encodeURIComponent(currentUrl) %>"><%- icon('heart', { size: 13 }) %>Favorilerime Ekle</a>
       <% } %>
       <button class="link-button" type="button" data-copy-link><%- icon('link', { size: 13 }) %><span>Bağlantıyı Kopyala</span></button>
+      <button class="link-button" type="button" id="openQrBtn" data-qr-url="<%= pageUrl %>"><%- icon('qrcode', { size: 13 }) %><span>QR Kod</span></button>
       <a class="link-button" target="_blank" rel="noopener" href="https://wa.me/?text=<%= encodeURIComponent(request.title + ' ' + pageUrl) %>"><%- icon('message-circle', { size: 13 }) %>WhatsApp</a>
       <a class="link-button" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=<%= encodeURIComponent(request.title) %>&url=<%= encodeURIComponent(pageUrl) %>"><%- icon('send', { size: 13 }) %>X</a>
       <a class="link-button" href="mailto:?subject=<%= encodeURIComponent(request.title) %>&body=<%= encodeURIComponent(pageUrl) %>"><%- icon('mail', { size: 13 }) %>E-posta</a>
@@ -64,6 +65,7 @@
     <div>
         <a class="gallery-main" href="<%= request.images[0] %>" target="_blank" rel="noopener">
           <img src="<%= request.images[0] %>" alt="<%= request.title %>" fetchpriority="high" decoding="async">
+          <span class="gallery-zoom-hint"><%- icon('search', { size: 13 }) %> Büyüt</span>
           <% if (request.images.length > 1) { %>
             <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki fotoğraf">&lsaquo;</button>
             <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki fotoğraf">&rsaquo;</button>
@@ -366,14 +368,17 @@
 
   <section class="box">
     <div class="box-head">
-      Gelen Teklifler (<%= bids.length %>)
+      <span>Gelen Teklifler (<%= bids.length %>)</span>
       <% if (bids.length > 1 && canSeeBids) { %>
-        <span class="sort-links">
-          Sırala:
-          <a class="<%= bidSort === 'amount' ? 'is-active' : '' %>" href="?bidSort=amount#teklifler">Fiyat</a>
-          <a class="<%= bidSort === 'days' ? 'is-active' : '' %>" href="?bidSort=days#teklifler">Süre</a>
-          <a class="<%= bidSort === 'rating' ? 'is-active' : '' %>" href="?bidSort=rating#teklifler">Puan</a>
-        </span>
+        <div class="bids-head-actions">
+          <button class="btn btn-sm btn-compare" type="button" id="openCompareModal"><%- icon('layout-grid', { size: 12 }) %> Teklifleri Karşılaştır</button>
+          <span class="sort-links">
+            Sırala:
+            <a class="<%= bidSort === 'amount' ? 'is-active' : '' %>" href="?bidSort=amount#teklifler">Fiyat</a>
+            <a class="<%= bidSort === 'days' ? 'is-active' : '' %>" href="?bidSort=days#teklifler">Süre</a>
+            <a class="<%= bidSort === 'rating' ? 'is-active' : '' %>" href="?bidSort=rating#teklifler">Puan</a>
+          </span>
+        </div>
       <% } %>
     </div>
     <span id="teklifler"></span>
@@ -623,6 +628,116 @@
       </div>
     </div>
   </section>
+  <% } %>
+
+  <dialog class="qr-dialog" id="qrDialog">
+    <div class="qr-dialog-content">
+      <div class="qr-dialog-head">
+        <h3>İlanın Karekodu</h3>
+        <button class="qr-dialog-close" type="button" aria-label="Kapat">×</button>
+      </div>
+      <div class="qr-dialog-body">
+        <div class="qr-code-wrapper" id="qrCodeContainer" aria-label="QR Kod"><%- locals.qrSvg || '' %></div>
+        <p class="qr-desc">Telefonunuzun kamerasıyla karekodu taratarak bu ilanı anında cep telefonunuzda açabilirsiniz.</p>
+        <div class="qr-actions">
+          <button class="btn btn-primary btn-sm" type="button" id="copyQrLinkBtn"><%- icon('link', { size: 13 }) %> Bağlantıyı Kopyala</button>
+          <a class="btn btn-sm" id="downloadQrBtn" href="/requests/<%= request._id %>/qr.svg" download="talep-<%= request._id %>-qr.svg"><%- icon('download', { size: 13 }) %> QR İndir</a>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <% if (bids.length > 1 && canSeeBids) { %>
+    <dialog class="compare-dialog" id="compareDialog">
+      <div class="compare-dialog-content">
+        <div class="compare-dialog-head">
+          <div>
+            <h3>Teklif Karşılaştırma Tablosu</h3>
+            <p class="compare-subtitle">Gelen <%= bids.length %> teklifi yan yana inceleyin.</p>
+          </div>
+          <button class="compare-dialog-close" type="button" aria-label="Kapat">×</button>
+        </div>
+        <div class="compare-table-wrapper">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="compare-metric-col">Firma</th>
+                <% bids.forEach(bid => { const isLowest = bidSummary && bid.amount === bidSummary.lowest; const isFastest = bidSummary && bid.deliveryTime === bidSummary.fastest; %>
+                  <th class="compare-bid-col <%= bid.status === 'accepted' ? 'is-accepted' : '' %>">
+                    <div class="cmp-company-name">
+                      <a href="/companies/<%= bid.company._id %>"><%= bid.company.companyName || bid.company.name %></a>
+                      <% if (bid.company.verified) { %><%- include('../partials/verified') %><% } %>
+                    </div>
+                    <div class="cmp-rating">
+                      <% if (bid.company.ratingCount > 0) { %>
+                        <%- icon('star', { size: 11, class: 'star' }) %> <%= ratingLabel(bid.company.rating) %> (<%= bid.company.ratingCount %>)
+                      <% } else { %>
+                        <span class="muted small">Puan yok</span>
+                      <% } %>
+                    </div>
+                    <% if (isLowest) { %><span class="badge-best badge-price">En Uygun Fiyat</span><% } %>
+                    <% if (isFastest) { %><span class="badge-best badge-speed">En Hızlı Teslim</span><% } %>
+                  </th>
+                <% }) %>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="compare-metric-col">Fiyat</td>
+                <% bids.forEach(bid => { const isLowest = bidSummary && bid.amount === bidSummary.lowest; %>
+                  <td class="cmp-amount-cell <%= isLowest ? 'is-best' : '' %>">
+                    <span class="cmp-price"><%= money(bid.amount) %></span>
+                  </td>
+                <% }) %>
+              </tr>
+              <tr>
+                <td class="compare-metric-col">Süre</td>
+                <% bids.forEach(bid => { const isFastest = bidSummary && bid.deliveryTime === bidSummary.fastest; %>
+                  <td class="<%= isFastest ? 'is-best' : '' %>">
+                    <strong><%= bid.deliveryTime %> gün</strong>
+                  </td>
+                <% }) %>
+              </tr>
+              <tr>
+                <td class="compare-metric-col">Açıklama</td>
+                <% bids.forEach(bid => { %>
+                  <td class="cmp-desc-cell">
+                    <div class="cmp-desc-text"><%= bid.description %></div>
+                  </td>
+                <% }) %>
+              </tr>
+              <tr>
+                <td class="compare-metric-col">Tarih</td>
+                <% bids.forEach(bid => { %>
+                  <td><%= timeAgo(bid.createdAt) %></td>
+                <% }) %>
+              </tr>
+              <% if (isOwner && isOpen) { %>
+                <tr>
+                  <td class="compare-metric-col">İşlem</td>
+                  <% bids.forEach(bid => { %>
+                    <td class="cmp-action-cell">
+                      <% if (bid.status === 'pending') { %>
+                        <form action="/requests/<%= request._id %>/accept" method="POST"
+                              data-confirm="Bu teklifi kabul edince diğer teklifler reddedilir ve iletişim bilgileriniz firmayla paylaşılır." data-confirm-label="Kabul Et">
+                          <input type="hidden" name="bidId" value="<%= bid._id %>">
+                          <button class="btn btn-primary btn-sm btn-block" type="submit">Kabul Et</button>
+                        </form>
+                        <a class="btn btn-sm btn-block" style="margin-top:6px" href="/messages/<%= request._id %>/<%= bid.company._id %>">Mesaj Gönder</a>
+                      <% } else if (bid.status === 'accepted') { %>
+                        <span class="label label-ok">Kabul Edildi</span>
+                      <% } else { %>
+                        <span class="muted small">Reddedildi</span>
+                      <% } %>
+                    </td>
+                  <% }) %>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </dialog>
   <% } %>
 </div>
 
