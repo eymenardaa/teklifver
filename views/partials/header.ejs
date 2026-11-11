@@ -17,10 +17,10 @@
   <link rel="canonical" href="<%= canonicalUrl %>">
   <% if (noIndex || demoActive) { %><meta name="robots" content="noindex"><% } %>
   <% if (siteVerification) { %><meta name="google-site-verification" content="<%= siteVerification %>"><% } %>
-  <link rel="icon" href="/favicon.ico?v=<%= assetVersion %>" sizes="any">
-  <link rel="icon" href="/favicon.svg?v=<%= assetVersion %>" type="image/svg+xml">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=<%= assetVersion %>">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=<%= assetVersion %>">
+  <link rel="shortcut icon" href="/favicon.ico?v=<%= assetVersion %>">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=<%= assetVersion %>">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>

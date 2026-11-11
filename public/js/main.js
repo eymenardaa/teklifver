@@ -1147,7 +1147,19 @@
     }
   }
 
+  function initFavicon() {
+    try {
+      const link = document.querySelector('link[rel="icon"][type="image/svg+xml"]') || document.querySelector('link[rel*="icon"]');
+      if (link) {
+        const base = link.getAttribute('href') || '/favicon.svg';
+        const clean = base.split('?')[0];
+        link.setAttribute('href', clean + '?v=' + Date.now());
+      }
+    } catch {}
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    initFavicon();
     initTheme();
     initMotion();
     initAlerts();
