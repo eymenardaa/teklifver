@@ -89,8 +89,7 @@ html[data-theme='dark'] .theme-toggle .when-light { display: none; }
 /* Logo: "ver" bir fiyat etiketinin içinde durur */
 .logo { display: inline-flex; align-items: center; gap: 4px; color: var(--on-dark); font: 700 33px/1 var(--font-head); letter-spacing: -0.005em; }
 .logo:hover { color: var(--on-dark); text-decoration: none; }
-.logo-tag { position: relative; display: inline-block; transform-origin: 13px 50%; padding: 1px 9px 4px 19px; background: var(--accent); color: var(--accent-ink); clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 50%); }
-.logo-tag::before { content: ""; position: absolute; left: 10px; top: 50%; width: 6px; height: 6px; margin-top: -3px; background: var(--mainbar); border-radius: 50%; }
+.logo-tag { display: inline-block; width: 64px; height: 30px; transform-origin: 11.5px 50%; vertical-align: middle; }
 
 .searchbar { position: relative; display: flex; flex: 1; min-width: 200px; max-width: 680px; }
 .searchbar input, .searchbar select { height: 40px; background: #fff; border: 0; color: #1c1e21; font-size: 15px; }

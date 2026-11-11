@@ -17,7 +17,10 @@
   <link rel="canonical" href="<%= canonicalUrl %>">
   <% if (noIndex || demoActive) { %><meta name="robots" content="noindex"><% } %>
   <% if (siteVerification) { %><meta name="google-site-verification" content="<%= siteVerification %>"><% } %>
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>
@@ -80,7 +83,7 @@
 
   <header class="mainbar">
     <div class="wrap mainbar-inner">
-      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<span class="logo-tag">ver</span></a>
+      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<img class="logo-tag" src="/img/logo-tag.svg" alt="ver" width="64" height="30"></a>
       <form class="searchbar" action="/requests" method="GET" role="search">
         <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Hangi işi arıyorsunuz?" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
         <select name="city" aria-label="İl">
