@@ -30,7 +30,17 @@ function buildFaqs(category, place, price) {
       q: `${category} fiyatını neler etkiler?`,
       a: `${content[category].factors.join(', ')} fiyatı en çok etkileyen konulardır. Bunları talebinizde yazarsanız daha doğru teklif alırsınız.`
     });
+    if (content[category].questions && content[category].questions.length) {
+      faqs.push({
+        q: `${category} firması seçerken nelere dikkat edilmeli?`,
+        a: `Teklifi kabul etmeden önce şu soruları netleştirmeniz faydalı olur: ${content[category].questions.join('; ')}`
+      });
+    }
   }
+  faqs.push({
+    q: 'Ödeme ve iş teslimi nasıl güvenceye alınır?',
+    a: 'TeklifVer güvenli havuz prensibine dayanır. Hizmet tamamlanıp işveren onay verene kadar taraflar anlaşma şartlarını korur. Sözleşme özeti belgesi dilediğiniz zaman yazdırılabilir.'
+  });
   faqs.push({
     q: `${where}nasıl teklif alırım?`.replace(/^n/, where ? 'n' : 'N'),
     a: 'Ücretsiz hesap açın, yapılacak işi yazın ve talebinizi yayınlayın. Firmalar teklif verir, fiyat, süre ve puanlarını karşılaştırıp size uyanı seçersiniz.'

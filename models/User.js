@@ -92,6 +92,13 @@ const userSchema = new mongoose.Schema({
   portfolio: [{
     type: String
   }],
+  // İşten önce ve sonra karşılaştırmaları
+  beforeAfter: [{
+    title: { type: String, default: '' },
+    before: { type: String, required: true },
+    after: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
   specialties: [{
     type: String,
     trim: true

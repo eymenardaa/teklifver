@@ -3,6 +3,21 @@
 <div class="wrap page">
   <div class="crumbs"><a href="/">Ana Sayfa</a> &rsaquo; <span>Firma Rehberi</span></div>
 
+<%
+  const companyUrl = overrides => {
+    const p = new URLSearchParams();
+    const st = { search, category, city, minRating, verified: verified ? 'on' : '', sort, ...overrides };
+    if (st.search) p.set('search', st.search);
+    if (st.category) p.set('category', st.category);
+    if (st.city) p.set('city', st.city);
+    if (st.minRating) p.set('minRating', st.minRating);
+    if (st.verified) p.set('verified', 'on');
+    if (st.sort && st.sort !== 'rating') p.set('sort', st.sort);
+    const q = p.toString();
+    return '/companies' + (q ? '?' + q : '');
+  };
+%>
+
   <div class="layout">
     <aside>
       <details class="box" open data-collapse-mobile>
@@ -65,6 +80,15 @@
             <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>En yeni üyeler</option>
           </select>
         </form>
+      </div>
+
+      <div class="quick-filter-pills" role="navigation" aria-label="Hızlı Filtreler">
+        <span class="qf-label">Hızlı Filtre:</span>
+        <a class="pill-btn <%= sort === 'rating' && !verified && !minRating ? 'active' : '' %>" href="<%= companyUrl({ sort: 'rating', verified: '', minRating: '' }) %>">En Yüksek Puan</a>
+        <a class="pill-btn <%= sort === 'reviews' ? 'active' : '' %>" href="<%= companyUrl({ sort: sort === 'reviews' ? 'rating' : 'reviews' }) %>">Çok Yorum Alanlar</a>
+        <a class="pill-btn <%= verified ? 'active' : '' %>" href="<%= companyUrl({ verified: verified ? '' : 'on' }) %>"><%- icon('badge-check', { size: 12 }) %> Onaylı Firmalar</a>
+        <a class="pill-btn <%= minRating === '4' ? 'active' : '' %>" href="<%= companyUrl({ minRating: minRating === '4' ? '' : '4' }) %>"><%- icon('star', { size: 12 }) %> 4+ Puan</a>
+        <a class="pill-btn <%= sort === 'newest' ? 'active' : '' %>" href="<%= companyUrl({ sort: sort === 'newest' ? 'rating' : 'newest' }) %>">En Yeniler</a>
       </div>
       <% if (companies.length === 0) { %>
         <div class="empty"><h2>Firma bulunamadı</h2><a class="btn" href="/companies">Tüm Firmalar</a></div>

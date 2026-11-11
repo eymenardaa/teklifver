@@ -501,6 +501,59 @@ router.post('/profile/portfolio/delete', isLoggedIn, async (req, res, next) => {
   }
 });
 
+// Öncesi & Sonrası Karşılaştırmaları (Before / After)
+router.post('/profile/before-after', isLoggedIn, uploadImages, async (req, res, next) => {
+  try {
+    const files = (req.files || []).map(file => '/uploads/' + file.filename);
+    const profile = await User.findById(req.session.user.id);
+    if (!profile || profile.role !== 'company') {
+      deleteImages(files);
+      req.flash('error', 'Öncesi / sonrası örnekleri yalnızca firma hesaplarına eklenebilir.');
+      return res.redirect('/profile');
+    }
+    if (files.length < 2) {
+      deleteImages(files);
+      req.flash('error', 'Lütfen biri işten önce, diğeri işten sonra olmak üzere 2 görsel seçin.');
+      return res.redirect('/profile');
+    }
+    const title = str(req.body.title) || 'İş Karşılaştırması';
+    profile.beforeAfter = profile.beforeAfter || [];
+    if (profile.beforeAfter.length >= 6) {
+      deleteImages(files);
+      req.flash('error', 'En fazla 6 adet öncesi / sonrası karşılaştırması ekleyebilirsiniz.');
+      return res.redirect('/profile');
+    }
+    profile.beforeAfter.push({
+      before: files[0],
+      after: files[1],
+      title
+    });
+    await profile.save();
+    req.flash('success', 'İşten önce / sonra örneği eklendi.');
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/profile/before-after/:index/delete', isLoggedIn, async (req, res, next) => {
+  try {
+    const profile = await User.findById(req.session.user.id);
+    if (!profile || profile.role !== 'company') return res.redirect('/profile');
+    const index = parseInt(req.params.index, 10);
+    if (!isNaN(index) && profile.beforeAfter && profile.beforeAfter[index]) {
+      const item = profile.beforeAfter[index];
+      deleteImages([item.before, item.after]);
+      profile.beforeAfter.splice(index, 1);
+      await profile.save();
+      req.flash('success', 'Karşılaştırma kaldırıldı.');
+    }
+    res.redirect('/profile');
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/profile/logo/delete', isLoggedIn, async (req, res, next) => {
   try {
     const profile = await User.findById(req.session.user.id);

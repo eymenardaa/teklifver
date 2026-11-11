@@ -1026,6 +1026,24 @@
     updateStep();
   }
 
+    /* Isler: Oncesi & Sonrasi Kaydirici (Before & After Slider) */
+  function initBeforeAfter() {
+    $$('[data-ba-viewer]').forEach(viewer => {
+      const slider = $('input[type="range"]', viewer);
+      const afterWrapper = $('.ba-after-wrapper', viewer);
+      const handle = $('.ba-handle', viewer);
+      if (!slider || !afterWrapper || !handle) return;
+
+      const update = () => {
+        const val = slider.value;
+        afterWrapper.style.clipPath = 'inset(0 0 0 ' + val + '%)';
+        handle.style.left = val + '%';
+      };
+      slider.addEventListener('input', update);
+      update();
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initMotion();
@@ -1056,5 +1074,6 @@
     initDeadlines();
     initPWA();
     initWizard();
+    initBeforeAfter();
   });
 })();

@@ -245,6 +245,16 @@
         <p class="small muted" style="margin:5px 0 10px">Teklif vermek için firma hesabıyla giriş yapmalısınız.</p>
       <% } %>
 
+      <% if (request.acceptedBid || (userBid && userBid.status === 'accepted') || ['in_progress', 'completed'].includes(request.status)) { %>
+        <div class="side-card contract-side-card">
+          <div class="side-card-head">İş Sözleşmesi &amp; Özeti</div>
+          <div class="side-card-body">
+            <p class="small muted">Bu iş için resmi şartları ve detayları içeren sözleşme dökümü hazırdır.</p>
+            <button class="btn btn-sm btn-block" type="button" data-print><%- icon('printer', { size: 14 }) %> Sözleşmeyi Yazdır (PDF)</button>
+          </div>
+        </div>
+      <% } %>
+
       <div class="side-card side-card-warn">
         <div class="side-card-head"><%- icon('shield-alert', { size: 14 }) %> Güvenlik Uyarısı</div>
         <div class="side-card-body small">
@@ -517,6 +527,102 @@
       <div class="box-head">Benzer Talepler <a href="<%= categoryUrl(request.category) %>">Tümü</a></div>
       <%- include('../partials/listing-table', { items: similar.slice(0, 5) }) %>
     </section>
+  <% } %>
+  <% if (request.acceptedBid || (userBid && userBid.status === 'accepted') || ['in_progress', 'completed'].includes(request.status)) {
+    const contractBid = (bids && bids.find(b => String(b._id) === String(request.acceptedBid) || b.status === 'accepted')) || userBid;
+    const canSeeFullName = isOwner || (currentUser && currentUser.isAdmin) || (contractBid && contractBid.company && currentUser && String(currentUser._id) === String(contractBid.company._id));
+    const customerDisplayName = request.customer ? (canSeeFullName ? (request.customer.name || 'Müşteri') : shortName(request.customer.name)) : 'Müşteri';
+  %>
+  <section id="printableContract" aria-label="Resmi İş Sözleşmesi Özeti">
+    <div class="contract-header">
+      <div>
+        <h2 class="contract-title">TEKLİFVER - HİZMET VE İŞ SÖZLEŞMESİ ÖZETİ</h2>
+        <div class="contract-meta">Belge No: TK-<%= String(request._id).slice(-8).toUpperCase() %> | Düzenleme Tarihi: <%= new Date().toLocaleDateString('tr-TR') %></div>
+      </div>
+      <div style="text-align:right">
+        <strong>TeklifVer Güvenli Platformu</strong><br>
+        <span class="contract-meta">www.teklifver.com</span>
+      </div>
+    </div>
+
+    <div class="contract-grid">
+      <div class="contract-card">
+        <div class="contract-card-title">1. İŞVEREN (MÜŞTERİ)</div>
+        <div><strong>Ad Soyad:</strong> <%= customerDisplayName %></div>
+        <div><strong>Şehir:</strong> <%= request.city || '-' %></div>
+        <div><strong>Talep No:</strong> #<%= String(request._id).slice(-6) %></div>
+      </div>
+      <div class="contract-card">
+        <div class="contract-card-title">2. HİZMET VEREN (YÜKLENİCİ)</div>
+        <% if (contractBid && contractBid.company) { %>
+          <div><strong>Firma / İsim:</strong> <%= contractBid.company.companyName || contractBid.company.name %></div>
+          <div><strong>Durum:</strong> <%= contractBid.company.verified ? 'Onaylı Firma' : 'Kayıtlı Firma' %></div>
+          <div><strong>Şehir:</strong> <%= contractBid.company.address || request.city || '-' %></div>
+        <% } else { %>
+          <div><strong>Firma / İsim:</strong> Hizmet Veren Yüklenici</div>
+          <div><strong>Durum:</strong> Onaylı Profil</div>
+          <div><strong>Şehir:</strong> <%= request.city || '-' %></div>
+        <% } %>
+      </div>
+    </div>
+
+    <table class="contract-table">
+      <thead>
+        <tr>
+          <th colspan="2">3. İŞ VE ANLAŞMA DETAYLARI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="width:28%"><strong>İş Başlığı</strong></td>
+          <td><%= request.title %></td>
+        </tr>
+        <tr>
+          <td><strong>Kategori</strong></td>
+          <td><%= request.category %></td>
+        </tr>
+        <tr>
+          <td><strong>İş Tanımı ve Kapsam</strong></td>
+          <td><%= request.description %></td>
+        </tr>
+        <tr>
+          <td><strong>Kararlaştırılan Tutar</strong></td>
+          <td><strong><%= contractBid ? money(contractBid.amount) : (request.budget ? money(request.budget) : 'Karşılıklı belirlendi') %></strong> (KDV Dahil)</td>
+        </tr>
+        <tr>
+          <td><strong>Teslimat Süresi</strong></td>
+          <td><%= contractBid ? `${contractBid.deliveryTime} İş Günü` : 'Taraflarca mutabık kalınan süre' %></td>
+        </tr>
+        <% if (contractBid && contractBid.description) { %>
+          <tr>
+            <td><strong>Yüklenici Notu / Taahhüdü</strong></td>
+            <td><%= contractBid.description %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+
+    <div class="contract-terms">
+      <strong>4. GENEL HÜKÜMLER VE GÜVENCE:</strong>
+      <ol>
+        <li>İşbu sözleşme özeti, tarafların TeklifVer platformu üzerinden verdiği ve kabul ettiği teklif şartlarını tevsik eder.</li>
+        <li>Yüklenici, işi yukarıda belirtilen süre ve kapsam dahilinde eksiksiz olarak tamamlamayı kabul ve taahhüt eder.</li>
+        <li>İşveren, tamamlanan hizmeti kontrol ederek şartlara uygun teslimatta nihai onayı vermekle yükümlüdür.</li>
+        <li>Doğabilecek uyuşmazlıklarda platform kayıtları, karşılıklı mesajlaşma ve işbu sözleşme koşulları esas alınır.</li>
+      </ol>
+    </div>
+
+    <div class="contract-signatures">
+      <div class="contract-sign-box">
+        <strong>İŞVEREN (MÜŞTERİ)</strong><br><br><br>
+        İmza / Tarih
+      </div>
+      <div class="contract-sign-box">
+        <strong>HİZMET VEREN (YÜKLENİCİ)</strong><br><br><br>
+        İmza / Kaşe / Tarih
+      </div>
+    </div>
+  </section>
   <% } %>
 </div>
 

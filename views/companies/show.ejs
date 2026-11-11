@@ -44,13 +44,42 @@
     </div>
   </section>
 
-  <% if (company.portfolio && company.portfolio.length) { %>
+    <% if (company.portfolio && company.portfolio.length) { %>
     <section class="box">
       <div class="box-head">İş Örnekleri (<%= company.portfolio.length %>)</div>
       <div class="portfolio-grid">
         <% company.portfolio.forEach(image => { %>
           <a href="<%= image %>" target="_blank" rel="noopener"><img src="<%= thumb(image) %>" alt="<%= companyTitle %> iş örneği" loading="lazy" decoding="async" width="240" height="180"></a>
         <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (company.beforeAfter && company.beforeAfter.length) { %>
+    <section class="box">
+      <div class="box-head">İşten Önce & Sonra Karşılaştırmaları (<%= company.beforeAfter.length %>)</div>
+      <div class="box-body">
+        <p class="small muted" style="margin-bottom:16px;">Kaydırma çubuğunu sağa sola sürükleyerek yapılan işin öncesini ve sonrasını karşılaştırabilirsiniz.</p>
+        <div class="before-after-grid">
+          <% company.beforeAfter.forEach((item, index) => { %>
+            <div class="before-after-card">
+              <% if (item.title) { %><h3 class="before-after-title"><%= item.title %></h3><% } %>
+              <div class="ba-viewer" data-ba-viewer id="baViewer<%= index %>">
+                <img class="ba-image ba-before" src="<%= item.before %>" alt="İşten öncesi" loading="lazy">
+                <div class="ba-after-wrapper">
+                  <img class="ba-image ba-after" src="<%= item.after %>" alt="İşten sonrası" loading="lazy">
+                </div>
+                <input class="ba-slider" type="range" min="0" max="100" value="50" aria-label="Öncesi ve sonrası kaydırıcı">
+                <div class="ba-handle" aria-hidden="true">
+                  <span class="ba-handle-line"></span>
+                  <span class="ba-handle-btn"></span>
+                </div>
+                <span class="ba-badge ba-badge-before">Öncesi</span>
+                <span class="ba-badge ba-badge-after">Sonrası</span>
+              </div>
+            </div>
+          <% }) %>
+        </div>
       </div>
     </section>
   <% } %>

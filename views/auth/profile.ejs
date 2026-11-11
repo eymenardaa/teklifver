@@ -155,6 +155,49 @@
             <p class="field-hint" style="margin-top:6px">Yaptığınız işlerin fotoğrafları firma sayfanızda görünür. Fotoğraflardaki konum bilgisi otomatik silinir.</p>
           </div>
         </section>
+
+        <section class="box">
+          <div class="box-head">İşten Önce & Sonra Karşılaştırmaları (<%= (profile.beforeAfter || []).length %> / 6)</div>
+          <div class="box-body">
+            <p class="small muted" style="margin-bottom:12px">Müşterilerinizi etkilemek için yaptığınız işlerin önceki ve sonraki hallerini yan yana sergileyin.</p>
+            <% if ((profile.beforeAfter || []).length) { %>
+              <div class="before-after-list" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;">
+                <% profile.beforeAfter.forEach((item, idx) => { %>
+                  <div class="before-after-admin-item" style="padding:12px;border:1px solid var(--line);border-radius:var(--radius);">
+                    <div style="font-weight:600;margin-bottom:8px;"><%= item.title || 'İş Karşılaştırması' %></div>
+                    <div class="before-after-preview-pair" style="display:flex;gap:12px;flex-wrap:wrap;">
+                      <div>
+                        <span class="badge" style="margin-bottom:4px;display:inline-block;">Öncesi</span><br>
+                        <img src="<%= thumb(item.before) %>" alt="Öncesi" loading="lazy" width="160" height="120" style="object-fit:cover;border-radius:var(--radius);">
+                      </div>
+                      <div>
+                        <span class="badge badge-blue" style="margin-bottom:4px;display:inline-block;">Sonrası</span><br>
+                        <img src="<%= thumb(item.after) %>" alt="Sonrası" loading="lazy" width="160" height="120" style="object-fit:cover;border-radius:var(--radius);">
+                      </div>
+                    </div>
+                    <form action="/profile/before-after/<%= idx %>/delete" method="POST" style="margin-top:8px;">
+                      <button class="btn btn-sm btn-danger-quiet" type="submit">Kaldır</button>
+                    </form>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+            <% if ((profile.beforeAfter || []).length < 6) { %>
+              <form class="form" action="/profile/before-after" method="POST" enctype="multipart/form-data">
+                <div class="field">
+                  <label class="field-label" for="baTitle">İş Başlığı</label>
+                  <input class="input" type="text" id="baTitle" name="title" placeholder="Örn: Banyo Fayans Yenileme" maxlength="100">
+                </div>
+                <div class="field">
+                  <label class="field-label" for="baImages">Öncesi ve Sonrası Görselleri (2 adet seçin)</label>
+                  <input class="input" type="file" id="baImages" name="images" multiple accept="image/jpeg,image/png,image/gif,image/webp" required>
+                  <p class="field-hint">İlk seçtiğiniz görsel Öncesi, ikinci seçtiğiniz görsel Sonrası olarak kaydedilir.</p>
+                </div>
+                <button class="btn btn-sm" type="submit">Karşılaştırma Ekle</button>
+              </form>
+            <% } %>
+          </div>
+        </section>
       <% } %>
 
       <section class="box">
