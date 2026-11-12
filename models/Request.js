@@ -52,6 +52,10 @@ const requestSchema = new mongoose.Schema({
   images: [{
     type: String
   }],
+  video: {
+    type: String,
+    default: ''
+  },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -326,6 +326,33 @@
     });
   }
 
+  /* Sekme grupları (ana sayfa vitrini): oklarla da gezilir */
+  function initTabsets() {
+    $$('[data-tabset]').forEach(list => {
+      const tabs = $$('[role="tab"]', list);
+      const select = tab => {
+        tabs.forEach(other => {
+          const active = other === tab;
+          other.setAttribute('aria-selected', String(active));
+          other.tabIndex = active ? 0 : -1;
+          const panel = document.getElementById(other.getAttribute('aria-controls'));
+          if (panel) panel.hidden = !active;
+        });
+      };
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => select(tab));
+        tab.addEventListener('keydown', event => {
+          const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+          if (!step) return;
+          event.preventDefault();
+          const next = tabs[(index + step + tabs.length) % tabs.length];
+          select(next);
+          next.focus();
+        });
+      });
+    });
+  }
+
   /* Talep galerisi */
   function initGallery() {
     const frame = $('a.gallery-main');
@@ -425,6 +452,28 @@
     });
   }
 
+  /* Paylaş menüsü: dışarı tıklayınca kapanır; telefonda cihazın kendi paylaşım penceresi açılır */
+  function initShareMenu() {
+    const menu = $('.share-menu');
+    if (!menu) return;
+    const summary = $('summary', menu);
+    summary.addEventListener('click', event => {
+      if (menu.open || !navigator.share || !window.matchMedia('(pointer: coarse)').matches) return;
+      event.preventDefault();
+      navigator.share({ title: menu.dataset.shareTitle || document.title, url: location.href })
+        .catch(error => { if (error.name !== 'AbortError') menu.open = true; });
+    });
+    document.addEventListener('click', event => {
+      if (menu.open && !menu.contains(event.target)) menu.open = false;
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && menu.open) { menu.open = false; summary.focus(); }
+    });
+    $$('.share-item', menu).forEach(item => item.addEventListener('click', () => {
+      if (!item.hasAttribute('data-copy-link')) menu.open = false;
+    }));
+  }
+
   /* Konuşma: en alttan başlar, sayfa açıkken yeni mesajları alır */
   function initThread() {
     const thread = $('#thread');
@@ -472,38 +521,6 @@
       thread.append(box);
     };
 
-    // Canlı bildirim sesi
-    function playDing() {
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.22);
-      } catch { /* ses engellendiyse sessiz kal */ }
-    }
-
-    // Yazıyor durumu ping'i
-    let lastTypingPing = 0;
-    if (textarea) {
-      textarea.addEventListener('input', () => {
-        if (Date.now() - lastTypingPing > 2000) {
-          lastTypingPing = Date.now();
-          const typingUrl = thread.dataset.poll ? thread.dataset.poll.replace(/\/new.*$/, '/typing') : '';
-          if (typingUrl) fetch(typingUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
-        }
-      });
-    }
-
     const poll = async () => {
       if (polling || document.hidden) return;
       polling = true;
@@ -511,31 +528,13 @@
         const query = last ? `?after=${encodeURIComponent(last)}` : '';
         const response = await fetch(thread.dataset.poll + query, { headers: { Accept: 'application/json' } });
         if (!response.ok) return;
-        const data = await response.json();
-        const messages = data.messages || [];
-
-        // Yazıyor göstergesi
-        const typingEl = $('#threadTyping');
-        if (typingEl) typingEl.hidden = !data.typing;
-
+        const { messages } = await response.json();
         if (messages.length) {
-          if (emptyNote) emptyNote.hidden = true;
-          const hasOther = messages.some(m => !m.mine);
-          if (hasOther) {
-            playDing();
-            if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-              const other = messages.find(m => !m.mine);
-              const n = new Notification('TeklifVer - Yeni Mesaj', {
-                body: other && other.text ? other.text.slice(0, 120) : 'Yeni bir mesaj aldınız.',
-                icon: '/favicon.svg'
-              });
-              n.onclick = () => window.focus();
-            }
-          }
-          const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
+          emptyNote.hidden = true;
+          const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
           messages.forEach(addMessage);
           last = messages[messages.length - 1].id;
-          if (atBottom || hasOther) scrollDown();
+          if (atBottom) scrollDown();
         }
       } catch {
         // Bağlantı geçici olarak kesildiyse bir sonraki denemede alınır.
@@ -544,7 +543,7 @@
       }
     };
 
-    setInterval(poll, 2500);
+    setInterval(poll, 8000);
   }
 
   /* Çerez onayı: seçim yapılana kadar yalnızca zorunlu çerezler kullanılır */
@@ -803,7 +802,8 @@
     };
     select.addEventListener('change', event => {
       showPrice();
-      if (event.isTrusted) {
+      // Kişi kendisi seçtiyse (listeden ya da kategori kutusundan) tahmin bir daha üstüne yazmaz.
+      if (event.isTrusted || event.detail === 'picker') {
         auto = '';
         note.hidden = true;
       }
@@ -829,6 +829,25 @@
       }
     });
     showPrice();
+  }
+
+  /* Talep formu: kategori ikonlu kutulardan seçilir; liste yedek olarak arkada kalır */
+  function initCategoryPicker() {
+    const picker = $('[data-cat-picker]');
+    const select = $('#category');
+    if (!picker || !select) return;
+    const tiles = $$('.cat-pick', picker);
+    const sync = () => tiles.forEach(tile => tile.setAttribute('aria-pressed', String(tile.dataset.value === select.value)));
+    tiles.forEach(tile => tile.addEventListener('click', () => {
+      select.value = tile.dataset.value;
+      select.dispatchEvent(new Event('input', { bubbles: true }));
+      select.dispatchEvent(new CustomEvent('change', { bubbles: true, detail: 'picker' }));
+    }));
+    select.addEventListener('change', sync);
+    select.tabIndex = -1;
+    select.closest('.field').classList.add('has-picker');
+    picker.hidden = false;
+    sync();
   }
 
   /* Talep taslağı: yalnızca tercih çerezine onay verildiyse tarayıcıda saklanır */
@@ -891,25 +910,6 @@
   function initUnreadBadges() {
     if (!document.body.dataset.loggedIn) return;
     const baseTitle = document.title;
-    let lastTotal = null;
-
-    const notifyDesktop = (total, counts) => {
-      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-      if (lastTotal !== null && total > lastTotal && document.hidden) {
-        const text = counts.messages > 0
-          ? `Gelen kutunuzda ${counts.messages} yeni mesaj var.`
-          : `Taleplerinizle ilgili ${counts.notifications} yeni bildirim var.`;
-        const n = new Notification('TeklifVer', {
-          body: text,
-          icon: '/favicon.svg'
-        });
-        n.onclick = () => {
-          window.focus();
-          location.href = counts.messages > 0 ? '/messages' : '/dashboard';
-        };
-      }
-      lastTotal = total;
-    };
 
     const apply = counts => {
       Object.entries(counts).forEach(([name, value]) => {
@@ -920,7 +920,6 @@
       });
       const total = counts.notifications + counts.messages;
       document.title = total ? `(${total}) ${baseTitle}` : baseTitle;
-      notifyDesktop(total, counts);
     };
 
     const poll = async () => {
@@ -990,163 +989,6 @@
     setInterval(update, 60000);
   }
 
-
-  /* PWA: Servis işçisi kaydı ve Uygulamayı Yükle butonu */
-  function initPWA() {
-    if ('serviceWorker' in navigator && !navigator.webdriver) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
-    }
-
-    let deferredPrompt = null;
-    const btn = $('#pwaInstallBtn');
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (btn) btn.hidden = false;
-    });
-
-    if (btn) {
-      btn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          btn.hidden = true;
-        }
-        deferredPrompt = null;
-      });
-    }
-  }
-
-    /* Akıllı Talep Sihirbazı (Armut Tarzı Çok Adımlı İlerleme) */
-  function initWizard() {
-    const wizard = $('.request-wizard');
-    if (!wizard) return;
-
-    const indicators = $$('[data-step-indicator]');
-    if (!indicators.length) return;
-
-    const cat = $('#category');
-    const title = $('#title');
-    const desc = $('#description');
-    const city = $('#city');
-
-    const updateStep = () => {
-      let step = 1;
-      if (cat && cat.value && title && title.value.trim().length > 3) {
-        step = 2;
-      }
-      if (step === 2 && desc && desc.value.trim().length > 10) {
-        step = 3;
-      }
-      indicators.forEach((ind, idx) => {
-        const stepNum = idx + 1;
-        ind.classList.toggle('active', stepNum === step);
-        ind.classList.toggle('completed', stepNum < step);
-      });
-    };
-
-    if (cat) cat.addEventListener('change', updateStep);
-    if (title) title.addEventListener('input', updateStep);
-    if (desc) desc.addEventListener('input', updateStep);
-    if (city) city.addEventListener('change', updateStep);
-
-    updateStep();
-  }
-
-    /* Isler: Oncesi & Sonrasi Kaydirici (Before & After Slider) */
-  function initBeforeAfter() {
-    $$('[data-ba-viewer]').forEach(viewer => {
-      const slider = $('input[type="range"]', viewer);
-      const afterWrapper = $('.ba-after-wrapper', viewer);
-      const handle = $('.ba-handle', viewer);
-      if (!slider || !afterWrapper || !handle) return;
-
-      const update = () => {
-        const val = slider.value;
-        afterWrapper.style.clipPath = 'inset(0 0 0 ' + val + '%)';
-        handle.style.left = val + '%';
-      };
-      slider.addEventListener('input', update);
-      update();
-    });
-  }
-
-  /* Karekod diyaloğu */
-  function initQrModal() {
-    const dialog = $('#qrDialog');
-    const openBtn = $('#openQrBtn');
-    if (!dialog || !openBtn) return;
-
-    openBtn.addEventListener('click', () => dialog.showModal());
-    const closeBtn = $('.qr-dialog-close', dialog);
-    if (closeBtn) closeBtn.addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-
-    const copyBtn = $('#copyQrLinkBtn');
-    if (copyBtn) {
-      const origText = copyBtn.textContent;
-      copyBtn.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(location.href);
-          copyBtn.textContent = 'Kopyalandı';
-          setTimeout(() => { copyBtn.textContent = origText; }, 2000);
-        } catch {
-          // Panoya erişilemedi
-        }
-      });
-    }
-  }
-
-  /* Teklif karşılaştırma diyaloğu */
-  function initCompareModal() {
-    const dialog = $('#compareDialog');
-    const openBtn = $('#openCompareModal');
-    if (!dialog || !openBtn) return;
-
-    openBtn.addEventListener('click', () => dialog.showModal());
-    const closeBtn = $('.compare-dialog-close', dialog);
-    if (closeBtn) closeBtn.addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-  }
-
-  /* Masaüstü Bildirimleri */
-  function initNotifications() {
-    if (!document.body.dataset.loggedIn) return;
-    if (typeof Notification === 'undefined' || Notification.permission !== 'default') return;
-    if (localStorage.getItem('tv_dismiss_notify_prompt')) return;
-
-    const bar = document.createElement('div');
-    bar.className = 'notify-permission-bar';
-    bar.innerHTML = '<span class="notify-bar-text">Yeni teklif ve mesajları anında görmek için masaüstü bildirimlerini açabilirsiniz.</span>' +
-      '<div class="notify-bar-actions">' +
-      '<button class="btn btn-sm btn-primary" id="enablePushBtn" type="button">Bildirimleri Aç</button>' +
-      '<button class="btn btn-sm" id="dismissPushBtn" type="button">Daha Sonra</button>' +
-      '</div>';
-    
-    const pageWrap = $('.wrap.page');
-    if (pageWrap) {
-      pageWrap.prepend(bar);
-      $('#enablePushBtn', bar).addEventListener('click', async () => {
-        try {
-          const res = await Notification.requestPermission();
-          if (res === 'granted') {
-            new Notification('TeklifVer', { body: 'Masaüstü bildirimleri açıldı.', icon: '/favicon.svg' });
-          }
-        } catch {
-          // İzin verilemedi
-        }
-        bar.remove();
-      });
-      $('#dismissPushBtn', bar).addEventListener('click', () => {
-        localStorage.setItem('tv_dismiss_notify_prompt', '1');
-        bar.remove();
-      });
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initMotion();
@@ -1161,7 +1003,9 @@
     initGallery();
     initPortfolio();
     initCategoryGuess();
+    initCategoryPicker();
     initCopyLink();
+    initShareMenu();
     initThread();
     initDemoLogin();
     initCookieBanner();
@@ -1174,17 +1018,12 @@
     initSuggest();
     initSmallActions();
     initAttach();
+    initTabsets();
     initDeadlines();
-    initPWA();
-    initWizard();
-    initBeforeAfter();
-    initQrModal();
-    initCompareModal();
-    initNotifications();
     initQuickBidTemplates();
+    initPWA();
   });
-
-  /* Hızlı teklif şablonları */
+  /* H�zl� teklif �ablonlar� */
   function initQuickBidTemplates() {
     const tmplBtns = document.querySelectorAll('.quick-tmpl-btn');
     const textarea = document.getElementById('bidDescription');
@@ -1197,6 +1036,25 @@
         textarea.value += text;
         textarea.focus();
       });
+    });
+  }
+
+  /* PWA Y�kleme Butonu */
+  function initPWA() {
+    let deferredPrompt;
+    const btn = #pwaInstallBtn;
+    if (!btn) return;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btn.hidden = false;
+    });
+    btn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') btn.hidden = true;
+      deferredPrompt = null;
     });
   }
 })();

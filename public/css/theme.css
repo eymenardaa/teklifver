@@ -21,10 +21,10 @@
   --head: #f6f7f8;
   --hover: #fbf9f0;
 
-  --accent: #ffc61a;
-  --accent-dark: #f2b600;
-  --accent-line: #e0a800;
-  --accent-ink: #1c1e21;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-line: #1e40af;
+  --accent-ink: #ffffff;
   --link: #0f5bb5;
   --ink: #1c1e21;
   --ink-hover: #3b3f44;
@@ -66,12 +66,6 @@
   --font: "Source Sans 3", "Segoe UI", Arial, sans-serif;
   --font-head: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
   --radius: 4px;
-  /* Kart, şerit ve küçük köşe değişkenleri */
-  --accent-soft: #fff1b8;
-  --tile-a: #ffc61a;
-  --tile-b: #8a8f96;
-  --card-shadow: 0 1px 2px rgb(16 20 26 / 0.06), 0 0 0 1px rgb(16 20 26 / 0.08);
-  --radius-sm: 4px;
   color-scheme: light;
 }
 
@@ -88,10 +82,10 @@
     --head: #1d1f23;
     --hover: #1e2024;
 
-    --accent: #ffc61a;
-    --accent-dark: #f2b600;
-    --accent-line: #b98d00;
-    --accent-ink: #1c1e21;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-line: #1d4ed8;
+    --accent-ink: #ffffff;
     --link: #8ab8f5;
     --ink: #e9eaec;
     --ink-hover: #cfd1d5;
@@ -126,8 +120,6 @@
     --track: #303236;
     --star-empty: #565a60;
     --shadow: 0 4px 16px rgb(0 0 0 / 0.7);
-    --accent-soft: #3a3213;
-    --card-shadow: 0 0 0 1px #2f3237;
     color-scheme: dark;
   }
 }

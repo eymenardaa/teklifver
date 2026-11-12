@@ -17,11 +17,8 @@
   <link rel="canonical" href="<%= canonicalUrl %>">
   <% if (noIndex || demoActive) { %><meta name="robots" content="noindex"><% } %>
   <% if (siteVerification) { %><meta name="google-site-verification" content="<%= siteVerification %>"><% } %>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=<%= assetVersion %>">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=<%= assetVersion %>">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=<%= assetVersion %>">
-  <link rel="shortcut icon" href="/favicon.ico?v=<%= assetVersion %>">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=<%= assetVersion %>">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <script src="/js/theme.js?v=<%= assetVersion %>"></script>
   <link rel="preload" href="/fonts/source-sans-3-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -40,6 +37,7 @@
       <form action="/email/resend" method="POST"><button class="btn btn-sm" type="submit">Bağlantıyı Tekrar Gönder</button></form>
     </div>
   <% } %>
+  <div class="site-head">
   <nav class="topbar" aria-label="Üst menü">
     <div class="wrap topbar-inner">
       <div class="topbar-left">
@@ -49,18 +47,17 @@
         <a href="/yardim">Yardım</a>
         <a href="/reklam">Reklam Ver</a>
       </div>
-      <button class="btn btn-sm pwa-btn" type="button" id="pwaInstallBtn" hidden><%- icon('download', { size: 14 }) %> Uygulamayı Yükle</button>
-      <button class="theme-toggle" type="button" data-theme-toggle>
-        <span class="when-light"><%- icon('moon', { size: 14 }) %>Siyah Tema</span>
-        <span class="when-dark"><%- icon('sun', { size: 14 }) %>Beyaz Tema</span>
+      <button class="btn btn-sm pwa-btn" type="button" id="pwaInstallBtn" hidden><%- icon('download', { size: 14 }) %> Uygulamay� Y�kle</button>`n      <button class="theme-toggle" type="button" data-theme-toggle>
+        <span class="when-light"><%- icon('moon', { size: 14 }) %><span class="theme-label">Siyah Tema</span></span>
+        <span class="when-dark"><%- icon('sun', { size: 14 }) %><span class="theme-label">Beyaz Tema</span></span>
       </button>
       <% if (currentUser) { %>
-        <a href="/notifications">Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
+        <a class="topbar-bell" href="/notifications"><%- icon('bell', { size: 20 }) %>Bildirimler <span class="unread-count" data-count="notifications" <%= unreadNotifications ? '' : 'hidden' %>><%= unreadNotifications %></span></a>
         <a href="/messages">Mesajlarım <span class="unread-count" data-count="messages" <%= unreadMessages ? '' : 'hidden' %>><%= unreadMessages %></span></a>
         <a href="/dashboard/favorites">Favorilerim (<span id="favCount"><%= favoriteIds.length %></span>)</a>
         <div class="menu">
           <button class="menu-button" type="button" aria-expanded="false">
-            <%= currentUser.companyName || currentUser.name %> <%- icon('chevron-down', { size: 12 }) %>
+            <span class="menu-name"><%= currentUser.companyName || currentUser.name %></span> <%- icon('chevron-down', { size: 12 }) %>
           </button>
           <div class="menu-panel" hidden>
             <a class="menu-item" href="/dashboard"><%= currentUser.role === 'company' ? 'Tekliflerim' : 'Taleplerim' %></a>
@@ -81,11 +78,11 @@
     </div>
   </nav>
 
-  <header class="mainbar">
+  <header class="mainbar<%= currentPath === '/' ? ' is-home' : '' %>">
     <div class="wrap mainbar-inner">
-      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<img class="logo-tag" src="/img/logo-tag.svg" alt="ver" width="64" height="30"></a>
+      <a class="logo" href="/" aria-label="TeklifVer ana sayfa">teklif<span class="logo-tag">ver</span></a>
       <form class="searchbar" action="/requests" method="GET" role="search">
-        <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Hangi işi arıyorsunuz?" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
+        <input type="search" name="search" id="siteSearch" value="<%= locals.filters ? filters.search : '' %>" placeholder="Kelime veya talep no ile arayın" aria-label="Ara" autocomplete="off" aria-controls="searchSuggest">
         <select name="city" aria-label="İl">
           <option value="">Tüm iller</option>
           <% allCities.forEach(city => { %><option value="<%= city %>" <%= locals.filters && filters.city === city ? 'selected' : '' %>><%= city %></option><% }) %>
@@ -96,10 +93,11 @@
       <% if (currentUser && currentUser.role === 'company') { %>
         <a class="btn btn-primary post-button" href="/dashboard/matches">Size Uygun Talepler</a>
       <% } else { %>
-        <a class="btn btn-primary post-button" href="/requests/new">Talep Ver</a>
+        <a class="btn btn-primary post-button" href="/requests/new">Ücretsiz Talep Ver</a>
       <% } %>
     </div>
   </header>
+  </div>
 
   <nav class="catnav" aria-label="Hizmet kategorileri">
     <ul class="wrap catnav-inner">

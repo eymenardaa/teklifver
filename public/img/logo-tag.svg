@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 30" width="64" height="30" fill="none">
-  <path fill-rule="evenodd" clip-rule="evenodd" d="M13 1.5L2 15L13 28.5H59C61.2091 28.5 63 26.7091 63 24.5V5.5C63 3.29086 61.2091 1.5 59 1.5H13ZM11.5 11.8C9.73269 11.8 8.3 13.2327 8.3 15C8.3 16.7673 9.73269 18.2 11.5 18.2C13.2673 18.2 14.7 16.7673 14.7 15C14.7 13.2327 13.2673 11.8 11.5 11.8Z" fill="#FFC61A"/>
-  <circle cx="11.5" cy="15" r="4.4" stroke="#D99E00" stroke-width="1.2" fill="none"/>
-  <text x="37" y="22" font-family="'Barlow Condensed', 'Arial Narrow', 'Franklin Gothic Medium', sans-serif" font-size="21" font-weight="800" fill="#1C1E21" text-anchor="middle" letter-spacing="0.4px">ver</text>
+  <!-- Mavi Fiyat Etiketi -->
+  <polygon points="12,0 64,0 64,30 12,30 0,15" fill="#2563eb"/>
+  <circle cx="11" cy="15" r="3.2" fill="#1f2226"/>
+  <text x="35" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="-0.02em">ver</text>
 </svg>
