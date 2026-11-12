@@ -1023,7 +1023,7 @@
     initQuickBidTemplates();
     initPWA();
   });
-  /* Hızlı teklif şablonları */
+  /* Hï¿½zlï¿½ teklif ï¿½ablonlarï¿½ */
   function initQuickBidTemplates() {
     const tmplBtns = document.querySelectorAll('.quick-tmpl-btn');
     const textarea = document.getElementById('bidDescription');
@@ -1039,10 +1039,10 @@
     });
   }
 
-  /* PWA Yükleme Butonu */
+  /* PWA Yï¿½kleme Butonu */
   function initPWA() {
     let deferredPrompt;
-    const btn = #pwaInstallBtn;
+    const btn = document.getElementById("pwaInstallBtn");
     if (!btn) return;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
