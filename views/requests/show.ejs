@@ -60,22 +60,24 @@
     <div class="alert alert-error">Bu talep sahibi tarafından kapatıldı.</div>
   <% } %>
 
-  <% const hasPhotos = request.images && request.images.length > 0; %>
-  <div class="detail-main <%= hasPhotos ? '' : 'no-photos' %>">
-    <% if (hasPhotos) { %>
+  <% 
+    const displayPhotos = (request.images && request.images.length) ? request.images : [requestImage(request)];
+    const hasPhotos = true;
+  %>
+  <div class="detail-main">
     <div>
-        <a class="gallery-main" href="<%= request.images[0] %>" target="_blank" rel="noopener">
-          <img src="<%= request.images[0] %>" alt="<%= request.title %>" fetchpriority="high" decoding="async">
+        <a class="gallery-main" href="<%= displayPhotos[0] %>" target="_blank" rel="noopener">
+          <img src="<%= displayPhotos[0] %>" alt="<%= request.title %>" fetchpriority="high" decoding="async">
           <span class="gallery-zoom-hint"><%- icon('search', { size: 13 }) %> Büyüt</span>
-          <% if (request.images.length > 1) { %>
+          <% if (displayPhotos.length > 1) { %>
             <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki fotoğraf">&lsaquo;</button>
             <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki fotoğraf">&rsaquo;</button>
           <% } %>
-          <span class="gallery-count">1 / <%= request.images.length %></span>
+          <span class="gallery-count">1 / <%= displayPhotos.length %></span>
         </a>
-        <% if (request.images.length > 1) { %>
+        <% if (displayPhotos.length > 1) { %>
           <div class="gallery-thumbs">
-            <% request.images.forEach((image, index) => { %>
+            <% displayPhotos.forEach((image, index) => { %>
               <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
                 <img src="<%= thumb(image) %>" alt="" loading="lazy" decoding="async" width="96" height="72">
               </button>
@@ -83,7 +85,6 @@
           </div>
         <% } %>
     </div>
-    <% } %>
 
     <div>
       <div class="price-big"><%= budgetLabel(request.budget) %></div>
