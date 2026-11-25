@@ -362,22 +362,42 @@
     const counter = $('.gallery-count');
     let current = 0;
 
+    const videoFrame = $('.gallery-video-frame');
+    const videoEl = $('#galleryVideo');
+    const photoThumbs = thumbs.filter(thumb => thumb.dataset.full);
+
     frame.addEventListener('click', event => {
       if (event.target.closest('.gallery-nav')) return;
       event.preventDefault();
-      const urls = thumbs.length ? thumbs.map(thumb => thumb.dataset.full) : [frame.getAttribute('href')];
-      openLightbox(urls, current, image.alt);
+      const urls = photoThumbs.length ? photoThumbs.map(thumb => thumb.dataset.full) : [frame.getAttribute('href')];
+      const photoIdx = Math.min(current, urls.length - 1);
+      openLightbox(urls, Math.max(0, photoIdx), image.alt);
     });
     if (!thumbs.length) return;
 
     const show = index => {
       current = (index + thumbs.length) % thumbs.length;
-      const src = thumbs[current].dataset.full;
-      image.src = src;
-      frame.href = src;
-      image.classList.remove('is-swapping');
-      void image.offsetWidth; // animasyon yeniden başlasın
-      image.classList.add('is-swapping');
+      const activeThumb = thumbs[current];
+      const videoSrc = activeThumb.dataset.video;
+
+      if (videoSrc && videoFrame && videoEl) {
+        frame.hidden = true;
+        videoFrame.hidden = false;
+        videoEl.play().catch(() => {});
+      } else {
+        if (videoEl) videoEl.pause();
+        if (videoFrame) videoFrame.hidden = true;
+        frame.hidden = false;
+        const src = activeThumb.dataset.full;
+        if (src) {
+          image.src = src;
+          frame.href = src;
+          image.classList.remove('is-swapping');
+          void image.offsetWidth;
+          image.classList.add('is-swapping');
+        }
+      }
+
       thumbs.forEach((thumb, i) => thumb.setAttribute('aria-current', String(i === current)));
       if (counter) counter.textContent = `${current + 1} / ${thumbs.length}`;
     };
@@ -1022,6 +1042,7 @@
     initDeadlines();
     initQuickBidTemplates();
     initPWA();
+    initVideoUpload();
   });
   /* H�zl� teklif �ablonlar� */
   function initQuickBidTemplates() {
@@ -1040,21 +1061,70 @@
   }
 
   /* PWA Y�kleme Butonu */
+  
+  /* Video seçme ve önizleme */
+  function initVideoUpload() {
+    const input = $('#videoInput');
+    if (!input) return;
+    const preview = $('#videoPreview');
+    const error = $('#videoError');
+    const maxSize = 30 * 1024 * 1024;
+
+    const showErr = msg => {
+      error.textContent = msg;
+      error.hidden = !msg;
+    };
+
+    const clear = () => {
+      input.value = '';
+      preview.replaceChildren();
+      preview.hidden = true;
+    };
+
+    input.addEventListener('change', () => {
+      showErr('');
+      const file = input.files && input.files[0];
+      if (!file) { clear(); return; }
+      if (file.size > maxSize) {
+        clear();
+        showErr('Video boyutu en fazla 30 MB olabilir.');
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.src = url;
+      video.controls = true;
+      video.preload = 'metadata';
+      video.onloadeddata = () => URL.revokeObjectURL(url);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-sm';
+      removeBtn.textContent = 'Videoyu Kaldır';
+      removeBtn.addEventListener('click', () => { clear(); showErr(''); });
+
+      preview.replaceChildren(video, removeBtn);
+      preview.hidden = false;
+    });
+  }
+
   function initPWA() {
     let deferredPrompt;
-    const btn = document.getElementById("pwaInstallBtn");
-    if (!btn) return;
+    const btns = [document.getElementById("pwaInstallBtn"), document.getElementById("pwaInstallFooterBtn")].filter(Boolean);
+    if (!btns.length) return;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
-      btn.hidden = false;
+      btns.forEach(b => { b.hidden = false; });
     });
-    btn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') btn.hidden = true;
-      deferredPrompt = null;
+    btns.forEach(b => {
+      b.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') btns.forEach(el => { el.hidden = true; });
+        deferredPrompt = null;
+      });
     });
   }
 })();

@@ -118,8 +118,21 @@
   </div>
 <% } %>
 
+<% if (locals.existingVideo) { %>
+  <div class="field">
+    <span class="field-label">Mevcut video</span>
+    <div class="video-existing">
+      <video src="<%= existingVideo %>" controls preload="metadata" style="max-width:260px;max-height:160px;border-radius:var(--radius);background:#000;"></video>
+      <label class="check-row" style="margin-top:6px;">
+        <input type="checkbox" name="removeVideo" value="1">
+        <span>Videoyu kaldır</span>
+      </label>
+    </div>
+  </div>
+<% } %>
+
 <% if (locals.guest) { %>
-  <p class="field-hint">Fotoğrafları hesabınızı açtıktan sonra, yayınlamadan önce ekleyebilirsiniz.</p>
+  <p class="field-hint">Fotoğraf ve videoları hesabınızı açtıktan sonra, yayınlamadan önce ekleyebilirsiniz.</p>
 <% } else { %>
 <div class="field <%= errors.images ? 'has-error' : '' %>">
   <span class="field-label">Fotoğraf</span>
@@ -130,6 +143,16 @@
   </label>
   <div class="thumbs" id="imagePreviews"></div>
   <p class="field-error" id="imagesError" <%= errors.images ? '' : 'hidden' %>><%= errors.images || '' %></p>
+</div>
+<div class="field">
+  <span class="field-label">Video <span class="muted small">(isteğe bağlı)</span></span>
+  <label class="dropzone dropzone-video">
+    <input class="visually-hidden" type="file" id="videoInput" name="video" accept="video/mp4,video/webm,video/quicktime">
+    <span class="dropzone-title"><%- icon('video', { size: 22 }) %>Kısa video ekleyin</span>
+    <span class="muted small">MP4, WebM veya MOV · En fazla 30 MB</span>
+  </label>
+  <div id="videoPreview" class="video-preview" hidden></div>
+  <p class="field-error" id="videoError" hidden></p>
 </div>
 <% } %>
 </fieldset>

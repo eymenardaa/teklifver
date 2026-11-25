@@ -18,6 +18,7 @@
           <a class="thumb" href="/requests/<%= item._id %>" tabindex="-1" aria-hidden="true">
             <% const photo = requestImage(item); %>
             <img src="<%= thumb(photo) %>" alt="<%= item.title %>" loading="lazy" decoding="async" width="240" height="180">
+            <% if (item.video) { %><span class="video-badge" title="Videolu talep"><%- icon('video', { size: 11 }) %></span><% } %>
             <% if (item.images && item.images.length > 1) { %><span class="photo-count"><%- icon('camera', { size: 10 }) %><%= item.images.length %></span><% } %>
           </a>
         </td>

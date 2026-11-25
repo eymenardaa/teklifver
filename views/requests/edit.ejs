@@ -23,7 +23,7 @@
     <div class="box-head">Talebi Düzenle</div>
     <div class="box-body">
       <form class="form" action="/requests/<%= request._id %>?_method=PUT" method="POST" enctype="multipart/form-data">
-        <%- include('_form', { form, existingImages: request.images }) %>
+        <%- include('_form', { form, existingImages: request.images, existingVideo: request.video }) %>
         <div class="form-actions">
           <button class="btn btn-primary" type="submit">Kaydet</button>
           <a class="btn" href="/requests/<%= request._id %>">Vazgeç</a>

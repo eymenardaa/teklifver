@@ -19,7 +19,10 @@ const CONTENT_TYPES = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
-  '.gif': 'image/gif'
+  '.gif': 'image/gif',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime'
 };
 
 const bucket = () => new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' });
@@ -110,6 +113,75 @@ const withFriendlyErrors = (handler, maxFiles = MAX_IMAGES) => (req, res, next) 
   });
 };
 
+const uploadMedia = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'video') {
+      const allowedVideo = /^(mp4|webm|mov|quicktime)$/;
+      const ext = path.extname(file.originalname).slice(1).toLowerCase();
+      const sub = file.mimetype.split('/')[1] || '';
+      if (allowedVideo.test(ext) || allowedVideo.test(sub)) return cb(null, true);
+      return cb(new Error('Yalnızca MP4, WebM veya MOV formatında video yükleyebilirsiniz.'));
+    }
+    fileFilter(req, file, cb);
+  },
+  limits: { fileSize: 30 * 1024 * 1024 } // Video için 30 MB, görseller aşağıda 5 MB ile denetlenir
+});
+
+const uploadRequestMedia = (req, res, next) => {
+  const handler = uploadMedia.fields([
+    { name: 'images', maxCount: MAX_IMAGES },
+    { name: 'video', maxCount: 1 }
+  ]);
+
+  handler(req, res, async err => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') req.uploadError = 'Video en fazla 30 MB, her görsel en fazla 5 MB olabilir.';
+      else if (err.code === 'LIMIT_UNEXPECTED_FILE') req.uploadError = `En fazla ${MAX_IMAGES} görsel ve 1 video yükleyebilirsiniz.`;
+      else req.uploadError = err.message;
+      req.files = { images: [], video: [] };
+      return next();
+    }
+
+    req.files = req.files || {};
+    const imgFiles = req.files.images || [];
+    const videoFiles = req.files.video || [];
+
+    // Görseller için 5 MB kontrolü
+    for (const f of imgFiles) {
+      if (f.size > 5 * 1024 * 1024) {
+        req.uploadError = 'Her görsel en fazla 5 MB olabilir.';
+        req.files = { images: [], video: [] };
+        return next();
+      }
+    }
+
+    const saved = [];
+    try {
+      for (const file of imgFiles) {
+        file.filename = await storeImage(file.buffer);
+        file.buffer = null;
+        saved.push(file.filename);
+      }
+
+      if (videoFiles.length) {
+        const vFile = videoFiles[0];
+        const vExt = path.extname(vFile.originalname).toLowerCase() || '.mp4';
+        const vName = `${newBaseName()}${vExt}`;
+        await saveBuffer(vName, vFile.buffer);
+        vFile.filename = vName;
+        vFile.buffer = null;
+        saved.push(vName);
+      }
+    } catch {
+      deleteImages(saved.map(name => `/uploads/${name}`));
+      req.uploadError = 'Dosya işlenemedi. Lütfen geçerli formatta görsel veya video seçin.';
+      req.files = { images: [], video: [] };
+    }
+    next();
+  });
+};
+
 const uploadImages = withFriendlyErrors(upload.array('images', MAX_IMAGES));
 const uploadLogo = withFriendlyErrors(upload.single('logo'), 1);
 const uploadMessageImage = withFriendlyErrors(upload.array('images', 1), 1);
@@ -150,9 +222,31 @@ async function serveImage(req, res, next) {
     const [file] = await bucket().find({ filename: name }).limit(1).toArray();
     if (!file) return next();
 
+    const range = req.headers.range;
+    if (range && contentType.startsWith('video/')) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : file.length - 1;
+      if (Number.isNaN(start) || start >= file.length || end >= file.length || start > end) {
+        return res.status(416).set('Content-Range', `bytes */${file.length}`).end();
+      }
+      res.status(206).set({
+        'Content-Range': `bytes ${start}-${end}/${file.length}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': String(end - start + 1),
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=604800, immutable'
+      });
+      if (req.method === 'HEAD') return res.end();
+      return pipeline(bucket().openDownloadStream(file._id, { start, end: end + 1 }), res, err => {
+        if (err && !res.headersSent) next(err);
+      });
+    }
+
     res.set({
       'Content-Type': contentType,
       'Content-Length': String(file.length),
+      'Accept-Ranges': contentType.startsWith('video/') ? 'bytes' : 'none',
       'Cache-Control': 'public, max-age=604800, immutable'
     });
     if (req.method === 'HEAD') return res.end();
@@ -164,4 +258,4 @@ async function serveImage(req, res, next) {
   }
 }
 
-module.exports = { uploadImages, uploadLogo, uploadMessageImage, deleteImages, copyImages, serveImage, MAX_IMAGES };
+module.exports = { uploadImages, uploadRequestMedia, uploadLogo, uploadMessageImage, deleteImages, copyImages, serveImage, MAX_IMAGES };

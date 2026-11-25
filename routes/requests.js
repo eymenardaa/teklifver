@@ -15,7 +15,7 @@ const { alertSavedSearches } = require('../lib/search-alerts');
 const { parseDateInput, isExpired, discoveryTimes } = require('../lib/helpers');
 const { bidAllowance } = require('../lib/plans');
 const { rateLimit } = require('express-rate-limit');
-const { uploadImages, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
+const { uploadImages, uploadRequestMedia, deleteImages, copyImages, MAX_IMAGES } = require('../middleware/upload');
 const { str, safeNext } = require('../lib/input');
 const { searchPatterns, matchesText } = require('../public/js/search-terms');
 const { openCountsByCategory, uniqueByPhoto, categoryAverages, priceGuide } = require('../lib/stats');
@@ -50,7 +50,15 @@ const notFoundPage = res =>
     message: 'Bu talep silinmiş, yayından kaldırılmış veya hiç var olmamış olabilir.'
   });
 
-const uploadedPaths = req => (req.files || []).map(file => '/uploads/' + file.filename);
+const uploadedPaths = req => {
+  if (Array.isArray(req.files)) return req.files.map(file => '/uploads/' + file.filename);
+  if (req.files && req.files.images) return req.files.images.map(file => '/uploads/' + file.filename);
+  return [];
+};
+const uploadedVideoPath = req => {
+  if (req.files && req.files.video && req.files.video[0]) return '/uploads/' + req.files.video[0].filename;
+  return '';
+};
 
 // Talep formunu okur ve doğrular.
 function parseRequestForm(req) {
@@ -212,13 +220,15 @@ router.get('/new', customerOrGuest, (req, res, next) => {
 });
 
 // Yeni talep oluştur
-router.post('/', customerOrGuest, whenLoggedIn(limits.newRequest), uploadImages, async (req, res, next) => {
+router.post('/', customerOrGuest, whenLoggedIn(limits.newRequest), uploadRequestMedia, async (req, res, next) => {
   try {
     const { values, errors, data } = parseRequestForm(req);
     const guest = !req.session.user;
+    const addedImages = uploadedPaths(req);
+    const addedVideo = uploadedVideoPath(req);
 
     if (Object.keys(errors).length) {
-      deleteImages(uploadedPaths(req));
+      deleteImages([...addedImages, addedVideo].filter(Boolean));
       return res.status(422).render('requests/new', {
         title: 'Talep Ver',
         categories,
@@ -231,7 +241,7 @@ router.post('/', customerOrGuest, whenLoggedIn(limits.newRequest), uploadImages,
 
     // Ziyaretçinin talebi oturumda bekler; hesap açınca form dolu gelir ve tek tıkla yayınlanır.
     if (guest) {
-      deleteImages(uploadedPaths(req));
+      deleteImages([...addedImages, addedVideo].filter(Boolean));
       req.session.pendingRequest = values;
       req.flash('success', 'Talebiniz hazır. Yayınlamak için ücretsiz hesap açın ya da giriş yapın.');
       return res.redirect('/register?next=' + encodeURIComponent('/requests/new'));
@@ -241,7 +251,8 @@ router.post('/', customerOrGuest, whenLoggedIn(limits.newRequest), uploadImages,
     const created = await Request.create({
       ...data,
       customer: req.session.user.id,
-      images: uploadedPaths(req)
+      images: addedImages,
+      video: addedVideo
     });
 
     // Bu kategoride ve bu ilde hizmet veren firmalara haber ver.
@@ -615,11 +626,13 @@ router.get('/:id/edit', isCustomer, async (req, res, next) => {
 });
 
 // Talep güncelle
-router.put('/:id', isCustomer, uploadImages, async (req, res, next) => {
+router.put('/:id', isCustomer, uploadRequestMedia, async (req, res, next) => {
   try {
     const request = await loadOwnOpenRequest(req, res);
+    const added = uploadedPaths(req);
+    const addedVideo = uploadedVideoPath(req);
     if (!request) {
-      deleteImages(uploadedPaths(req));
+      deleteImages([...added, addedVideo].filter(Boolean));
       return;
     }
 
@@ -628,14 +641,13 @@ router.put('/:id', isCustomer, uploadImages, async (req, res, next) => {
     const removeList = [].concat(req.body.removeImages || []);
     const removed = request.images.filter(image => removeList.includes(image));
     const kept = request.images.filter(image => !removeList.includes(image));
-    const added = uploadedPaths(req);
 
     if (!errors.images && kept.length + added.length > MAX_IMAGES) {
       errors.images = `Bir talepte en fazla ${MAX_IMAGES} görsel olabilir.`;
     }
 
     if (Object.keys(errors).length) {
-      deleteImages(added);
+      deleteImages([...added, addedVideo].filter(Boolean));
       return res.status(422).render('requests/edit', {
         title: 'Talebi Düzenle',
         request: request.toObject(),
@@ -646,7 +658,17 @@ router.put('/:id', isCustomer, uploadImages, async (req, res, next) => {
       });
     }
 
-    Object.assign(request, data, { images: [...kept, ...added] });
+    const removeVideo = req.body.removeVideo === '1' || req.body.removeVideo === 'on';
+    let nextVideo = request.video || '';
+    if (addedVideo) {
+      if (nextVideo) removed.push(nextVideo);
+      nextVideo = addedVideo;
+    } else if (removeVideo && nextVideo) {
+      removed.push(nextVideo);
+      nextVideo = '';
+    }
+
+    Object.assign(request, data, { images: [...kept, ...added], video: nextVideo });
     await request.save();
     deleteImages(removed);
 
@@ -737,6 +759,7 @@ router.post('/:id/republish', isCustomer, async (req, res, next) => {
       city: request.city,
       location: request.location,
       images: await copyImages(request.images),
+      video: request.video ? (await copyImages([request.video]))[0] || '' : '',
       customer: request.customer
     });
 
@@ -760,7 +783,7 @@ router.delete('/:id', isCustomer, async (req, res, next) => {
     await Report.deleteMany({ request: request._id });
     await User.updateMany({ favorites: request._id }, { $pull: { favorites: request._id } });
     await request.deleteOne();
-    deleteImages(request.images);
+    deleteImages([...request.images, request.video].filter(Boolean));
 
     await notifyMany(pending.map(bid => bid.company), `Teklif verdiğiniz "${request.title}" talebi silindi.`, '/dashboard');
 

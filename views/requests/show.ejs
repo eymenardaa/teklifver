@@ -62,26 +62,41 @@
 
   <% 
     const displayPhotos = (request.images && request.images.length) ? request.images : [requestImage(request)];
-    const hasPhotos = true;
+    const hasVideo = Boolean(request.video);
+    const totalMedia = displayPhotos.length + (hasVideo ? 1 : 0);
   %>
   <div class="detail-main">
-    <div>
+    <div class="gallery-wrap">
         <a class="gallery-main" href="<%= displayPhotos[0] %>" target="_blank" rel="noopener">
           <img src="<%= displayPhotos[0] %>" alt="<%= request.title %>" fetchpriority="high" decoding="async">
           <span class="gallery-zoom-hint"><%- icon('search', { size: 13 }) %> Büyüt</span>
-          <% if (displayPhotos.length > 1) { %>
-            <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki fotoğraf">&lsaquo;</button>
-            <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki fotoğraf">&rsaquo;</button>
+          <% if (totalMedia > 1) { %>
+            <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki medya">&lsaquo;</button>
+            <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki medya">&rsaquo;</button>
           <% } %>
-          <span class="gallery-count">1 / <%= displayPhotos.length %></span>
+          <span class="gallery-count">1 / <%= totalMedia %></span>
         </a>
-        <% if (displayPhotos.length > 1) { %>
+        <% if (hasVideo) { %>
+          <div class="gallery-video-frame" hidden>
+            <video id="galleryVideo" src="<%= request.video %>" controls playsinline preload="metadata"></video>
+            <button class="gallery-nav gallery-prev" type="button" data-step="-1" aria-label="Önceki medya">&lsaquo;</button>
+            <button class="gallery-nav gallery-next" type="button" data-step="1" aria-label="Sonraki medya">&rsaquo;</button>
+            <span class="gallery-count"><%= totalMedia %> / <%= totalMedia %></span>
+          </div>
+        <% } %>
+        <% if (totalMedia > 1) { %>
           <div class="gallery-thumbs">
             <% displayPhotos.forEach((image, index) => { %>
               <button class="gallery-thumb" type="button" data-full="<%= image %>" aria-label="<%= index + 1 %>. fotoğraf" aria-current="<%= index === 0 %>">
                 <img src="<%= thumb(image) %>" alt="" loading="lazy" decoding="async" width="96" height="72">
               </button>
             <% }) %>
+            <% if (hasVideo) { %>
+              <button class="gallery-thumb gallery-thumb-video" type="button" data-video="<%= request.video %>" aria-label="Talep videosu" aria-current="false">
+                <%- icon('video', { size: 20 }) %>
+                <span>Video</span>
+              </button>
+            <% } %>
           </div>
         <% } %>
     </div>
