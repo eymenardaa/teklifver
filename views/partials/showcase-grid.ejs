@@ -5,6 +5,7 @@
         <% const photo = requestImage(item); %>
         <img src="<%= thumb(photo) %>" alt="<%= item.title %>" loading="lazy" decoding="async" width="240" height="180">
         <% if (item.video) { %><span class="video-badge" title="Videolu talep"><%- icon('video', { size: 11 }) %></span><% } %>
+        <% const cb = countdownBadge(item); if (cb && cb.tone !== 'normal') { %><span class="countdown-badge countdown-<%= cb.tone %>"><%- icon('clock', { size: 9 }) %> <%= cb.text %></span><% } %>
         <% if (isUrgent(item)) { %><span class="label label-urgent label-on-photo">ACİL</span><% } %>
       </div>
       <div class="showcase-title"><%= item.title %></div>

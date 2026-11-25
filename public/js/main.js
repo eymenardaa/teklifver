@@ -553,6 +553,7 @@
           emptyNote.hidden = true;
           const atBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
           messages.forEach(addMessage);
+          notifyUserAlert();
           last = messages[messages.length - 1].id;
           if (atBottom) scrollDown();
         }
@@ -939,6 +940,8 @@
         });
       });
       const total = counts.notifications + counts.messages;
+      if (window._prevAlertTotal !== undefined && total > window._prevAlertTotal) { notifyUserAlert(); }
+      window._prevAlertTotal = total;
       document.title = total ? `(${total}) ${baseTitle}` : baseTitle;
     };
 
@@ -1042,6 +1045,8 @@
     initDeadlines();
     initQuickBidTemplates();
     initPWA();
+    initBeforeAfter();
+    initCompareModal();
     initVideoUpload();
   });
   /* H�zl� teklif �ablonlar� */
@@ -1105,6 +1110,76 @@
 
       preview.replaceChildren(video, removeBtn);
       preview.hidden = false;
+    });
+  }
+
+
+  /* Sesli bildirim ve titresim */
+  function playNotificationTone() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } catch {}
+  }
+
+  function notifyUserAlert() {
+    playNotificationTone();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate([100, 50, 100]); } catch {}
+    }
+  }
+
+  /* Once & Sonra (Before & After) kaydirici */
+  function initBeforeAfter() {
+    document.querySelectorAll('[data-ba-viewer]').forEach(viewer => {
+      const slider = viewer.querySelector('.ba-slider');
+      const afterWrap = viewer.querySelector('.ba-after-wrapper');
+      const afterImg = viewer.querySelector('.ba-after');
+      const divider = viewer.querySelector('.ba-divider');
+      if (!slider) return;
+      const update = () => {
+        const val = slider.value;
+        if (afterWrap) {
+          afterWrap.style.width = val + '%';
+          if (afterImg) afterImg.style.width = viewer.clientWidth + 'px';
+        }
+        if (divider) divider.style.left = val + '%';
+      };
+      slider.addEventListener('input', update);
+      window.addEventListener('resize', update);
+      update();
+    });
+  }
+
+  /* Teklif Karsilastirma Modali */
+  function initCompareModal() {
+    const btn = document.getElementById('openCompareModal');
+    const dialog = document.getElementById('compareDialog');
+    if (!btn || !dialog) return;
+    btn.addEventListener('click', () => {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    });
+    dialog.querySelectorAll('.compare-dialog-close').forEach(c => {
+      c.addEventListener('click', () => dialog.close());
+    });
+    dialog.addEventListener('click', e => {
+      if (e.target === dialog) dialog.close();
     });
   }
 

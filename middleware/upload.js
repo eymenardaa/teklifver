@@ -8,7 +8,14 @@ const sharp = require('sharp');
 // Görseller veritabanında (GridFS) saklanır. Ücretsiz sunucularda disk her yeniden başlatmada
 // silindiği için dosyaya yazmak görsellerin kaybolmasına yol açardı.
 const MAX_IMAGES = 5;
-const MAX_INPUT_PIXELS = 40000000; // sıkıştırılmış "görsel bombalarına" karşı
+const MAX_INPUT_PIXELS = 40000000;
+const WATERMARK_SVG = Buffer.from(
+  `<svg width="140" height="30" viewBox="0 0 140 30" xmlns="http://www.w3.org/2000/svg">
+    <rect width="140" height="30" rx="4" fill="rgba(15,23,42,0.65)"/>
+    <text x="12" y="20" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="14" font-weight="bold" fill="rgba(255,255,255,0.92)">teklif<tspan fill="#3b82f6">ver</tspan></text>
+  </svg>`
+);
+ // sıkıştırılmış "görsel bombalarına" karşı
 
 // Küçük sunucuda bellek şişmesin.
 sharp.cache(false);
@@ -49,7 +56,7 @@ const saveBuffer = (name, buffer) =>
 async function storeImage(buffer) {
   const image = sharp(buffer, { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS }).rotate();
   const [full, thumb] = await Promise.all([
-    image.clone().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer(),
+    image.clone().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).composite([{ input: WATERMARK_SVG, gravity: 'southeast' }]).webp({ quality: 80 }).toBuffer(),
     image.clone().resize({ width: 480, height: 360, fit: 'cover', withoutEnlargement: true }).webp({ quality: 72 }).toBuffer()
   ]);
   const name = `${newBaseName()}.webp`;

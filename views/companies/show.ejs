@@ -20,6 +20,12 @@
           · Üyelik: <%= memberSince(company.createdAt) %>
           <% if (stats.lastBidAt) { %>· Son teklif: <%= timeAgo(stats.lastBidAt) %><% } %>
         </div>
+        <div class="company-trust-badges">
+          <% if (company.verified) { %><span class="trust-badge is-verified"><%- icon('badge-check', { size: 12 }) %> Onaylı Firma</span><% } %>
+          <% if (company.phone) { %><span class="trust-badge is-phone"><%- icon('phone', { size: 11 }) %> Telefon Onaylı</span><% } %>
+          <% if (company.emailVerified) { %><span class="trust-badge is-email"><%- icon('mail', { size: 11 }) %> E-posta Onaylı</span><% } %>
+          <% if (stats.completed >= 1) { %><span class="trust-badge is-pro"><%- icon('shield', { size: 11 }) %> Güvenilir Usta</span><% } %>
+        </div>
       </div>
     </div>
     <div class="summary">
