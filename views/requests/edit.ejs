@@ -10,7 +10,9 @@
     budgetMax: request.budget && request.budget.max > 0 ? request.budget.max : '',
     deadline: request.deadline ? dateInput(request.deadline) : '',
     city: request.city || '',
-    location: request.location || ''
+    location: request.location || '',
+    isUrgent: Boolean(request.isUrgent),
+    isAuction: Boolean(request.isAuction)
   };
 %>
 

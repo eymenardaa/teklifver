@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+<link rel="stylesheet" href="/css/leaflet.css">
+
+<div class="wrap page map-page">
+  <div class="crumbs">
+    <a href="/">Ana Sayfa</a> &rsaquo; <span>Canlı Harita</span>
+  </div>
+
+  <section class="box map-box">
+    <div class="map-toolbar">
+      <div class="map-toolbar-left">
+        <h1 class="map-title"><%- icon('globe', { size: 18 }) %> Canlı Harita</h1>
+        <div class="map-filter-pills" role="tablist">
+          <button class="pill-btn active" type="button" data-filter="all">Tümü (<span id="totalPinsCount"><%= requestCount + companyCount %></span>)</button>
+          <button class="pill-btn" type="button" data-filter="requests"><%- icon('briefcase', { size: 12 }) %> Talepler (<span id="reqPinsCount"><%= requestCount %></span>)</button>
+          <button class="pill-btn" type="button" data-filter="companies"><%- icon('badge-check', { size: 12 }) %> Onaylı Firmalar (<span id="compPinsCount"><%= companyCount %></span>)</button>
+        </div>
+      </div>
+      <div class="map-toolbar-right">
+        <label for="mapCitySelect" class="visually-hidden">Şehir seçin</label>
+        <select class="select" id="mapCitySelect">
+          <option value="">İl Seçerek Yaklaşın</option>
+          <% allCities.forEach(city => { %>
+            <option value="<%= city %>"><%= city %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div class="map-container-wrap">
+      <div id="liveMap" class="live-map-canvas" aria-label="Talepler ve firmalar haritası">
+        <div class="map-loading" id="mapLoading">
+          <div class="loading-spinner"></div>
+          <span>Harita ve noktalar yükleniyor...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-legend">
+      <div class="legend-item"><span class="legend-dot dot-request"></span> <span>Açık Talep</span></div>
+      <div class="legend-item"><span class="legend-dot dot-auction"></span> <span>Canlı Eksiltme (Açık Artırma)</span></div>
+      <div class="legend-item"><span class="legend-dot dot-company"></span> <span>Onaylı Firma / Usta</span></div>
+    </div>
+  </section>
+</div>
+
+<script src="/js/leaflet.js" defer></script>
+<script src="/js/map.js" defer></script>
+<%- include('../partials/footer') %>

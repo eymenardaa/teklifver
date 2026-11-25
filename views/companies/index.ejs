@@ -84,6 +84,7 @@
 
       <div class="quick-filter-pills" role="navigation" aria-label="Hızlı Filtreler">
         <span class="qf-label">Hızlı Filtre:</span>
+        <a class="pill-btn pill-btn-map" href="/harita"><%- icon('globe', { size: 12 }) %> Canlı Harita</a>
         <a class="pill-btn <%= sort === 'rating' && !verified && !minRating ? 'active' : '' %>" href="<%= companyUrl({ sort: 'rating', verified: '', minRating: '' }) %>">En Yüksek Puan</a>
         <a class="pill-btn <%= sort === 'reviews' ? 'active' : '' %>" href="<%= companyUrl({ sort: sort === 'reviews' ? 'rating' : 'reviews' }) %>">Çok Yorum Alanlar</a>
         <a class="pill-btn <%= verified ? 'active' : '' %>" href="<%= companyUrl({ verified: verified ? '' : 'on' }) %>"><%- icon('badge-check', { size: 12 }) %> Onaylı Firmalar</a>

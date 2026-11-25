@@ -226,4 +226,79 @@ router.get('/sitemap.xml', async (req, res, next) => {
   }
 });
 
+
+const cityCoords = require('../config/cityCoords');
+
+router.get('/harita', async (req, res, next) => {
+  try {
+    const [requestCount, companyCount] = await Promise.all([
+      Request.countDocuments({ status: 'open' }),
+      User.countDocuments({ role: 'company', suspended: { $ne: true } })
+    ]);
+    res.render('pages/map', {
+      title: 'Canlı Harita: Talepler ve Firmalar',
+      metaDescription: 'Türkiye genelindeki açık talepleri ve onaylı firmaları harita üzerinde canlı inceleyin.',
+      requestCount,
+      companyCount
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/api/map-data', async (req, res, next) => {
+  try {
+    const [rawRequests, rawCompanies] = await Promise.all([
+      Request.find({ status: 'open' })
+        .select('title category budget city location createdAt images no isAuction')
+        .limit(150)
+        .lean(),
+      User.find({ role: 'company', suspended: { $ne: true } })
+        .select('name companyName city address rating ratingCount verified specialties')
+        .limit(150)
+        .lean()
+    ]);
+
+    const jitter = () => (Math.random() - 0.5) * 0.07;
+
+    const requests = rawRequests.map(r => {
+      const city = r.city || 'İstanbul';
+      const baseCoords = cityCoords[city] || cityCoords['İstanbul'];
+      return {
+        id: r._id,
+        no: r.no,
+        type: 'request',
+        title: r.title,
+        category: r.category,
+        city: city,
+        coords: [baseCoords[0] + jitter(), baseCoords[1] + jitter()],
+        budget: r.budget && r.budget.max ? r.budget.max : 0,
+        url: '/requests/' + r._id,
+        isAuction: Boolean(r.isAuction)
+      };
+    });
+
+    const companies = rawCompanies.map(c => {
+      const city = c.city || (c.address && c.address.split('/')[0]) || 'İstanbul';
+      const baseCoords = cityCoords[city] || cityCoords['İstanbul'];
+      return {
+        id: c._id,
+        type: 'company',
+        name: c.companyName || c.name,
+        city: city,
+        coords: [baseCoords[0] + jitter(), baseCoords[1] + jitter()],
+        rating: c.rating || 0,
+        ratingCount: c.ratingCount || 0,
+        verified: Boolean(c.verified),
+        url: '/companies/' + c._id,
+        specialties: (c.specialties || []).slice(0, 3)
+      };
+    });
+
+    res.json({ requests, companies, cityCoords });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

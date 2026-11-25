@@ -56,6 +56,10 @@ const requestSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  isAuction: {
+    type: Boolean,
+    default: false
+  },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

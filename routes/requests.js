@@ -99,7 +99,7 @@ function parseRequestForm(req) {
   if (req.uploadError) errors.images = req.uploadError;
 
   return {
-    values: { ...values, isUrgent: req.body.isUrgent === 'on' },
+    values: { ...values, isUrgent: req.body.isUrgent === 'on', isAuction: req.body.isAuction === 'on' },
     errors,
     data: {
       title: values.title,

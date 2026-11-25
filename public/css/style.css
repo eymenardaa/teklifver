@@ -1321,3 +1321,161 @@ html[data-theme='dark'] .cat-icon { background: color-mix(in srgb, var(--c) 24%,
 .badge-price { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
 .badge-speed { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
 .cmp-desc-text { max-height: 90px; overflow-y: auto; font-size: 12.5px; color: var(--text-soft); line-height: 1.4; }
+
+
+/* Canli Eksiltme (Acik Artirma) Modu */
+.auction-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.auction-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+.auction-dot {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  border-radius: 50%;
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.auction-desc { margin: 0; font-size: 13px; color: var(--text-soft); }
+.auction-lead { display: flex; flex-direction: column; align-items: flex-end; }
+.auction-lead-label { font-size: 11px; color: var(--text-soft); font-weight: 600; text-transform: uppercase; }
+.auction-lead-price { font-size: 22px; font-weight: 800; color: var(--green); font-family: var(--font-head); }
+.auction-lead-firm { font-size: 12px; color: var(--text-soft); font-weight: 600; }
+.btn-auction-jump { background: var(--green); color: #fff; font-weight: 700; border: 0; margin-top: 6px; }
+.btn-auction-jump:hover { background: color-mix(in srgb, var(--green) 85%, #000); }
+.badge-auction {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  color: var(--amber);
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-leader {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  border: 1px solid var(--green);
+  color: var(--green);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+/* Canli Harita */
+.map-page { max-width: 1280px; }
+.map-box { padding: 0; overflow: hidden; }
+.map-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--head);
+  border-bottom: 1px solid var(--line);
+}
+.map-toolbar-left { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.map-title { margin: 0; font-size: 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.map-filter-pills { display: flex; gap: 6px; }
+.map-container-wrap { position: relative; width: 100%; height: calc(100vh - 220px); min-height: 480px; }
+.live-map-canvas { width: 100%; height: 100%; z-index: 1; }
+.map-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text);
+  font-weight: 600;
+}
+html[data-theme='dark'] .map-loading { background: rgba(22, 24, 27, 0.85); }
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-request { background: #2563eb; }
+.dot-auction { background: #eab308; }
+.dot-company { background: #16a34a; }
+
+/* Harita Pinleri (Custom Marker) */
+.map-pin-div { background: none; border: none; }
+.custom-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  color: #fff;
+  border: 2px solid #fff;
+}
+.custom-pin svg { transform: rotate(45deg); }
+.pin-blue { background: #2563eb; }
+.pin-gold { background: #d97706; }
+.pin-green { background: #16a34a; }
+
+/* Popup Karti */
+.map-popup-card { width: 220px; font-family: var(--font); font-size: 13px; line-height: 1.35; padding: 2px; }
+.popup-cat { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-bottom: 2px; display: block; }
+.popup-title { font-size: 14px; font-weight: 700; margin: 2px 0 6px; color: #1c1e21; }
+.popup-meta { font-size: 12px; color: #4b5563; margin-bottom: 4px; }
+.popup-budget { font-size: 13px; font-weight: 700; color: #16a34a; margin-bottom: 8px; }
+.popup-rating { font-size: 12px; color: #374151; margin-bottom: 6px; }
+.popup-btn { font-size: 12px; padding: 4px 8px; border-radius: 4px; text-align: center; }
+.pill-btn-map { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); color: var(--accent); font-weight: 700; }

@@ -125,6 +125,7 @@
 
       <div class="quick-filter-pills" role="navigation" aria-label="Hızlı Filtreler">
         <span class="qf-label">Hızlı Filtre:</span>
+        <a class="pill-btn pill-btn-map" href="/harita"><%- icon('globe', { size: 12 }) %> Canlı Harita</a>
         <a class="pill-btn <%= filters.sort === 'newest' && !filters.photos && !filters.period && !filters.budgetMin ? 'active' : '' %>" href="<%= listUrl({ sort: 'newest', period: '', photos: false, budgetMin: 0, budgetMax: 0 }) %>">En Yeniler</a>
         <a class="pill-btn <%= filters.sort === 'budget_high' ? 'active' : '' %>" href="<%= listUrl({ sort: filters.sort === 'budget_high' ? 'newest' : 'budget_high' }) %>">Yüksek Bütçe</a>
         <a class="pill-btn <%= filters.sort === 'bids' ? 'active' : '' %>" href="<%= listUrl({ sort: filters.sort === 'bids' ? 'newest' : 'bids' }) %>">Çok Teklif Alanlar</a>
